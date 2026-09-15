@@ -67,6 +67,8 @@ gradlew.bat
 *.aab
 *.keystore
 !gradle/wrapper/gradle-wrapper.jar
+app/debug/
+app/release/
 
 # --- Coverage / reports ---
 *.ec

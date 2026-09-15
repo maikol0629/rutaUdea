@@ -13,6 +13,8 @@ import com.udea.rutaudea.di.AppModule
 import com.udea.rutaudea.di.ViewModelFactories
 import com.udea.rutaudea.ui.screen.common.ComingSoonScreen
 import com.udea.rutaudea.ui.screen.home.HomeScreen
+import com.udea.rutaudea.ui.screen.perfil.PerfilScreen
+import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
 import com.udea.rutaudea.ui.screen.resultado.ResultadoScreen
 import com.udea.rutaudea.ui.screen.resultado.ResultadoViewModel
 import com.udea.rutaudea.ui.screen.simulacro.SimulacroScreen
@@ -25,6 +27,7 @@ fun AppNavHost() {
     val app = LocalContext.current.applicationContext as android.app.Application
     val repository = AppModule.provideQuestionRepository(app)
     val mvpProvider = AppModule.provideMvpQuestionProvider(repository)
+    val simulationRepository = AppModule.provideSimulationRepository(app)
 
     NavHost(navController, startDestination = AppNavGraph.SPLASH) {
         composable(AppNavGraph.SPLASH) {
@@ -82,6 +85,7 @@ fun AppNavHost() {
             val resultadoViewModel: ResultadoViewModel = viewModel(
                 factory = ViewModelFactories.ResultadoFactory(
                     mvpProvider,
+                    simulationRepository,
                     resultadoData.userAnswers,
                     resultadoData.score,
                     resultadoData.total,
@@ -124,9 +128,12 @@ fun AppNavHost() {
         }
 
         composable(AppNavGraph.PERFIL) {
-            ComingSoonScreen(
-                title = "Perfil",
-                description = "Tu cuenta, configuración y preferencias.\nIntegración con Firebase Auth próximamente.",
+            val authRepository = AppModule.provideAuthRepository(app)
+            val perfilViewModel: PerfilViewModel = viewModel(
+                factory = ViewModelFactories.PerfilFactory(authRepository)
+            )
+            PerfilScreen(
+                viewModel = perfilViewModel,
                 onBack = { navController.navigate(AppNavGraph.HOME) }
             )
         }
