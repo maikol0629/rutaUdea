@@ -6,7 +6,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.udea.rutaudea.data.repository.AuthRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
-import com.udea.rutaudea.data.source.mvp.MvpQuestionProvider
+import com.udea.rutaudea.domain.services.QuestionSelector
 import com.udea.rutaudea.RutaUdeaApp
 
 object AppModule {
@@ -15,8 +15,8 @@ object AppModule {
         return (app as RutaUdeaApp).questionRepository
     }
 
-    fun provideMvpQuestionProvider(repository: QuestionRepository): MvpQuestionProvider {
-        return MvpQuestionProvider(repository)
+    fun provideQuestionSelector(): QuestionSelector {
+        return QuestionSelector()
     }
 
     fun provideAuthRepository(app: Application): AuthRepository {

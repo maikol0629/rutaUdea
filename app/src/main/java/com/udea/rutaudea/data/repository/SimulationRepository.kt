@@ -2,6 +2,7 @@ package com.udea.rutaudea.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.udea.rutaudea.domain.model.Question
 import kotlinx.coroutines.tasks.await
 
@@ -67,6 +68,37 @@ class SimulationRepository(
             Result.success(simDoc.id)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * IDs de las preguntas usadas en los últimos [cantidad] simulacros
+     * del usuario (motor de selección, plan sección 8: evitar repetir
+     * preguntas de simulacros recientes).
+     *
+     * Si no hay sesión o Firestore no está disponible, devuelve un
+     * conjunto vacío (la selección se hace sin exclusión).
+     */
+    suspend fun getQuestionIdsFromRecentSimulacros(cantidad: Int): Set<String> {
+        val uid = auth.currentUser?.uid ?: return emptySet()
+        return try {
+            val sims = firestore.collection(COLECCION_SIMULATIONS)
+                .whereEqualTo(CAMPO_UID, uid)
+                .orderBy(CAMPO_FECHA, Query.Direction.DESCENDING)
+                .limit(cantidad.toLong())
+                .get()
+                .await()
+            val ids = mutableSetOf<String>()
+            for (sim in sims.documents) {
+                val preguntas = sim.reference
+                    .collection(COLECCION_SIM_QUESTIONS)
+                    .get()
+                    .await()
+                preguntas.documents.forEach { ids.add(it.id) }
+            }
+            ids
+        } catch (e: Exception) {
+            emptySet()
         }
     }
 
