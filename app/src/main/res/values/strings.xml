@@ -1,3 +1,55 @@
 <resources>
     <string name="app_name">RutaUdeA</string>
+
+    <!-- Splash -->
+    <string name="splash_loading">Cargando banco de preguntas…</string>
+    <string name="splash_title">RutaUdeA</string>
+    <string name="splash_subtitle">Preparación para admisión UdeA</string>
+
+    <!-- Home / Bottom Bar -->
+    <string name="nav_simulacro">Simulacro</string>
+    <string name="nav_practica">Práctica</string>
+    <string name="nav_progreso">Progreso</string>
+    <string name="nav_info">Info</string>
+    <string name="nav_perfil">Perfil</string>
+
+    <string name="home_title">RutaUdeA</string>
+    <string name="home_subtitle">Tu camino a la UdeA</string>
+    <string name="home_simulacro_title">Simulacro MVP</string>
+    <string name="home_simulacro_desc">5 min • 6 preguntas • 3 RL + 3 CL</string>
+    <string name="home_start_simulacro">Iniciar Simulacro</string>
+    <string name="home_coming_soon">En desarrollo</string>
+
+    <!-- Simulacro -->
+    <string name="simulacro_title">Simulacro MVP</string>
+    <string name="simulacro_question_prefix">Pregunta</string>
+    <string name="simulacro_of">de</string>
+    <string name="simulacro_next">Siguiente</string>
+    <string name="simulacro_finish">Finalizar</string>
+    <string name="simulacro_time_remaining">Tiempo restante</string>
+    <string name="simulacro_select_option">Selecciona una opción</string>
+
+    <!-- Overlay Resume -->
+    <string name="resume_title">Simulacro en pausa</string>
+    <string name="resume_message">Tu tiempo se ha guardado. ¿Qué deseas hacer?</string>
+    <string name="resume_continue">Continuar</string>
+    <string name="resume_abandon">Abandonar</string>
+
+    <!-- Resultado -->
+    <string name="resultado_title">Resultado</string>
+    <string name="resultado_score">correctas</string>
+    <string name="resultado_time_used">Tiempo usado</string>
+    <string name="resultado_detail_title">Detalle por pregunta</string>
+    <string name="resultado_correct">Correcta</string>
+    <string name="resultado_incorrect">Incorrecta</string>
+    <string name="resultado_your_answer">Tu respuesta</string>
+    <string name="resultado_correct_answer">Respuesta correcta</string>
+    <string name="resultado_explanation">Explicación</string>
+    <string name="resultado_back_home">Volver al inicio</string>
+
+    <!-- Common -->
+    <string name="option_a">A</string>
+    <string name="option_b">B</string>
+    <string name="option_c">C</string>
+    <string name="option_d">D</string>
 </resources>

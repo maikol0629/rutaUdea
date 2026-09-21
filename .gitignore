@@ -43,3 +43,38 @@ captures/
 # --- Firebase ---
 # google-services.json contiene claves del proyecto; no debe subirse al repo.
 google-services.json
+
+# --- mise / tooling ---
+mise.toml
+.mise/
+
+# --- VS Code / IDEs ---
+.vscode/
+*.swp
+*.swo
+
+# --- Kotlin / KSP ---
+.kotlin/
+*.ksp/
+
+# --- Gradle cache / wrapper ---
+gradle/
+gradlew
+gradlew.bat
+
+# --- Build outputs ---
+*.apk
+*.aab
+*.keystore
+!gradle/wrapper/gradle-wrapper.jar
+
+# --- Coverage / reports ---
+*.ec
+build/reports/
+coverage/
+
+# --- Release / signing ---
+*.jks
+keystore.properties
+signing.properties
+local.properties
