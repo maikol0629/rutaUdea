@@ -56,9 +56,8 @@ fun SplashScreen(
             ) {
                 androidx.compose.foundation.Image(
                     painter = painterResource(id = R.drawable.ic_splash_logo),
-                    contentDescription = null,
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(ForestGreen),
-                    modifier = Modifier.size(64.dp)
+                    contentDescription = "Logo RutaUdeA",
+                    modifier = Modifier.size(120.dp)
                 )
                 Text(
                     text = "RutaUdeA",

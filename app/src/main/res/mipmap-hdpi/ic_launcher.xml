@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<mipmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:roundIcon="@mipmap/ic_launcher_round">
-    <item android:drawable="@mipmap/ic_launcher" />
-</mipmap>

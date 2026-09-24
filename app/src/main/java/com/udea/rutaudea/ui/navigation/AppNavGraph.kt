@@ -9,10 +9,4 @@ object AppNavGraph {
     const val PROGRESO = "progreso"
     const val INFO = "info"
     const val PERFIL = "perfil"
-
-    const val SIMULACRO_START_DEST = SIMULACRO
-
-    // Routes with arguments
-    fun resultadoRoute(score: Int, total: Int, timeUsed: Long) =
-        "$RESULTADO?score=$score&total=$total&timeUsed=$timeUsed"
 }

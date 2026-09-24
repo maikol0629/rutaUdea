@@ -1,14 +1,9 @@
 package com.udea.rutaudea.ui.navigation
 
-import android.os.Bundle
-import android.util.Log
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -23,14 +18,10 @@ import com.udea.rutaudea.ui.screen.resultado.ResultadoViewModel
 import com.udea.rutaudea.ui.screen.simulacro.SimulacroScreen
 import com.udea.rutaudea.ui.screen.simulacro.SimulacroViewModel
 import com.udea.rutaudea.ui.screen.splash.SplashScreen
-import com.udea.rutaudea.ui.screen.splash.SplashViewModel
-import androidx.compose.ui.platform.LocalContext
-import java.lang.reflect.Type
 
 @Composable
 fun AppNavHost() {
     val navController = rememberNavController()
-    var selectedTab by remember { mutableStateOf(0) }
     val app = LocalContext.current.applicationContext as android.app.Application
     val repository = AppModule.provideQuestionRepository(app)
     val mvpProvider = AppModule.provideMvpQuestionProvider(repository)
@@ -62,10 +53,9 @@ fun AppNavHost() {
             val simulacroViewModel: SimulacroViewModel = viewModel(
                 factory = ViewModelFactories.SimulacroFactory(mvpProvider, savedStateHandle)
             )
-            val uiState = simulacroViewModel.uiState.value
             SimulacroScreen(
                 viewModel = simulacroViewModel,
-                onAbandon = { navController.popBackStack(AppNavGraph.HOME, inclusive = true) },
+                onAbandon = { navController.popBackStack(AppNavGraph.HOME, inclusive = false) },
                 onFinish = {
                     navController.navigate(AppNavGraph.RESULTADO)
                 }
@@ -73,26 +63,37 @@ fun AppNavHost() {
         }
 
         composable(AppNavGraph.RESULTADO) { backStackEntry ->
-            // Get data from Simulacro's SavedStateHandle via previous back stack entry
-            val previousEntry = navController.getBackStackEntry(AppNavGraph.SIMULACRO)
-            val simulacroSavedStateHandle = previousEntry.savedStateHandle
-            
-            val score = simulacroSavedStateHandle.get<Int>("simulation_score") ?: 0
-            val total = simulacroSavedStateHandle.get<Int>("simulation_total") ?: 0
-            val timeUsed = simulacroSavedStateHandle.get<Long>("simulation_time_used_ms") ?: 0L
-            val userAnswersJson = simulacroSavedStateHandle.get<String>("simulation_user_answers_json") ?: "{}"
-            val userAnswers = parseUserAnswers(userAnswersJson)
+            // Get data from Simulacro's SavedStateHandle via previous back stack entry.
+            // Read it ONCE with remember: during the exit animation (after SIMULACRO was
+            // popped from the back stack) getBackStackEntry() would throw and crash the app.
+            val resultadoData = remember {
+                val simulacroSavedStateHandle =
+                    navController.getBackStackEntry(AppNavGraph.SIMULACRO).savedStateHandle
+                ResultadoData(
+                    score = simulacroSavedStateHandle.get<Int>("simulation_score") ?: 0,
+                    total = simulacroSavedStateHandle.get<Int>("simulation_total") ?: 0,
+                    timeUsed = simulacroSavedStateHandle.get<Long>("simulation_time_used_ms") ?: 0L,
+                    userAnswers = parseUserAnswers(
+                        simulacroSavedStateHandle.get<String>("simulation_user_answers_json") ?: "{}"
+                    )
+                )
+            }
             
             val resultadoViewModel: ResultadoViewModel = viewModel(
-                factory = ViewModelFactories.ResultadoFactory(mvpProvider, userAnswers, score, total, timeUsed)
+                factory = ViewModelFactories.ResultadoFactory(
+                    mvpProvider,
+                    resultadoData.userAnswers,
+                    resultadoData.score,
+                    resultadoData.total,
+                    resultadoData.timeUsed
+                )
             )
             ResultadoScreen(
                 viewModel = resultadoViewModel,
                 onFinish = {
-                    navController.navigate(AppNavGraph.HOME) {
-                        popUpTo(AppNavGraph.HOME) { inclusive = false }
-                        launchSingleTop = true
-                    }
+                    // HOME is already in the back stack below SIMULACRO/RESULTADO,
+                    // so simply pop back to it (avoids re-pushing HOME and crashes).
+                    navController.popBackStack(AppNavGraph.HOME, inclusive = false)
                 }
             )
         }
@@ -131,6 +132,13 @@ fun AppNavHost() {
         }
     }
 }
+
+private data class ResultadoData(
+    val score: Int,
+    val total: Int,
+    val timeUsed: Long,
+    val userAnswers: Map<Int, String>
+)
 
 private val gson = Gson()
 private val typeToken = object : TypeToken<Map<Int, String>>() {}.type

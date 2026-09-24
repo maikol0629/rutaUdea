@@ -83,9 +83,13 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Impacto**: App se instala pero icono no visible correctamente
 
 ### 2. Limpieza de código (Menor)
-- `ViewModelFactory.kt` duplicado sin usar → **Eliminar**
-- `AppModule.kt` con funciones no usadas → **Eliminar o adaptar**
-- Warning `Modifier.weight(1f)` API interna → Usar `Modifier.weight(1f, fill = true)`
+- ✅ `ViewModelFactory.kt` vacío sin uso → **ELIMINADO**
+- ✅ `BottomBar.kt` sin uso (HomeScreen no lo renderiza) → **ELIMINADO**
+- ✅ `HomeViewModel.kt` vacío sin uso → **ELIMINADO**
+- ✅ Funciones `create*` duplicadas y `HomeFactory` en `ViewModelFactories.kt` → **ELIMINADAS**
+- ✅ `resultadoRoute()` / `SIMULACRO_START_DEST` (era JSON-en-URL) → **ELIMINADOS**
+- ✅ Métodos muertos en `SimulacroViewModel` (`getSaved*`, `onAbandon`, `clearSavedState`, getter duplicado, `isRunning`) → **ELIMINADOS**
+- ✅ ~20 imports y variables muertas en screens/nav → **LIMPIADOS**
 
 ### 3. Dagger/Hilt NO configurado
 - **Estado**: Inyección manual via `ViewModelFactories` object
@@ -108,9 +112,8 @@ app/src/main/java/com/udea/rutaudea/
 ├── MainActivity.kt                    # Entry point - usa AppNavHost()
 ├── RutaUdeaApp.kt                     # Application class - expone repository
 ├── di/
-│   ├── AppModule.kt                   # ⚠️ Sin uso real - LIMPIAR
-│   ├── ViewModelFactory.kt            # ⚠️ Sin uso - ELIMINAR
-│   └── ViewModelFactories.kt          # ✅ USADO - Factory functions
+│   ├── AppModule.kt                   # Punto de acceso a repository/mvpProvider
+│   └── ViewModelFactories.kt          # Splash/Simulacro/Resultado factories
 ├── data/
 │   ├── local/                         # Room - COMPLETO
 │   ├── mapper/                        # ✅
@@ -121,9 +124,8 @@ app/src/main/java/com/udea/rutaudea/
 ├── domain/model/Question.kt           # ✅ Modelo dominio
 ├── ui/
 │   ├── navigation/
-│   │   ├── AppNavHost.kt              # ✅ NavHost principal (imports limpios)
-│   │   ├── AppNavGraph.kt             # ✅ Rutas
-│   │   └── BottomBar.kt               # ✅ 5 tabs
+│   │   ├── AppNavHost.kt              # ✅ NavHost principal
+│   │   └── AppNavGraph.kt             # ✅ Rutas
 │   ├── screen/
 │   │   ├── splash/                    # ✅ Splash + ViewModel (poll DB seed)
 │   │   ├── home/                      # ✅ Home + 5 tabs
@@ -141,7 +143,7 @@ app/src/main/java/com/udea/rutaudea/
 | Prioridad | Tarea | Esfuerzo |
 |-----------|-------|----------|
 | **P0** | Generar iconos PNG reales (mipmap-*) / fix adaptive icon | 30 min |
-| **P0** | Eliminar ViewModelFactory.kt y AppModule sin uso | 5 min |
+| ~~**P0**~~ | ~~Eliminar código basura sin uso~~ | ✅ HECHO |
 | **P1** | Migrar a Hilt para DI | 2 horas |
 | **P1** | Configurar Firebase (Auth + Firestore) | 4 horas |
 | **P1** | Implementar Práctica filtrada real | 4 horas |
@@ -202,7 +204,11 @@ app/src/main/java/com/udea/rutaudea/
 | Botón "Finalizar" cerraba app | `navigate(HOME)` con `popUpTo(HOME, inclusive=false)` en lugar de `popBackStack(inclusive=true)` |
 | Layout detalle/resultados | LazyColumn con `.weight(1f, fill=false)` para no empujar botón fuera de pantalla |
 | Async results no renderizaban | Usar `questionResults` StateFlow directo en `items()` en lugar de `.value` |
+| Crash al pulsar "Finalizar" en Resultado (app se cerraba) | `getBackStackEntry(SIMULACRO)` se reevaluaba durante la animación de salida (ya poppeado) → `IllegalArgumentException`. Fix: lectura con `remember {}` una sola vez + `popBackStack(HOME, inclusive=false)` en vez de `navigate(HOME)` |
+| Logo no se mostraba en SplashScreen | `ic_splash_logo.xml` pinta todo el canvas verde oscuro de fondo; el `ColorFilter.tint(ForestGreen)` teñía TODO el vector (cuadrado verde sólido). Fix: eliminado el tint, logo se muestra con sus colores originales a 120.dp |
+
+| Botón "Abandonar" del overlay cerraba la app | `popBackStack(HOME, inclusive=true)` vaciaba el back stack → `inclusive=false` para volver a Home |
 
 ---
 
-*Última actualización: 2024-09-21 - MVP COMPLETO, build SUCCESS, tests PASS, iconos pendientes*
+*Última actualización: 2026-09-22 - Limpieza de código muerto (3 archivos + ~13 símbolos/imports eliminados) sin tocar capa de datos del commit inicial; fix "Abandonar" (ya no cierra la app); build SUCCESS, tests PASS (12)*

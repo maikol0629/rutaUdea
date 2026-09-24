@@ -16,7 +16,6 @@ data class SimulacroState(
     val currentIndex: Int = 0,
     val userAnswers: Map<Int, String> = emptyMap(),
     val timeRemainingMs: Long = 0,
-    val isRunning: Boolean = false,
     val isFinished: Boolean = false,
     val showResumeOverlay: Boolean = false
 ) {
@@ -39,7 +38,6 @@ class SimulacroViewModel(
         private const val START_TIME_KEY = "start_time_ms"
         private const val USER_ANSWERS_KEY = "user_answers"
         private const val CURRENT_INDEX_KEY = "current_index"
-        private const val QUESTIONS_KEY = "question_ids"
         private const val TOTAL_DURATION_MS = 5 * 60 * 1000L // 5 minutos
         private val gson = Gson()
     }
@@ -146,9 +144,6 @@ class SimulacroViewModel(
         }
     }
 
-    val timeRemainingSeconds: Int
-        get() = (uiState.value.timeRemainingMs / 1000).toInt()
-
     val currentQuestion: Question?
         get() {
             val state = uiState.value
@@ -194,33 +189,14 @@ class SimulacroViewModel(
         savedStateHandle["simulation_user_answers_json"] = gson.toJson(userAnswers)
     }
 
-    // Getter methods for saved simulation results
-    fun getSavedScore(): Int = savedStateHandle.get<Int>("simulation_score") ?: 0
-    fun getSavedTotal(): Int = savedStateHandle.get<Int>("simulation_total") ?: 0
-    fun getSavedTimeUsedMs(): Long = savedStateHandle.get<Long>("simulation_time_used_ms") ?: 0L
-    fun getSavedUserAnswers(): Map<Int, String> = savedStateHandle.get<MutableMap<Int, String>>(USER_ANSWERS_KEY)?.toMap() ?: emptyMap()
-    fun getSavedUserAnswersJson(): String = savedStateHandle.get<String>("simulation_user_answers_json") ?: "{}"
-
     fun onResumeConfirmed() {
         val currentState = _uiState.value
         _uiState.value = currentState.copy(showResumeOverlay = false)
         resumeTimer()
     }
 
-    fun onAbandon() {
-        timerJob?.cancel()
-        clearSavedState()
-    }
-
     private fun saveAnswers(answers: MutableMap<Int, String>) {
         savedStateHandle[USER_ANSWERS_KEY] = answers
-    }
-
-    private fun clearSavedState() {
-        savedStateHandle.remove<String>(START_TIME_KEY)
-        savedStateHandle.remove<MutableMap<Int, String>>(USER_ANSWERS_KEY)
-        savedStateHandle.remove<Int>(CURRENT_INDEX_KEY)
-        savedStateHandle.remove<List<String>>(QUESTIONS_KEY)
     }
 
     override fun onCleared() {
