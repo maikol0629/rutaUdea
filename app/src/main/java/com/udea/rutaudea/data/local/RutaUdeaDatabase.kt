@@ -17,7 +17,7 @@ import com.udea.rutaudea.data.local.entity.QuestionEntity
 @Database(
     entities = [QuestionEntity::class],
     version = 1,
-    exportSchema = true
+    exportSchema = false
 )
 abstract class RutaUdeaDatabase : RoomDatabase() {
 

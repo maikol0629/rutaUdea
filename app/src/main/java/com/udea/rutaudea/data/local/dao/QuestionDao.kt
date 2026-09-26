@@ -39,6 +39,7 @@ interface QuestionDao {
           AND (:dificultad IS NULL OR dificultad = :dificultad)
           AND estado = 'aprobado'
         ORDER BY RANDOM()
+        LIMIT :limit
         """
     )
     suspend fun getQuestions(
@@ -49,7 +50,7 @@ interface QuestionDao {
     ): List<QuestionEntity>
 
     /** Todas las preguntas aprobadas de un área (usado por el motor de selección). */
-    @Query("SELECT * FROM questions WHERE area = :area AND estado = 'aprobado' ORDER BY RANDOM()")
+    @Query("SELECT * FROM questions WHERE area = :area AND estado = 'aprobado' ORDER BY RANDOM() LIMIT :limit")
     suspend fun getQuestionsByArea(area: String, limit: Int): List<QuestionEntity>
 
     /** Preguntas por subtema específico. */
@@ -57,7 +58,7 @@ interface QuestionDao {
     suspend fun getQuestionsBySubtema(subtema: String): List<QuestionEntity>
 
     /** Preguntas con contexto compartido (lecturas con texto base). */
-    @Query("SELECT * FROM questions WHERE contextoId = :contextoId AND estado = 'aprobado'")
+    @Query("SELECT * FROM questions WHERE contexto_id = :contextoId AND estado = 'aprobado'")
     suspend fun getQuestionsByContext(contextoId: String): List<QuestionEntity>
 
     // ----- CONSULTAS ÚTILES -----
