@@ -28,17 +28,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun SplashScreen(
-    onLoadingComplete: () -> Unit
+    onReady: (sesionActiva: Boolean) -> Unit
 ) {
     val app = LocalContext.current.applicationContext as android.app.Application
     val repository = AppModule.provideQuestionRepository(app)
+    val authRepository = AppModule.provideAuthRepository(app)
     val viewModel: SplashViewModel = viewModel(
-        factory = ViewModelFactories.SplashFactory(repository)
+        factory = ViewModelFactories.SplashFactory(repository, authRepository)
     )
 
     LaunchedEffect(Unit) {
-        viewModel.loadQuestions()
-        onLoadingComplete()
+        viewModel.initializeAsync { sesionActiva ->
+            onReady(sesionActiva)
+        }
     }
 
     Box(

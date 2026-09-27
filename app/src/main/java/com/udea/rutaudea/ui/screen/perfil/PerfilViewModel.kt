@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.udea.rutaudea.data.repository.AuthRepository
 import com.udea.rutaudea.domain.model.User
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -13,6 +16,15 @@ import kotlinx.coroutines.launch
 class PerfilViewModel(
     private val authRepository: AuthRepository
 ) : ViewModel() {
+
+    /** Eventos de navegación derivados de la autenticación. */
+    sealed interface PerfilEvento {
+        /** Login o registro exitosos. */
+        data object Autenticado : PerfilEvento
+
+        /** El usuario cerró sesión (el gate de login debe volver a ser raíz). */
+        data object SesionCerrada : PerfilEvento
+    }
 
     data class UiState(
         val isLoading: Boolean = true,
@@ -27,6 +39,9 @@ class PerfilViewModel(
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    private val _evento = MutableSharedFlow<PerfilEvento>(extraBufferCapacity = 1)
+    val evento: SharedFlow<PerfilEvento> = _evento.asSharedFlow()
 
     init {
         restoreSession()
@@ -85,6 +100,7 @@ class PerfilViewModel(
                     _uiState.update {
                         it.copy(isSubmitting = false, user = user, password = "")
                     }
+                    _evento.tryEmit(PerfilEvento.Autenticado)
                 },
                 onFailure = { e ->
                     _uiState.update { it.copy(isSubmitting = false, error = e.message) }
@@ -98,5 +114,6 @@ class PerfilViewModel(
         _uiState.update {
             UiState(isLoading = false, esRegistro = false)
         }
+        _evento.tryEmit(PerfilEvento.SesionCerrada)
     }
 }

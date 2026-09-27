@@ -15,9 +15,13 @@ import com.udea.rutaudea.ui.screen.splash.SplashViewModel
 
 object ViewModelFactories {
 
-    class SplashFactory(private val repository: QuestionRepository) : ViewModelProvider.Factory {
+    class SplashFactory(
+        private val repository: QuestionRepository,
+        private val authRepository: AuthRepository
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = SplashViewModel(repository) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            SplashViewModel(repository, authRepository) as T
     }
 
     class SimulacroFactory(

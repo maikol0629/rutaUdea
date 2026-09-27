@@ -45,7 +45,7 @@ Este documento define el plan técnico y funcional para **RutaUdeA**: una aplica
 | **Interfaz** | Jetpack Compose |
 | **Patrón arquitectónico** | MVVM |
 | **Base de datos local** | Room (SQLite) — banco de preguntas |
-| **Backend / Auth** | Firebase (Authentication + Firestore) — fase posterior |
+| **Backend / Auth** | Firebase (Authentication + Firestore) — ✅ implementado (email/contraseña, reglas por rol) |
 | **Panel administrativo** | Aplicación web (futuro) |
 | **Contenido inicial** | JSONL/JSON de preguntas validadas empaquetado como asset |
 | **Asistencia inteligente** | Servicio de generación asistida para explicaciones, sujeto a revisión administrativa |
@@ -61,7 +61,7 @@ La aplicación se organiza en capas para separar la interfaz, la lógica de pres
 - **UI (Jetpack Compose):** Pantallas, componentes visuales, navegación y estados.
 - **ViewModel:** Estado de cada pantalla, validaciones y coordinación de casos de uso.
 - **Repository:** Punto único de acceso a datos y servicios.
-- **Data sources:** Room (local), Firestore y Firebase Authentication (fase posterior).
+- **Data sources:** Room (local), Firestore y Firebase Authentication.
 - **Domain/services:** Reglas del simulacro, selección de preguntas, cálculo de resultados y recomendaciones.
 
 **Flujo general:**
@@ -91,19 +91,34 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
   - `domain/model/Question.kt`: modelo de dominio.
 - **Banco de preguntas validado empaquetado** en `app/src/main/assets/questions/questions.jsonl` (200 preguntas: 100 razonamiento lógico + 100 competencia lectora).
 - **Consulta del banco en local**: práctica filtrada por área/subtema/dificultad, preguntas para simulacro (40 RL / 40 CL), consulta por subtema, flujo reactivo y conteos.
+- **UI (Compose) y ViewModels**: Splash (espera seed), Home con 5 tabs, Simulacro, Resultado y Perfil; navegación con `AppNavHost`.
+- **Motor de selección de las 80 preguntas** (`domain/services/QuestionSelector.kt`, clase pura testeable):
+  - 40 RL + 40 CL, distribución de dificultad proporcional al banco (método de mayor residuo) y cuotas proporcionales por subtema.
+  - Sin repeticiones dentro del simulacro; exclusión de preguntas de los últimos 3 simulacros del usuario (Firestore), con relajación gradual si el banco no alcanza; cuotas flexibles.
+  - Validación de las 80 preguntas antes de iniciar; selección persistida en `SavedStateHandle` (supervivencia a rotación/minimización).
+- **Cronómetro de 120 minutos** con cuenta regresiva, persistencia en `SavedStateHandle` y overlay de continuar/abandonar al volver de segundo plano.
+- **Registro de respuestas y resultados** (`SimulationRepository`): simulacro completado guardado en Firestore (`simulations` + subcolección `simulationQuestions` con respuesta usuario/correcta por pregunta); sin sesión se omite el guardado en la nube.
+- **Resultado**: puntaje, porcentaje, tiempo empleado y detalle expandible por pregunta (correcta/incorrecta + explicación).
+- **Autenticación — ✅ implementado con gate obligatorio** (rama `feat/auth-gate`):
+  - `google-services.json` integrado; Auth email/contraseña con `AuthRepository` (`register`, `login`, `restoreSession`, `logout`, creación de perfil en `users` con rol aspirante).
+  - Pantalla de **Perfil** con login/registro funcional (toggle), perfil del usuario y cierre de sesión.
+  - **Gate**: el splash verifica la sesión tras el seed; sin sesión se entra al **login como raíz** (sin acceso a Home), con sesión se entra directo a Home; el logout devuelve al login como raíz.
+- **Firebase — ✅ implementado** (rama `feat/firebase-config`, ya en `main`):
+  - **Reglas de seguridad Firestore** (`firestore.rules`) completas: users, questions, contexts, components, subtopics, simulations/simulationQuestions, educationalContent, settings, con roles aspirante/admin.
+  - **Sincronización del banco**: `QuestionRepository.updateBankFromFirestore()` descarga preguntas aprobadas y reemplaza el banco local.
+- **Tests unitarios**: 27 tests (mapper, loader JSONL, motor de selección, gate de autenticación) — `./gradlew test` PASS.
 
 ### 🔶 Pendiente / En construcción
-- Capas **ViewModel** y **UI (Compose)**: pantallas y navegación.
-- **Motor de selección** de las 80 preguntas con reglas de distribución (40 + 40).
-- **Cronómetro** con persistencia de timestamps e inactividad.
-- **Registro de respuestas, tiempos y resultados** (colecciones `simulations`, `simulationQuestions`).
-- **Cálculo de resultados y análisis** por componente/subtema/dificultad.
+- **Recuperación de contraseña** (`sendPasswordResetEmail`).
+- **Inactividad del cronómetro**: cierre por inactividad configurable y registro de abandono.
+- **Análisis avanzado** por componente/subtema/dificultad (hoy: detalle por pregunta).
 - **Información educativa** por componente/subtema.
 - **Práctica** con retroalimentación inmediata.
-- **Progreso histórico y recomendaciones.**
-- **Firebase** (Auth + Firestore) y `google-services.json`; sincronización `updateBankFromFirestore()` (contrato ya definido en el repositorio).
+- **Progreso histórico y recomendaciones** (los datos ya se persisten en `simulations`).
 - **Panel administrativo web** (CRUD de preguntas, carga CSV, estados).
 - **Asistencia IA** para explicaciones con revisión administrativa.
+- **Iconos de lanzador**: revisar adaptive icon (se ve cuadrado verde en algunos launchers).
+- **Migrar DI manual a Hilt**; **tests de instrumentación UI/Room**.
 
 ---
 
@@ -142,7 +157,7 @@ El banco inicial está compuesto por **200 preguntas validadas** (100 de razonam
 | `verificada` | Boolean | Si fue verificada |
 | `estado` | String | `aprobado` / `pendiente` / `deshabilitado` |
 
-### Colecciones Firestore (fase posterior — plan)
+### Colecciones Firestore (✅ reglas desplegadas; `users`, `simulations` y `simulationQuestions` en uso; sincronización de `questions` implementada)
 | Colección | Propósito |
 | :--- | :--- |
 | `users` | `uid`, `nombre`, `correo`, `rol`, `fechaCreacion`, `estado` |
@@ -161,26 +176,23 @@ El banco inicial está compuesto por **200 preguntas validadas** (100 de razonam
 
 Cada simulacro tendrá **80 preguntas totales**: 40 de razonamiento lógico y 40 de lectura crítica. La selección usará reglas de distribución para garantizar cobertura de componentes, subtemas y niveles de dificultad, en lugar de una selección completamente aleatoria.
 
-**Algoritmo conceptual:**
-1. Definir la matriz de distribución del simulacro.
-2. Separar el banco por componente → subtema → dificultad.
-3. Seleccionar las cantidades requeridas de cada grupo.
-4. Evitar preguntas repetidas dentro del mismo simulacro.
-5. Evitar, cuando el banco lo permita, repetir preguntas usadas en simulacros recientes.
-6. Resolver dependencias de contexto compartido como unidades coherentes.
-7. Validar que se cumplan las 80 preguntas antes de iniciar.
-8. Persistir la selección para que no cambie si el usuario cierra/minimiza la aplicación.
-
-> La matriz exacta de porcentajes por dificultad y subtema deberá definirse a partir del formato oficial del examen y de la estructura real del banco disponible. No se debe inventar una distribución oficial si no está documentada.
+**Algoritmo implementado** (`QuestionSelector`, ver tests en `QuestionSelectorTest`):
+1. ✅ La matriz de distribución se **deriva proporcionalmente de la composición real del banco** (método de mayor residuo), en lugar de inventar porcentajes oficiales no documentados.
+2. ✅ Separación del banco por área → subtema (cuotas proporcionales con secuencia entrelazada).
+3. ✅ Selección de las cantidades requeridas de cada grupo, con **cuotas flexibles**: si un grupo no alcanza, se rellena con sobrantes del mismo área primero.
+4. ✅ Sin preguntas repetidas dentro del mismo simulacro.
+5. ✅ Exclusión de preguntas de los **últimos 3 simulacros** del usuario (`simulationQuestions` en Firestore), con relajación gradual por área y global si el banco no alcanza.
+6. 🔶 Dependencias de contexto compartido: pendiente resolver como unidades coherentes.
+7. ✅ Validación de las 80 preguntas antes de iniciar (error explícito si el banco válido < 80).
+8. ✅ Persistencia de la selección en `SavedStateHandle` (JSON de IDs) para que no cambie al rotar/minimizar.
 
 ---
 
 ## 9. Cronómetro e inactividad
-- El tiempo se calculará con marcas temporales persistentes, no solo con un contador visual.
-- Al pasar la aplicación a segundo plano, el tiempo continuará transcurriendo.
-- El sistema registrará la última actividad relevante del usuario.
-- Si se supera el tiempo máximo configurable de inactividad, el simulacro se cerrará.
-- El cierre quedará registrado como abandono por inactividad y la penalización será configurable.
+- ✅ Cronómetro de **120 minutos** en cuenta regresiva; el estado persiste en `SavedStateHandle` y sobrevive recreación y segundo plano.
+- ✅ Al volver de segundo plano se muestra un overlay «Continuar / Abandonar» y el tiempo continúa.
+- ✅ Auto-finalización del simulacro al llegar a 0:00 (navega a Resultado).
+- 🔶 Pendiente: marcas temporales absolutas persistentes (hoy el contador vive en el ViewModel/SAH del destino), registro de última actividad, cierre por inactividad configurable y registro de abandono.
 
 ---
 
@@ -217,22 +229,22 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 
 | Prioridad | Historia / funcionalidad | Área | Estado |
 | :---: | :--- | :--- | :--- |
-| **P0** | Configuración del proyecto Android y Firebase | Base técnica | ✅ / 🔶 |
+| **P0** | Configuración del proyecto Android y Firebase | Base técnica | ✅ |
 | **P0** | Modelo Room + banco de preguntas | Datos | ✅ |
 | **P0** | Repositorio y carga inicial (JSONL) | Datos | ✅ |
-| **P0** | Autenticación y roles | Acceso | 🔶 |
-| **P0** | Modelo Firestore | Datos | 🔶 |
-| **P0** | Importador y validador CSV/JSON | Contenido | 🔶 |
+| **P0** | Autenticación y roles | Acceso | ✅ (login/registro + gate obligatorio; 🔶 recuperación de contraseña) |
+| **P0** | Modelo Firestore | Datos | ✅ (reglas desplegadas en `firestore.rules`) |
+| **P0** | Importador y validador CSV/JSON | Contenido | 🔶 (sincronización de banco implementada; importador admin pendiente) |
 | **P0** | Panel CRUD de preguntas | Administración | 🔶 |
-| **P0** | Motor de selección de 80 preguntas | Simulacro | 🔶 |
-| **P0** | Pantallas del simulacro | Simulacro | 🔶 |
-| **P0** | Cronómetro + persistencia + inactividad | Simulacro | 🔶 |
-| **P0** | Registro de respuestas y tiempos | Resultados | 🔶 |
-| **P0** | Cálculo de resultados | Resultados | 🔶 |
+| **P0** | Motor de selección de 80 preguntas | Simulacro | ✅ |
+| **P0** | Pantallas del simulacro | Simulacro | ✅ |
+| **P0** | Cronómetro + persistencia + inactividad | Simulacro | ✅ / 🔶 (falta cierre por inactividad registrada) |
+| **P0** | Registro de respuestas y tiempos | Resultados | ✅ (respuestas; 🔶 tiempo por pregunta guardado como 0) |
+| **P0** | Cálculo de resultados | Resultados | ✅ (score, %, detalle por pregunta) |
 | **P0** | Análisis por componente/subtema/dificultad | Analítica | 🔶 |
 | **P0** | Contenido informativo | Aprendizaje | 🔶 |
 | **P1** | Práctica filtrada con feedback inmediato | Aprendizaje | 🔶 |
-| **P1** | Historial y gráficas de progreso | Analítica | 🔶 |
+| **P1** | Historial y gráficas de progreso | Analítica | 🔶 (datos ya persistidos en `simulations`) |
 | **P1** | Motor de recomendaciones | Personalización | 🔶 |
 | **P1** | Asistencia IA para explicaciones | Administración | 🔶 |
 | **P1** | Pruebas con 15 estudiantes | Validación | 🔶 |
@@ -246,23 +258,25 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 1. ✅ Configurar repositorios y estructura de proyectos.
 2. ✅ Crear modelos de dominio y Room; cargar banco inicial.
 3. ✅ Empaquetar y validar el banco de preguntas.
-4. 🔶 Configurar Firebase (Auth + Firestore) y seguridad.
-5. 🔶 Construir importación/validación del CSV/JSON.
+4. ✅ Configurar Firebase (Auth + Firestore) y seguridad.
+5. 🔶 Construir importación/validación del CSV/JSON (panel admin).
 6. 🔶 Crear panel administrativo básico.
-7. 🔶 Implementar autenticación móvil.
-8. 🔶 Implementar navegación y pantallas base (Compose).
-9. 🔶 Implementar motor de selección de simulacro.
-10. 🔶 Implementar simulacro y persistencia.
-11. 🔶 Implementar cronómetro e inactividad.
-12. 🔶 Implementar cálculo y almacenamiento de resultados.
-13. 🔶 Implementar análisis detallado.
+7. ✅ Implementar autenticación móvil (login/registro en Perfil + gate obligatorio de sesión; pendiente recuperación de contraseña).
+8. ✅ Implementar navegación y pantallas base (Compose).
+9. ✅ Implementar motor de selección de simulacro.
+10. ✅ Implementar simulacro y persistencia (local + Firestore con sesión).
+11. ✅ Implementar cronómetro (120 min) — 🔶 pendiente inactividad/abandono.
+12. ✅ Implementar cálculo y almacenamiento de resultados.
+13. 🔶 Implementar análisis detallado por componente/subtema/dificultad.
 14. 🔶 Implementar información educativa.
 15. 🔶 Implementar práctica con feedback.
 16. 🔶 Implementar historial y recomendaciones.
 17. 🔶 Integrar asistencia de IA.
-18. 🔶 Ejecutar pruebas técnicas.
+18. 🔶 Ejecutar pruebas técnicas (27 unitarias ✅; faltan UI/integración).
 19. 🔶 Ejecutar piloto con ~15 estudiantes.
 20. 🔶 Corregir, documentar y preparar entrega.
+
+> **Próximo hito sugerido:** PR de `feat/auth-gate` a `main` → módulo de **Práctica**.
 
 ---
 
@@ -333,13 +347,14 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 ---
 
 ## 20. Decisiones pendientes antes de programar el motor del simulacro
-1. Confirmar mediante la fuente oficial la duración y estructura exacta a emular.
-2. Definir la matriz de distribución de las 80 preguntas por subtema y dificultad.
-3. Inventariar cuántas preguntas válidas existen por componente/subtema/dificultad.
-4. Definir el tiempo máximo de inactividad y la penalización.
-5. Definir reglas para repetir preguntas entre simulacros.
-6. Definir el contenido informativo disponible por componente/subtema.
-7. Definir los permisos exactos del rol administrador.
+> El motor ya está implementado; varias de estas decisiones se tomaron de forma práctica y quedan por validar con la fuente oficial.
+1. 🔶 Confirmar mediante la fuente oficial la duración y estructura exacta a emular (hoy: 120 min / 80 preguntas).
+2. ✅ Matriz de distribución: **proporcional a la composición real del banco** (mayor residuo), con cuotas flexibles. Pendiente validar contra el formato oficial.
+3. ✅ Inventario implícito: el motor consulta el banco real y relaja cuotas/exclusiones si no alcanza.
+4. 🔶 Tiempo máximo de inactividad y penalización: pendiente (no implementado).
+5. ✅ Repetición entre simulacros: excluir preguntas de los **últimos 3 simulacros** del usuario, con relajación gradual.
+6. 🔶 Contenido informativo disponible por componente/subtema.
+7. ✅ Permisos por rol ya definidos en `firestore.rules` (aspirante: dueño de sus datos; admin: gestión del banco y contenidos).
 
 ---
 

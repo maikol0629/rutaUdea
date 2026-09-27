@@ -1,9 +1,17 @@
 # Estado del Proyecto RutaUdeA - MVP Simulacro
 
 ## Resumen General
-El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP.
+El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP + Firebase.
 
-**Estado actual: ✅ MVP COMPLETO Y FUNCIONAL** - Todas las pantallas principales operativas. Build SUCCESS, tests PASS.
+**Estado actual: ✅ MVP COMPLETO Y FUNCIONAL + Firebase + gate de autenticación** - Todas las pantallas principales operativas, login/registro obligatorio al iniciar (rama `feat/auth-gate`), motor de selección de 80 preguntas. Build SUCCESS, tests PASS (27).
+
+## 🌿 Ramas
+| Rama | Estado | Contenido |
+|------|--------|-----------|
+| `main` | ✅ Actualizada (PR #2) | MVP + Firebase completo + motor de 80 preguntas (el merge del motor incluyó la integración Firebase al ser rama apilada) |
+| `feat/firebase-config` | ✅ En origin | Firebase Auth + Firestore + sincronización (ya en main vía PR #2) |
+| `feat/motor-seleccion-preguntas` | ✅ En origin | Motor de selección 80 preguntas (ya en main vía PR #2) |
+| `feat/auth-gate` | 🔨 Rama actual de trabajo | Gate de autenticación: splash decide Home/login, logout vuelve al login |
 
 ---
 
@@ -35,7 +43,8 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | **HomeScreen** | ✅ Funciona | `HomeScreen.kt` - 5 tabs con botón "Iniciar Simulacro" |
 | **SimulacroScreen** | ✅ Funciona | `SimulacroScreen.kt` + `SimulacroViewModel` (80 preguntas motor de selección, timer 120min) |
 | **ResultadoScreen** | ✅ Funciona | `ResultadoScreen.kt` + `ResultadoViewModel` (score, %, tiempo, detalle ✓/✗ + 💡) |
-| **ComingSoonScreen** | ✅ Placeholder | Para Práctica, Progreso, Info, Perfil |
+| **PerfilScreen** | ✅ Funciona | `PerfilScreen.kt` + `PerfilViewModel` (login/registro Firebase, perfil, logout) |
+| **ComingSoonScreen** | ✅ Placeholder | Para Práctica, Progreso, Info |
 
 ### 4. Funcionalidades Core del Simulacro
 | Función | Estado | Detalle |
@@ -46,7 +55,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | Selección opciones A/B/C/D | ✅ | Visual feedback ✓, color primario |
 | Navegación siguiente/anterior/final | ✅ | Botón contextual "Siguiente →" / "Finalizar" |
 | Auto-finalizar a 0:00 | ✅ | Navega a Resultado automáticamente |
-| Pantalla Resultado | ✅ | Score X/6, %, tiempo, lista expandible ✓/✗ + 💡 explicación |
+| Pantalla Resultado | ✅ | Score X/80, %, tiempo, lista expandible ✓/✗ + 💡 explicación |
 
 ### 5. Navegación (5 tabs Bottom Bar)
 | Tab | Ruta | Estado |
@@ -55,7 +64,25 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | 📝 Práctica | `practica` | 🟡 Placeholder |
 | 📈 Progreso | `progreso` | 🟡 Placeholder |
 | 📚 Info | `info` | 🟡 Placeholder |
-| 👤 Perfil | `perfil` | 🟡 Placeholder |
+| 👤 Perfil | `perfil` | ✅ Funcional (login/registro Firebase Auth) |
+
+### 5.1 Autenticación (Firebase Auth) — IMPLEMENTADO (incluye gate)
+- **`AuthRepository`**: `register()`, `login()`, `restoreSession()`, `logout()` con email/contraseña; crea perfil en colección `users` (rol `aspirante`); errores mapeados a español.
+- **`PerfilScreen`**: toggle Iniciar sesión / Crear cuenta, validación de correo/contraseña, vista de perfil logueado (nombre, correo, rol) y "Cerrar sesión".
+- **Gate de autenticación (rama feat/auth-gate)**: la app **exige sesión** para entrar:
+  - `SplashViewModel.initialize()` espera el seed del banco y verifica `auth.currentUser`.
+  - Sin sesión → splash navega al **login (Perfil en modo gate)** como raíz; el botón "Volver al inicio" se oculta.
+  - Login/registro exitoso → evento `Autenticado` → **Home se convierte en la raíz** (back stack limpio).
+  - Logout desde cualquier pantalla → evento `SesionCerrada` → vuelve al login como raíz.
+  - Timeout del seed no bloquea el gate (fallback a la verificación de sesión).
+  - Tests: `SplashViewModelTest` (4 tests del gate).
+- **Pendiente**: recuperación de contraseña, tests de instrumentación del flujo.
+
+### 5.2 Sincronización y persistencia (Firestore) — IMPLEMENTADO
+- **`google-services.json`** presente en `app/` (reglas completas en `firestore.rules`: users, questions, simulations, simulationQuestions, contexts, components, subtopics, educationalContent, settings; roles aspirante/admin).
+- **`QuestionRepository.updateBankFromFirestore()`**: descarga el banco maestro (`questions` con `estado=aprobado`) y reemplaza Room.
+- **`SimulationRepository.saveSimulation()`**: guarda simulacro completado (resumen + detalle por pregunta); requiere sesión (si no hay, se omite el guardado).
+- **`SimulationRepository.getQuestionIdsFromRecentSimulacros(3)`**: usado por el motor para excluir preguntas de los últimos 3 simulacros.
 
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
@@ -67,6 +94,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `QuestionMapperTest` - 7 tests pasan
 - ✅ `QuestionJsonlLoaderTest` - 5 tests pasan
 - ✅ `QuestionSelectorTest` - 11 tests pasan (motor de selección)
+- ✅ `SplashViewModelTest` - 4 tests pasan (gate de autenticación)
 
 ### 8. Motor de selección de preguntas (100% completo)
 - **`QuestionSelector`** (`domain/services/QuestionSelector.kt`) — clase pura de dominio, testeable:
@@ -86,7 +114,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
 - ✅ `./gradlew installDebug` - **Instala en dispositivo físico**
-- ✅ Tests unitarios: `./gradlew test` - **PASAN (23 tests)**
+- ✅ Tests unitarios: `./gradlew test` - **PASAN (27 tests)**
 
 ---
 
@@ -110,9 +138,13 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Estado**: Inyección manual via `ViewModelFactories` object
 - **Futuro**: Migrar a Hilt para producción
 
-### 4. Firebase parcialmente configurado
-- **Estado**: ✅ Auth + Firestore + sincronización del banco + persistencia de simulacros (rama feat/firebase-config)
-- **Pendiente**: Analytics, Crashlytics
+### 4. Firebase configurado
+- **Estado**: ✅ Auth (login/registro en Perfil) + Firestore (reglas completas) + sincronización del banco + persistencia de simulacros (rama feat/firebase-config)
+- **Pendiente**: Analytics, Crashlytics, push a origin
+
+### 6. Nota sobre JDK local
+- `.mise.toml` pide temurin-17 pero en esta máquina no hay `java` en PATH.
+- Compilar con: `export JAVA_HOME=/home/michael/.jdks/jbr-21.0.11 && ./gradlew ...` (JBR 21 de Android Studio; el JDK 25 de `/opt/android-studio/jbr` NO es compatible con Gradle 8.11).
 
 ### 5. Tests de Instrumentación
 - **Estado**: Solo tests unitarios (JUnit + MockK)
@@ -125,30 +157,34 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 ```
 app/src/main/java/com/udea/rutaudea/
 ├── MainActivity.kt                    # Entry point - usa AppNavHost()
-├── RutaUdeaApp.kt                     # Application class - expone repository
+├── RutaUdeaApp.kt                     # Application class - expone repository y siembra banco
 ├── di/
-│   ├── AppModule.kt                   # Punto de acceso a repository/mvpProvider
-│   └── ViewModelFactories.kt          # Splash/Simulacro/Resultado factories
+│   ├── AppModule.kt                   # provideQuestion/Auth/Simulation repositories
+│   └── ViewModelFactories.kt          # Splash/Simulacro/Resultado/Perfil factories
 ├── data/
 │   ├── local/                         # Room - COMPLETO
 │   ├── mapper/                        # ✅
-│   ├── repository/                    # ✅
-│   └── source/
-│       ├── local/                     # ✅ JsonL loader + Seeder (maneja JsonNull)
-│       └── mvp/                       # ✅ MvpQuestionProvider
-├── domain/model/Question.kt           # ✅ Modelo dominio
+│   ├── repository/
+│   │   ├── QuestionRepository.kt      # ✅ Banco local + updateBankFromFirestore()
+│   │   ├── AuthRepository.kt          # ✅ Firebase Auth + colección users
+│   │   └── SimulationRepository.kt    # ✅ Guardado de simulacros en Firestore
+│   └── source/local/                  # ✅ JsonL loader + Seeder (maneja JsonNull)
+├── domain/
+│   ├── model/Question.kt              # ✅ Modelo dominio
+│   ├── model/User.kt                  # ✅ Modelo usuario (uid, nombre, correo, rol)
+│   └── services/QuestionSelector.kt   # ✅ Motor de selección 80 preguntas (testeado)
 ├── ui/
 │   ├── navigation/
-│   │   ├── AppNavHost.kt              # ✅ NavHost principal
+│   │   ├── AppNavHost.kt              # ✅ NavHost principal (8 destinos)
 │   │   └── AppNavGraph.kt             # ✅ Rutas
 │   ├── screen/
 │   │   ├── splash/                    # ✅ Splash + ViewModel (poll DB seed)
 │   │   ├── home/                      # ✅ Home + 5 tabs
-│   │   ├── simulacro/                 # ✅ Simulacro completo (6 preguntas, timer)
+│   │   ├── simulacro/                 # ✅ 80 preguntas, timer 120 min
 │   │   ├── resultado/                 # ✅ Resultado + ViewModel (lee SavedStateHandle previo)
-│   │   └── common/ComingSoonScreen.kt # ✅ Placeholder
+│   │   ├── perfil/                    # ✅ Login/Registro/Perfil (Firebase Auth)
+│   │   └── common/ComingSoonScreen.kt # ✅ Placeholder (Práctica, Progreso, Info)
 │   └── theme/                         # ✅ Material3 Forest Green
-└── data/source/mvp/MvpQuestionProvider.kt  # ✅ Filtra 6 preguntas MVP
 ```
 
 ---
@@ -157,16 +193,18 @@ app/src/main/java/com/udea/rutaudea/
 
 | Prioridad | Tarea | Esfuerzo |
 |-----------|-------|----------|
-| **P0** | Generar iconos PNG reales (mipmap-*) / fix adaptive icon | 30 min |
+| **P0** | PR de `feat/auth-gate` a `main` cuando el gate esté validado en dispositivo | 15 min |
+| ~~**P0**~~ | ~~Gate de login al inicio~~ | ✅ HECHO (feat/auth-gate) |
 | ~~**P0**~~ | ~~Eliminar código basura sin uso~~ | ✅ HECHO |
 | **P1** | Migrar a Hilt para DI | 2 horas |
-| ~~**P1**~~ | ~~Configurar Firebase (Auth + Firestore)~~ | ✅ HECHO (rama feat/firebase-config) |
 | **P1** | Implementar Práctica filtrada real | 4 horas |
-| ~~**P2**~~ | ~~Motor selección 80 preguntas (40 RL + 40 CL)~~ | ✅ HECHO |
+| ~~**P2**~~ | ~~Motor selección 80 preguntas (40 RL + 40 CL)~~ | ✅ HECHO (en main) |
 | **P2** | Pantalla Práctica con feedback inmediato | 4 horas |
-| **P2** | Pantalla Progreso con gráficas | 6 horas |
+| **P2** | Pantalla Progreso con gráficas (datos de `simulations` Firestore) | 6 horas |
 | **P2** | Contenido educativo Info por subtema | 4 horas |
+| **P2** | Recuperación de contraseña (sendPasswordResetEmail) | 1 hora |
 | **P2** | Tests UI Compose + Instrumentación | 4 horas |
+| **P3** | Generar iconos PNG reales (mipmap-*) / fix adaptive icon | 30 min |
 
 ---
 
@@ -184,14 +222,16 @@ app/src/main/java/com/udea/rutaudea/
 ```
 
 **Verificar en dispositivo**:
-1. Splash → "Cargando banco..." → Home en ~1.5-3s (espera DB seed)
-2. Home → 5 tabs abajo, botón verde "Iniciar Simulacro"
-3. Simulacro → 6 preguntas, timer 05:00, 4 opciones, progreso 1/6
-4. Timer → cuenta 05:00 → 00:00 (rojo < 1 min)
-5. Responder → ✓ visual → "Siguiente →" / "Finalizar"
-6. Background → Home → volver → Overlay "Continuar/Abandonar" → Continua timer
-7. Final → Resultado → Score X/6, %, tiempo, lista expandible ✓/✗ + 💡
-8. Botón "Finalizar" → Home con BottomBar activo
+1. Splash → "Cargando banco..." → **SIN sesión: login** (raíz, sin "Volver al inicio") / **CON sesión: Home directo**
+2. Login/Registro → al autenticarse entra a Home (Home queda como raíz)
+3. Home → 5 tabs abajo, botón verde "Iniciar Simulacro"
+4. Tab 👤 Perfil → perfil logueado; "Cerrar sesión" → vuelve al login como raíz
+5. Simulacro → 80 preguntas, timer 120:00, 4 opciones, progreso n/80
+6. Timer → cuenta 120:00 → 00:00 (rojo < 1 min)
+7. Responder → ✓ visual → "Siguiente →" / "Finalizar"
+8. Background → Home → volver → Overlay "Continuar/Abandonar" → Continua timer
+9. Final → Resultado → Score X/80, %, tiempo, lista expandible ✓/✗ + 💡
+10. Con sesión (garantizada por el gate) → el simulacro se guarda en Firestore
 
 ---
 
@@ -226,4 +266,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-09-14 - Fase Firebase completa (feat/firebase-config) + motor de selección de 80 preguntas (QuestionSelector, distribución proporcional al banco, exclusión últimos 3 simulacros, cuotas flexibles); timer 120 min; build SUCCESS, tests PASS (23)*
+*Última actualización: 2026-09-27 - Rama `feat/auth-gate` (desde main con PR #2: motor + firebase): gate de autenticación completo (splash decide Home/login, logout vuelve al login, login/registro navega a Home como raíz). Verificado: `test` (27 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21). Docs actualizados a estado real.*
