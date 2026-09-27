@@ -1,10 +1,12 @@
 package com.udea.rutaudea.data.repository
 
+import com.google.firebase.firestore.FirebaseFirestore
 import com.udea.rutaudea.data.local.dao.QuestionDao
 import com.udea.rutaudea.data.mapper.QuestionMapper
 import com.udea.rutaudea.domain.model.Question
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 
 /**
  * Punto único de acceso a las preguntas.
@@ -14,7 +16,8 @@ import kotlinx.coroutines.flow.map
  * del banco se realiza a través de [updateBankFromFirestore].
  */
 class QuestionRepository(
-    private val questionDao: QuestionDao
+    private val questionDao: QuestionDao,
+    private val firestore: FirebaseFirestore? = null
 ) {
 
     // ----- LECTURA LOCAL (práctica y simulacro) -----
@@ -70,12 +73,63 @@ class QuestionRepository(
     }
 
     // ----- SINCRONIZACIÓN CON FIRESTORE -----
-    // Nota: Firebase se configurará en una fase posterior. Este método
-    // define el contrato: descargar el banco maestro y actualizar Room.
-    suspend fun updateBankFromFirestore() {
-        // TODO: fase Firebase
-        // 1. Consultar Firestore (colección questions) con estado = "aprobado"
-        // 2. Mapear a List<Question>
-        // 3. replaceBank(preguntasDescargadas)
+
+    /**
+     * Descarga el banco maestro desde Firestore (colección `questions`,
+     * documentos con estado = "aprobado") y reemplaza el banco local Room.
+     */
+    suspend fun updateBankFromFirestore(): Result<Int> {
+        val fs = firestore
+            ?: return Result.failure(Exception("Firestore no está configurado"))
+        return try {
+            val snapshot = fs.collection(COLECCION_QUESTIONS)
+                .whereEqualTo(CAMPO_ESTADO, ESTADO_APROBADO)
+                .get()
+                .await()
+            val questions = snapshot.documents.mapNotNull { doc -> documentToQuestion(doc) }
+            if (questions.isEmpty()) {
+                Result.failure(Exception("El banco de Firestore está vacío o sin preguntas aprobadas"))
+            } else {
+                replaceBank(questions)
+                Result.success(questions.size)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun documentToQuestion(doc: com.google.firebase.firestore.DocumentSnapshot): Question? {
+        val id = doc.id
+        val area = doc.getString("area") ?: return null
+        val subtema = doc.getString("subtema") ?: return null
+        val dificultad = doc.getString("dificultad") ?: return null
+        val pregunta = doc.getString("pregunta") ?: return null
+        val opciones = (doc.get("opciones") as? List<*>)?.map { it.toString() }
+        val respuestaCorrecta = doc.getString("respuesta_correcta") ?: return null
+        if (opciones.isNullOrEmpty() || respuestaCorrecta !in listOf("A", "B", "C", "D")) {
+            return null
+        }
+        return Question(
+            id = id,
+            area = area,
+            componente = doc.getString("componente"),
+            subtema = subtema,
+            competencia = doc.getString("competencia"),
+            tipoTexto = doc.getString("tipo_texto"),
+            dificultad = dificultad,
+            textoBase = doc.getString("texto_base"),
+            contexto = doc.getString("contexto"),
+            pregunta = pregunta,
+            opciones = opciones,
+            respuestaCorrecta = respuestaCorrecta,
+            explicacion = doc.getString("explicacion"),
+            esOriginal = doc.getBoolean("es_original") ?: false
+        )
+    }
+
+    companion object {
+        const val COLECCION_QUESTIONS = "questions"
+        const val CAMPO_ESTADO = "estado"
+        const val ESTADO_APROBADO = "aprobado"
     }
 }

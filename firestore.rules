@@ -1,0 +1,110 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore — RutaUdeA (plan, sección 4 y 7)
+// Roles: aspirante (usuario autenticado) y admin (users/{uid}.rol == "admin")
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- users ----------
+    // Cada usuario lee su propio perfil; el admin puede leer todos.
+    // Solo el admin puede cambiar roles y estados de otros usuarios.
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+        && request.resource.data.rol == 'aspirante';
+      allow update: if (isOwner(userId) && onlyOwnFields())
+        || isAdmin();
+      allow delete: if isAdmin();
+
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // ---------- questions (banco maestro) ----------
+    // Lectura para usuarios autenticados; escritura solo admin.
+    match /questions/{questionId} {
+      allow read: if request.auth != null;
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ---------- contexts ----------
+    match /contexts/{contextId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // ---------- components / subtopics ----------
+    match /components/{componentId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /subtopics/{subtopicId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // ---------- simulations / simulationQuestions ----------
+    // Cada usuario crea y lee sus propios simulacros; admin lee todos
+    // (indicadores de uso del banco).
+    match /simulations/{simulationId} {
+      allow read: if isOwner(resource.data.uid) || isAdmin();
+      allow create: if request.auth != null && isOwner(request.resource.data.uid);
+      allow update, delete: if false;
+
+      match /simulationQuestions/{questionId} {
+        allow read: if isAdmin() || isSimulationOwner(simulationId);
+        allow create: if request.auth != null;
+        allow update, delete: if false;
+      }
+
+      function isSimulationOwner(simulationId) {
+        return request.auth != null
+          && exists(/databases/$(database)/documents/simulations/$(simulationId))
+          && get(/databases/$(database)/documents/simulations/$(simulationId)).data.uid == request.auth.uid;
+      }
+    }
+
+    // ---------- practiceSessions ----------
+    match /practiceSessions/{sessionId} {
+      allow read: if isOwner(resource.data.uid) || isAdmin();
+      allow create: if request.auth != null && isOwner(request.resource.data.uid);
+      allow update, delete: if false;
+    }
+
+    // ---------- recommendations ----------
+    // Generadas por el sistema; el usuario solo las lee.
+    match /recommendations/{recommendationId} {
+      allow read: if isOwner(resource.data.uid) || isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ---------- educationalContent ----------
+    match /educationalContent/{contentId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // ---------- settings (reglas del simulacro) ----------
+    // Solo lectura para la app; escritura desde el panel admin.
+    match /settings/{settingId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // ---------- helpers ----------
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    function onlyOwnFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['nombre', 'estado']);
+    }
+  }
+}

@@ -2,14 +2,15 @@ package com.udea.rutaudea.ui.screen.resultado
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.udea.rutaudea.data.source.mvp.MvpQuestionProvider
+import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class ResultadoViewModel(
-    private val mvpProvider: MvpQuestionProvider,
+    private val questions: List<Question>,
+    private val simulationRepository: SimulationRepository,
     private val userAnswers: Map<Int, String>,
     score: Int,
     total: Int,
@@ -34,8 +35,6 @@ class ResultadoViewModel(
 
     private fun loadResults() {
         viewModelScope.launch {
-            val questions = mvpProvider.getMvpQuestions()
-
             val results = questions.mapIndexed { index, question ->
                 val userAnswer = userAnswers[index]
                 val isCorrect = userAnswer == question.respuestaCorrecta
@@ -50,6 +49,18 @@ class ResultadoViewModel(
             }
 
             _questionResults.value = results
+
+            persistSimulation(questions)
         }
+    }
+
+    private suspend fun persistSimulation(questions: List<Question>) {
+        simulationRepository.saveSimulation(
+            questions = questions,
+            userAnswers = userAnswers,
+            score = _score.value,
+            total = _total.value,
+            timeUsedMs = _timeUsedMs.value
+        )
     }
 }

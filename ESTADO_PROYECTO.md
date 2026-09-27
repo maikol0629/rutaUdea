@@ -33,14 +33,14 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 |----------|--------|---------|
 | **SplashScreen** | ✅ Funciona | `SplashScreen.kt` + `SplashViewModel` (espera DB seed ≤3s) |
 | **HomeScreen** | ✅ Funciona | `HomeScreen.kt` - 5 tabs con botón "Iniciar Simulacro" |
-| **SimulacroScreen** | ✅ Funciona | `SimulacroScreen.kt` + `SimulacroViewModel` (6 preguntas, timer 5min) |
+| **SimulacroScreen** | ✅ Funciona | `SimulacroScreen.kt` + `SimulacroViewModel` (80 preguntas motor de selección, timer 120min) |
 | **ResultadoScreen** | ✅ Funciona | `ResultadoScreen.kt` + `ResultadoViewModel` (score, %, tiempo, detalle ✓/✗ + 💡) |
 | **ComingSoonScreen** | ✅ Placeholder | Para Práctica, Progreso, Info, Perfil |
 
 ### 4. Funcionalidades Core del Simulacro
 | Función | Estado | Detalle |
 |---------|--------|---------|
-| Timer 5 min cuenta regresiva | ✅ | `timeRemainingSeconds` en ViewModel |
+| Timer 120 min cuenta regresiva | ✅ | `timeRemainingSeconds` en ViewModel (80 preguntas) |
 | Persistencia timer (rotación/background) | ✅ | `SavedStateHandle` sobrevive recreación |
 | Overlay "Continuar/Abandonar" | ✅ | Modal centrado al volver de background |
 | Selección opciones A/B/C/D | ✅ | Visual feedback ✓, color primario |
@@ -64,14 +64,29 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - Logo vectorial personalizado (`ic_splash_logo.xml`)
 
 ### 7. Tests Unitarios
-- ✅ `QuestionMapperTest` - 8 tests pasan
+- ✅ `QuestionMapperTest` - 7 tests pasan
 - ✅ `QuestionJsonlLoaderTest` - 5 tests pasan
+- ✅ `QuestionSelectorTest` - 11 tests pasan (motor de selección)
+
+### 8. Motor de selección de preguntas (100% completo)
+- **`QuestionSelector`** (`domain/services/QuestionSelector.kt`) — clase pura de dominio, testeable:
+  - 80 preguntas: 40 RL + 40 CL, distribución de dificultad **proporcional al banco** (método de mayor residuo)
+  - Cobertura de subtemas: cuotas proporcionales por subtema y secuencia entrelazada
+  - Sin preguntas repetidas dentro del simulacro
+  - **Excluye preguntas de los últimos 3 simulacros** del usuario (Firestore `simulationQuestions`, relajación gradual por área y global si el banco no alcanza)
+  - Cuotas **flexibles**: si un grupo no alcanza, rellena con preguntas sobrantes (mismo área primero)
+  - Valida las 80 antes de iniciar (falla con mensaje si el banco válido < 80)
+- **Selección persistida** en `SavedStateHandle` (JSON de IDs): no cambia al rotar/minimizar; se restaura por ID desde Room
+- **Timer 120 min** para 80 preguntas (antes 5 min / 6 preguntas)
+- **ResultadoViewModel** recibe las preguntas seleccionadas vía `SavedStateHandle` (ya no las 6 del MVP)
+- **Firestore rules**: `simulationQuestions` legible por el dueño del simulacro (necesario para la exclusión)
+- `MvpQuestionProvider` eliminado (sin uso tras la integración del motor)
 
 ### 8. Build & Deploy
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
 - ✅ `./gradlew installDebug` - **Instala en dispositivo físico**
-- ✅ Tests unitarios: `./gradlew test` - **PASAN (13 tests)**
+- ✅ Tests unitarios: `./gradlew test` - **PASAN (23 tests)**
 
 ---
 
@@ -95,9 +110,9 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Estado**: Inyección manual via `ViewModelFactories` object
 - **Futuro**: Migrar a Hilt para producción
 
-### 4. Firebase NO configurado
-- **Estado**: Solo placeholders en tabs Info/Perfil/Progreso/Práctica
-- **Pendiente**: Auth, Firestore, Analytics, Crashlytics
+### 4. Firebase parcialmente configurado
+- **Estado**: ✅ Auth + Firestore + sincronización del banco + persistencia de simulacros (rama feat/firebase-config)
+- **Pendiente**: Analytics, Crashlytics
 
 ### 5. Tests de Instrumentación
 - **Estado**: Solo tests unitarios (JUnit + MockK)
@@ -145,9 +160,9 @@ app/src/main/java/com/udea/rutaudea/
 | **P0** | Generar iconos PNG reales (mipmap-*) / fix adaptive icon | 30 min |
 | ~~**P0**~~ | ~~Eliminar código basura sin uso~~ | ✅ HECHO |
 | **P1** | Migrar a Hilt para DI | 2 horas |
-| **P1** | Configurar Firebase (Auth + Firestore) | 4 horas |
+| ~~**P1**~~ | ~~Configurar Firebase (Auth + Firestore)~~ | ✅ HECHO (rama feat/firebase-config) |
 | **P1** | Implementar Práctica filtrada real | 4 horas |
-| **P2** | Motor selección 80 preguntas (40 RL + 40 CL) | 8 horas |
+| ~~**P2**~~ | ~~Motor selección 80 preguntas (40 RL + 40 CL)~~ | ✅ HECHO |
 | **P2** | Pantalla Práctica con feedback inmediato | 4 horas |
 | **P2** | Pantalla Progreso con gráficas | 6 horas |
 | **P2** | Contenido educativo Info por subtema | 4 horas |
@@ -211,4 +226,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-09-22 - Limpieza de código muerto (3 archivos + ~13 símbolos/imports eliminados) sin tocar capa de datos del commit inicial; fix "Abandonar" (ya no cierra la app); build SUCCESS, tests PASS (12)*
+*Última actualización: 2026-09-14 - Fase Firebase completa (feat/firebase-config) + motor de selección de 80 preguntas (QuestionSelector, distribución proporcional al banco, exclusión últimos 3 simulacros, cuotas flexibles); timer 120 min; build SUCCESS, tests PASS (23)*

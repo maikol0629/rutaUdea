@@ -4,8 +4,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
-import com.udea.rutaudea.data.source.mvp.MvpQuestionProvider
+import com.udea.rutaudea.data.repository.QuestionRepository
+import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.services.QuestionSelector
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +32,9 @@ data class SimulacroState(
 }
 
 class SimulacroViewModel(
-    private val mvpProvider: MvpQuestionProvider,
+    private val selector: QuestionSelector,
+    private val repository: QuestionRepository,
+    private val simulationRepository: SimulationRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -38,7 +42,8 @@ class SimulacroViewModel(
         private const val START_TIME_KEY = "start_time_ms"
         private const val USER_ANSWERS_KEY = "user_answers"
         private const val CURRENT_INDEX_KEY = "current_index"
-        private const val TOTAL_DURATION_MS = 5 * 60 * 1000L // 5 minutos
+        private const val SELECTION_KEY = "selection_ids_json"
+        private const val TOTAL_DURATION_MS = 120 * 60 * 1000L // 120 minutos
         private val gson = Gson()
     }
 
@@ -46,6 +51,7 @@ class SimulacroViewModel(
     val uiState: StateFlow<SimulacroState> = _uiState
 
     private var timerJob: kotlinx.coroutines.Job? = null
+    private var pendingRestoredIndex: Int = 0
 
     init {
         restoreState()
@@ -62,11 +68,11 @@ class SimulacroViewModel(
             val elapsed = System.currentTimeMillis() - savedStartTime
             val remainingMs = maxOf(0L, TOTAL_DURATION_MS - elapsed)
 
+            pendingRestoredIndex = savedIndex
             val currentState = _uiState.value
             _uiState.value = currentState.copy(
                 timeRemainingMs = remainingMs,
                 userAnswers = savedAnswers.toMap(),
-                currentIndex = savedIndex.coerceAtMost(currentState.questions.lastIndex),
                 showResumeOverlay = remainingMs > 0L && !currentState.isFinished
             )
         }
@@ -74,9 +80,12 @@ class SimulacroViewModel(
 
     private fun loadQuestions() {
         viewModelScope.launch {
-            val questions = mvpProvider.getMvpQuestions()
+            val questions = cargarSeleccion()
             if (questions.isNotEmpty()) {
-                _uiState.value = _uiState.value.copy(questions = questions)
+                _uiState.value = _uiState.value.copy(
+                    questions = questions,
+                    currentIndex = pendingRestoredIndex.coerceAtMost(questions.lastIndex)
+                )
                 if (!savedStateHandle.contains(START_TIME_KEY)) {
                     startTimer()
                 } else {
@@ -87,6 +96,31 @@ class SimulacroViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * Carga la selección del simulacro: si hay una selección persistida
+     * (rotación/background), restaura esas preguntas; si no, usa el
+     * motor de selección (plan sección 8) excluyendo las preguntas de
+     * los últimos 3 simulacros.
+     */
+    private suspend fun cargarSeleccion(): List<Question> {
+        val savedIds = savedStateHandle.get<String>(SELECTION_KEY)
+        if (savedIds != null) {
+            val ids = gson.fromJson(savedIds, Array<String>::class.java).toList()
+            return ids.mapNotNull { repository.getById(it) }
+        }
+        val bank = repository.getQuestions(limit = 1000)
+        val excluidas = simulationRepository.getQuestionIdsFromRecentSimulacros(
+            QuestionSelector.SIMULACROS_RECIENTES
+        )
+        return selector.select(bank, excluidas).fold(
+            onSuccess = { seleccion ->
+                savedStateHandle[SELECTION_KEY] = gson.toJson(seleccion.map { it.id })
+                seleccion
+            },
+            onFailure = { emptyList() }
+        )
     }
 
     private fun startTimer() {
@@ -187,6 +221,8 @@ class SimulacroViewModel(
         savedStateHandle["simulation_finished"] = true
         // Store userAnswers as JSON string to avoid type erasure issues
         savedStateHandle["simulation_user_answers_json"] = gson.toJson(userAnswers)
+        // Preguntas seleccionadas para la pantalla de resultados
+        savedStateHandle["simulation_questions_json"] = gson.toJson(questions)
     }
 
     fun onResumeConfirmed() {

@@ -13,6 +13,8 @@ import com.udea.rutaudea.di.AppModule
 import com.udea.rutaudea.di.ViewModelFactories
 import com.udea.rutaudea.ui.screen.common.ComingSoonScreen
 import com.udea.rutaudea.ui.screen.home.HomeScreen
+import com.udea.rutaudea.ui.screen.perfil.PerfilScreen
+import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
 import com.udea.rutaudea.ui.screen.resultado.ResultadoScreen
 import com.udea.rutaudea.ui.screen.resultado.ResultadoViewModel
 import com.udea.rutaudea.ui.screen.simulacro.SimulacroScreen
@@ -24,7 +26,8 @@ fun AppNavHost() {
     val navController = rememberNavController()
     val app = LocalContext.current.applicationContext as android.app.Application
     val repository = AppModule.provideQuestionRepository(app)
-    val mvpProvider = AppModule.provideMvpQuestionProvider(repository)
+    val selector = AppModule.provideQuestionSelector()
+    val simulationRepository = AppModule.provideSimulationRepository(app)
 
     NavHost(navController, startDestination = AppNavGraph.SPLASH) {
         composable(AppNavGraph.SPLASH) {
@@ -51,7 +54,12 @@ fun AppNavHost() {
             val backStackEntry = navController.getBackStackEntry(AppNavGraph.SIMULACRO)
             val savedStateHandle = backStackEntry.savedStateHandle
             val simulacroViewModel: SimulacroViewModel = viewModel(
-                factory = ViewModelFactories.SimulacroFactory(mvpProvider, savedStateHandle)
+                factory = ViewModelFactories.SimulacroFactory(
+                    selector,
+                    repository,
+                    simulationRepository,
+                    savedStateHandle
+                )
             )
             SimulacroScreen(
                 viewModel = simulacroViewModel,
@@ -75,13 +83,17 @@ fun AppNavHost() {
                     timeUsed = simulacroSavedStateHandle.get<Long>("simulation_time_used_ms") ?: 0L,
                     userAnswers = parseUserAnswers(
                         simulacroSavedStateHandle.get<String>("simulation_user_answers_json") ?: "{}"
+                    ),
+                    questions = parseQuestions(
+                        simulacroSavedStateHandle.get<String>("simulation_questions_json") ?: "[]"
                     )
                 )
             }
             
             val resultadoViewModel: ResultadoViewModel = viewModel(
                 factory = ViewModelFactories.ResultadoFactory(
-                    mvpProvider,
+                    resultadoData.questions,
+                    simulationRepository,
                     resultadoData.userAnswers,
                     resultadoData.score,
                     resultadoData.total,
@@ -124,9 +136,12 @@ fun AppNavHost() {
         }
 
         composable(AppNavGraph.PERFIL) {
-            ComingSoonScreen(
-                title = "Perfil",
-                description = "Tu cuenta, configuración y preferencias.\nIntegración con Firebase Auth próximamente.",
+            val authRepository = AppModule.provideAuthRepository(app)
+            val perfilViewModel: PerfilViewModel = viewModel(
+                factory = ViewModelFactories.PerfilFactory(authRepository)
+            )
+            PerfilScreen(
+                viewModel = perfilViewModel,
                 onBack = { navController.navigate(AppNavGraph.HOME) }
             )
         }
@@ -137,16 +152,26 @@ private data class ResultadoData(
     val score: Int,
     val total: Int,
     val timeUsed: Long,
-    val userAnswers: Map<Int, String>
+    val userAnswers: Map<Int, String>,
+    val questions: List<com.udea.rutaudea.domain.model.Question>
 )
 
 private val gson = Gson()
 private val typeToken = object : TypeToken<Map<Int, String>>() {}.type
+private val questionListType = object : TypeToken<List<com.udea.rutaudea.domain.model.Question>>() {}.type
 
 private fun parseUserAnswers(json: String): Map<Int, String> {
     return try {
         gson.fromJson(json, typeToken)
     } catch (e: Exception) {
         emptyMap()
+    }
+}
+
+private fun parseQuestions(json: String): List<com.udea.rutaudea.domain.model.Question> {
+    return try {
+        gson.fromJson(json, questionListType)
+    } catch (e: Exception) {
+        emptyList()
     }
 }
