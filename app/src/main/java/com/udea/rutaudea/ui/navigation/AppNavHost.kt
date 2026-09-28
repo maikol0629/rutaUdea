@@ -4,9 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.udea.rutaudea.di.AppModule
@@ -32,9 +34,16 @@ fun AppNavHost() {
     NavHost(navController, startDestination = AppNavGraph.SPLASH) {
         composable(AppNavGraph.SPLASH) {
             SplashScreen(
-                onLoadingComplete = {
-                    navController.navigate(AppNavGraph.HOME) {
-                        popUpTo(AppNavGraph.SPLASH) { inclusive = true }
+                onReady = { sesionActiva ->
+                    // Gate de autenticación: con sesión → Home; sin sesión → login.
+                    if (sesionActiva) {
+                        navController.navigate(AppNavGraph.HOME) {
+                            popUpTo(AppNavGraph.SPLASH) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(AppNavGraph.perfilRoute(gate = true)) {
+                            popUpTo(AppNavGraph.SPLASH) { inclusive = true }
+                        }
                     }
                 }
             )
@@ -135,14 +144,34 @@ fun AppNavHost() {
             )
         }
 
-        composable(AppNavGraph.PERFIL) {
+        composable(
+            route = AppNavGraph.PERFIL_ARGS,
+            arguments = listOf(navArgument("gate") {
+                type = NavType.BoolType
+                defaultValue = false
+            })
+        ) { entry ->
+            val esGate = entry.arguments?.getBoolean("gate") ?: false
             val authRepository = AppModule.provideAuthRepository(app)
             val perfilViewModel: PerfilViewModel = viewModel(
                 factory = ViewModelFactories.PerfilFactory(authRepository)
             )
             PerfilScreen(
                 viewModel = perfilViewModel,
-                onBack = { navController.navigate(AppNavGraph.HOME) }
+                esGate = esGate,
+                onAuthSuccess = {
+                    // Login completado desde el gate: Home se vuelve la raíz.
+                    navController.navigate(AppNavGraph.HOME) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onLogoutNavigate = {
+                    // Logout desde cualquier punto: el gate de login vuelve a ser raíz.
+                    navController.navigate(AppNavGraph.perfilRoute(gate = true)) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
     }

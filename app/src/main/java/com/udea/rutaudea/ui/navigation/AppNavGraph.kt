@@ -9,4 +9,10 @@ object AppNavGraph {
     const val PROGRESO = "progreso"
     const val INFO = "info"
     const val PERFIL = "perfil"
+
+    /** Ruta con argumento `gate` (true = pantalla usada como gate de login). */
+    const val PERFIL_ARGS = "perfil?gate={gate}"
+
+    /** Ruta navegable del tab Perfil / gate de login. */
+    fun perfilRoute(gate: Boolean = false): String = "perfil?gate=$gate"
 }

@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,9 +37,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 @Composable
 fun PerfilScreen(
     viewModel: PerfilViewModel,
+    esGate: Boolean = false,
+    onAuthSuccess: () -> Unit = {},
+    onLogoutNavigate: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    // Eventos de navegación del gate de autenticación.
+    LaunchedEffect(Unit) {
+        viewModel.evento.collect { evento ->
+            when (evento) {
+                PerfilViewModel.PerfilEvento.Autenticado ->
+                    if (esGate) onAuthSuccess()
+                PerfilViewModel.PerfilEvento.SesionCerrada -> onLogoutNavigate()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -54,12 +69,14 @@ fun PerfilScreen(
                 nombre = state.user!!.nombre.ifEmpty { state.user!!.correo },
                 correo = state.user!!.correo,
                 rol = state.user!!.rol,
+                esGate = esGate,
                 onLogout = { viewModel.logout() },
                 onBack = onBack
             )
 
             else -> PerfilFormulario(
                 state = state,
+                esGate = esGate,
                 onNombreChange = viewModel::onNombreChange,
                 onCorreoChange = viewModel::onCorreoChange,
                 onPasswordChange = viewModel::onPasswordChange,
@@ -74,6 +91,7 @@ fun PerfilScreen(
 @Composable
 private fun PerfilFormulario(
     state: PerfilViewModel.UiState,
+    esGate: Boolean,
     onNombreChange: (String) -> Unit,
     onCorreoChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
@@ -98,6 +116,15 @@ private fun PerfilFormulario(
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
+
+            if (esGate) {
+                Text(
+                    text = "Inicia sesión o crea una cuenta para continuar",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
 
             if (state.esRegistro) {
                 OutlinedTextField(
@@ -170,8 +197,10 @@ private fun PerfilFormulario(
                 )
             }
 
-            OutlinedButton(onClick = onBack) {
-                Text("Volver al inicio", fontWeight = FontWeight.Medium)
+            if (!esGate) {
+                OutlinedButton(onClick = onBack) {
+                    Text("Volver al inicio", fontWeight = FontWeight.Medium)
+                }
             }
         }
     }
@@ -182,6 +211,7 @@ private fun PerfilLogueado(
     nombre: String,
     correo: String,
     rol: String,
+    esGate: Boolean,
     onLogout: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -232,8 +262,10 @@ private fun PerfilLogueado(
             ) {
                 Text("Cerrar sesión", fontWeight = FontWeight.Medium)
             }
-            OutlinedButton(onClick = onBack) {
-                Text("Volver al inicio", fontWeight = FontWeight.Medium)
+            if (!esGate) {
+                OutlinedButton(onClick = onBack) {
+                    Text("Volver al inicio", fontWeight = FontWeight.Medium)
+                }
             }
         }
     }
