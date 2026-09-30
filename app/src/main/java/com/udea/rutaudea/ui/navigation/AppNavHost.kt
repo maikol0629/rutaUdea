@@ -17,6 +17,12 @@ import com.udea.rutaudea.ui.screen.common.ComingSoonScreen
 import com.udea.rutaudea.ui.screen.home.HomeScreen
 import com.udea.rutaudea.ui.screen.perfil.PerfilScreen
 import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
+import com.udea.rutaudea.ui.screen.practica.PracticaFiltrosScreen
+import com.udea.rutaudea.ui.screen.practica.PracticaFiltrosViewModel
+import com.udea.rutaudea.ui.screen.practica.PracticaResultadoScreen
+import com.udea.rutaudea.ui.screen.practica.PracticaResultadoViewModel
+import com.udea.rutaudea.ui.screen.practica.PracticaSesionScreen
+import com.udea.rutaudea.ui.screen.practica.PracticaSesionViewModel
 import com.udea.rutaudea.ui.screen.resultado.ResultadoScreen
 import com.udea.rutaudea.ui.screen.resultado.ResultadoViewModel
 import com.udea.rutaudea.ui.screen.simulacro.SimulacroScreen
@@ -119,12 +125,94 @@ fun AppNavHost() {
             )
         }
 
-        // Placeholder screens for other tabs
-        composable(AppNavGraph.PRACTICA) {
-            ComingSoonScreen(
-                title = "Práctica",
-                description = "Práctica filtrada por área, subtema y dificultad.\nCon retroalimentación inmediata.",
-                onBack = { navController.navigate(AppNavGraph.HOME) }
+        // ----- Módulo de Práctica (filtros → sesión → resultado) -----
+        composable(AppNavGraph.PRACTICA) { entry ->
+            val filtrosViewModel: PracticaFiltrosViewModel = viewModel(
+                factory = ViewModelFactories.PracticaFiltrosFactory(
+                    repository,
+                    AppModule.providePracticeSelector(),
+                    entry.savedStateHandle
+                )
+            )
+            PracticaFiltrosScreen(
+                viewModel = filtrosViewModel,
+                onIniciar = { navController.navigate(AppNavGraph.PRACTICA_SESION) }
+            )
+        }
+
+        composable(AppNavGraph.PRACTICA_SESION) {
+            // Lectura única de la selección hecha en Filtros (SAH de esa entrada).
+            val sesionData = remember {
+                val filtrosSah = navController.getBackStackEntry(AppNavGraph.PRACTICA).savedStateHandle
+                PracticaSesionData(
+                    questions = parseQuestions(
+                        filtrosSah.get<String>(PracticaFiltrosViewModel.PREGUNTAS_KEY) ?: "[]"
+                    ),
+                    area = filtrosSah.get<String>(PracticaFiltrosViewModel.AREA_KEY)
+                        ?: PracticaFiltrosViewModel.AREA_RL,
+                    subtema = filtrosSah.get<String>(PracticaFiltrosViewModel.SUBTEMA_KEY)?.ifBlank { null }
+                )
+            }
+            val sesionViewModel: PracticaSesionViewModel = viewModel(
+                factory = ViewModelFactories.PracticaSesionFactory(
+                    sesionData.questions,
+                    sesionData.area,
+                    sesionData.subtema,
+                    it.savedStateHandle
+                )
+            )
+            PracticaSesionScreen(
+                viewModel = sesionViewModel,
+                onAbandonar = {
+                    navController.popBackStack(AppNavGraph.PRACTICA, inclusive = false)
+                },
+                onTerminada = {
+                    navController.navigate(AppNavGraph.PRACTICA_RESULTADO)
+                }
+            )
+        }
+
+        composable(AppNavGraph.PRACTICA_RESULTADO) {
+            // Lectura única de los resultados (SAH de la sesión) con remember:
+            // durante la animación de salida getBackStackEntry() podría fallar.
+            val resultadoData = remember {
+                val sesionSah = navController.getBackStackEntry(AppNavGraph.PRACTICA_SESION).savedStateHandle
+                PracticaResultadoData(
+                    score = sesionSah.get<Int>(PracticaSesionViewModel.SCORE_KEY) ?: 0,
+                    total = sesionSah.get<Int>(PracticaSesionViewModel.TOTAL_KEY) ?: 0,
+                    timeUsedMs = sesionSah.get<Long>(PracticaSesionViewModel.TIME_USED_KEY) ?: 0L,
+                    userAnswers = parseUserAnswers(
+                        sesionSah.get<String>(PracticaSesionViewModel.ANSWERS_JSON_KEY) ?: "{}"
+                    ),
+                    questions = parseQuestions(
+                        sesionSah.get<String>(PracticaSesionViewModel.QUESTIONS_JSON_KEY) ?: "[]"
+                    ),
+                    area = sesionSah.get<String>(PracticaSesionViewModel.AREA_KEY)
+                        ?: PracticaFiltrosViewModel.AREA_RL,
+                    subtema = sesionSah.get<String>(PracticaSesionViewModel.SUBTEMA_KEY)?.ifBlank { null }
+                )
+            }
+            val practiceRepository = AppModule.providePracticeRepository(app)
+            val resultadoViewModel: PracticaResultadoViewModel = viewModel(
+                factory = ViewModelFactories.PracticaResultadoFactory(
+                    resultadoData.questions,
+                    practiceRepository,
+                    resultadoData.userAnswers,
+                    resultadoData.area,
+                    resultadoData.subtema,
+                    resultadoData.score,
+                    resultadoData.total,
+                    resultadoData.timeUsedMs
+                )
+            )
+            PracticaResultadoScreen(
+                viewModel = resultadoViewModel,
+                onRepetir = {
+                    navController.popBackStack(AppNavGraph.PRACTICA, inclusive = false)
+                },
+                onVolverInicio = {
+                    navController.popBackStack(AppNavGraph.HOME, inclusive = false)
+                }
             )
         }
 
@@ -183,6 +271,22 @@ private data class ResultadoData(
     val timeUsed: Long,
     val userAnswers: Map<Int, String>,
     val questions: List<com.udea.rutaudea.domain.model.Question>
+)
+
+private data class PracticaSesionData(
+    val questions: List<com.udea.rutaudea.domain.model.Question>,
+    val area: String,
+    val subtema: String?
+)
+
+private data class PracticaResultadoData(
+    val score: Int,
+    val total: Int,
+    val timeUsedMs: Long,
+    val userAnswers: Map<Int, String>,
+    val questions: List<com.udea.rutaudea.domain.model.Question>,
+    val area: String,
+    val subtema: String?
 )
 
 private val gson = Gson()

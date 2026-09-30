@@ -58,7 +58,15 @@ class QuestionRepository(
 
     suspend fun getDistinctSubtemas(): List<String> = questionDao.getDistinctSubtemas()
 
+    /** Subtemas con preguntas aprobadas de un área (filtros del módulo de práctica). */
+    suspend fun getDistinctSubtemas(area: String): List<String> =
+        questionDao.getDistinctSubtemasByArea(area)
+
     suspend fun getDistinctDificultades(): List<String> = questionDao.getDistinctDificultades()
+
+    /** Preguntas disponibles con los filtros de práctica (área y/o subtema). */
+    suspend fun countByFilters(area: String? = null, subtema: String? = null): Int =
+        questionDao.countByFilters(area, subtema)
 
     // ----- SEED (carga inicial) -----
 

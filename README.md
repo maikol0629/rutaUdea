@@ -25,23 +25,26 @@ app/src/main/java/com/udea/rutaudea/
 │   ├── repository/
 │   │   ├── QuestionRepository.kt  # Banco local + sincronización desde Firestore
 │   │   ├── AuthRepository.kt      # Firebase Auth + perfil (colección users)
-│   │   └── SimulationRepository.kt# Registro de simulacros en Firestore
+│   │   ├── SimulationRepository.kt# Registro de simulacros en Firestore
+│   │   └── PracticeRepository.kt  # Registro de sesiones de práctica (batch)
 │   └── source/local/              # JsonL loader + Seeder
 ├── domain/
 │   ├── model/Question.kt          # Modelo de dominio de preguntas
 │   ├── model/User.kt              # Modelo de usuario (uid, nombre, correo, rol)
-│   └── services/QuestionSelector.kt # Motor de selección de 80 preguntas
+│   ├── services/QuestionSelector.kt # Motor de selección de 80 preguntas
+│   └── services/PracticeSelector.kt # Estratificación proporcional por dificultad
 ├── ui/
 │   ├── navigation/                # AppNavHost + AppNavGraph
 │   ├── screen/
-│   │   ├── splash/                # Splash (espera seed del banco)
+│   │   ├── splash/                # Splash (espera seed + decide sesión)
 │   │   ├── home/                  # Home con 5 tabs
 │   │   ├── simulacro/             # Simulacro 80 preguntas, timer 120 min
 │   │   ├── resultado/             # Score, análisis y detalle por pregunta
 │   │   ├── perfil/                # Login / Registro / Perfil (Firebase Auth)
+│   │   ├── practica/              # Filtros → sesión con feedback → resultado
 │   │   └── common/ComingSoonScreen.kt
 │   └── theme/                     # Material3 Forest Green
-└── tests unitarios: data/mapper, data/source/local, domain/services
+└── tests unitarios: data/mapper, data/source/local, domain/services, ui/screen
 ```
 
 ## Capa de datos
@@ -84,10 +87,24 @@ con la versión maestra aprobada en Firestore.
 
 ---
 
+## Práctica dirigida
+
+- **Filtros**: área (RL/CL) + subtema (dinámico desde el banco) + cantidad (5/10/20).
+- **Estratificación**: la dificultad no se filtra — `PracticeSelector` reparte
+  las preguntas proporcionalmente a la composición real del banco filtrado
+  (método de mayor residuo), con relleno flexible.
+- **Feedback inmediato** al responder: ✓/✗, explicación, subtema/dificultad y
+  recomendación. La respuesta queda bloqueada. Sin límite de tiempo.
+- **Persistencia**: cada sesión completada se guarda en Firestore
+  (`practiceSessions` + subcolección `practiceQuestions`) para el futuro
+  módulo de Progreso.
+
+---
+
 ## Próximos pasos
 
-1. Implementar módulo de **Práctica** filtrada con retroalimentación inmediata.
-2. Implementar pantalla de **Progreso** con historial y gráficas.
-3. Contenido educativo **Info** por componente/subtema.
+1. Implementar pantalla de **Progreso** con historial y gráficas (datos en `simulations` y `practiceSessions`).
+2. Contenido educativo **Info** por componente/subtema.
+3. Recuperación de contraseña.
 4. Panel administrativo web (CRUD del banco, carga CSV, roles admin).
 5. Migrar inyección manual a **Hilt**.

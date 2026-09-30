@@ -3,15 +3,16 @@
 ## Resumen General
 El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP + Firebase.
 
-**Estado actual: ✅ MVP COMPLETO Y FUNCIONAL + Firebase + gate de autenticación** - Todas las pantallas principales operativas, login/registro obligatorio al iniciar (rama `feat/auth-gate`), motor de selección de 80 preguntas. Build SUCCESS, tests PASS (27).
+**Estado actual: ✅ MVP COMPLETO Y FUNCIONAL + Firebase + gate de autenticación + Módulo de Práctica** - Todas las pantallas principales operativas, login/registro obligatorio (rama `feat/auth-gate`, ya en main), motor de selección de 80 preguntas, práctica dirigida con feedback inmediato y selección estratificada (rama `feat/practica`). Build SUCCESS, tests PASS (46).
 
 ## 🌿 Ramas
 | Rama | Estado | Contenido |
 |------|--------|-----------|
-| `main` | ✅ Actualizada (PR #2) | MVP + Firebase completo + motor de 80 preguntas (el merge del motor incluyó la integración Firebase al ser rama apilada) |
+| `main` | ✅ Actualizada (PR #3) | MVP + Firebase completo + motor de 80 preguntas + gate de autenticación |
 | `feat/firebase-config` | ✅ En origin | Firebase Auth + Firestore + sincronización (ya en main vía PR #2) |
 | `feat/motor-seleccion-preguntas` | ✅ En origin | Motor de selección 80 preguntas (ya en main vía PR #2) |
-| `feat/auth-gate` | 🔨 Rama actual de trabajo | Gate de autenticación: splash decide Home/login, logout vuelve al login |
+| `feat/auth-gate` | ✅ En origin | Gate de autenticación (ya en main vía PR #3) |
+| `feat/practica` | 🔨 Rama actual de trabajo | Módulo de Práctica completo: filtros → sesión con feedback inmediato → resultado + persistencia `practiceSessions` |
 
 ---
 
@@ -44,7 +45,10 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | **SimulacroScreen** | ✅ Funciona | `SimulacroScreen.kt` + `SimulacroViewModel` (80 preguntas motor de selección, timer 120min) |
 | **ResultadoScreen** | ✅ Funciona | `ResultadoScreen.kt` + `ResultadoViewModel` (score, %, tiempo, detalle ✓/✗ + 💡) |
 | **PerfilScreen** | ✅ Funciona | `PerfilScreen.kt` + `PerfilViewModel` (login/registro Firebase, perfil, logout) |
-| **ComingSoonScreen** | ✅ Placeholder | Para Práctica, Progreso, Info |
+| **PracticaFiltrosScreen** | ✅ Funciona | `PracticaFiltrosScreen.kt` + `PracticaFiltrosViewModel` (área → subtema → cantidad 5/10/20) |
+| **PracticaSesionScreen** | ✅ Funciona | `PracticaSesionScreen.kt` + `PracticaSesionViewModel` (feedback inmediato, respuesta bloqueada, sin límite de tiempo) |
+| **PracticaResultadoScreen** | ✅ Funciona | `PracticaResultadoScreen.kt` + `PracticaResultadoViewModel` (score, %, tiempo, repaso con explicación y recomendación) |
+| **ComingSoonScreen** | ✅ Placeholder | Para Progreso, Info |
 
 ### 4. Funcionalidades Core del Simulacro
 | Función | Estado | Detalle |
@@ -61,7 +65,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | Tab | Ruta | Estado |
 |-----|------|--------|
 | 🧪 Simulacro | `simulacro` | ✅ Funcional |
-| 📝 Práctica | `practica` | 🟡 Placeholder |
+| 📝 Práctica | `practica` (+`practica/sesion`, `practica/resultado`) | ✅ Funcional (filtros → sesión → resultado) |
 | 📈 Progreso | `progreso` | 🟡 Placeholder |
 | 📚 Info | `info` | 🟡 Placeholder |
 | 👤 Perfil | `perfil` | ✅ Funcional (login/registro Firebase Auth) |
@@ -79,10 +83,22 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Pendiente**: recuperación de contraseña, tests de instrumentación del flujo.
 
 ### 5.2 Sincronización y persistencia (Firestore) — IMPLEMENTADO
-- **`google-services.json`** presente en `app/` (reglas completas en `firestore.rules`: users, questions, simulations, simulationQuestions, contexts, components, subtopics, educationalContent, settings; roles aspirante/admin).
+- **`google-services.json`** presente en `app/` (reglas completas en `firestore.rules`: users, questions, simulations, simulationQuestions, practiceSessions + practiceQuestions, contexts, components, subtopics, educationalContent, settings; roles aspirante/admin).
+- **Fix `firestore.rules`** (rama feat/practica): `isOwner()` estaba definido dentro del bloque `users` pero se usaba en `simulations`/`practiceSessions`/`recommendations` — las funciones dentro de un `match` son locales a ese bloque, el deploy habría fallado. Movida a scope global; añadida subcolección `practiceQuestions` (legible por el dueño de la sesión).
 - **`QuestionRepository.updateBankFromFirestore()`**: descarga el banco maestro (`questions` con `estado=aprobado`) y reemplaza Room.
 - **`SimulationRepository.saveSimulation()`**: guarda simulacro completado (resumen + detalle por pregunta); requiere sesión (si no hay, se omite el guardado).
 - **`SimulationRepository.getQuestionIdsFromRecentSimulacros(3)`**: usado por el motor para excluir preguntas de los últimos 3 simulacros.
+
+### 5.3 Módulo de Práctica — IMPLEMENTADO (rama `feat/practica`)
+- **Decisiones de diseño** (validadas con el equipo):
+  - La **dificultad NO es filtrable** por el usuario: la selección se **estratifica por dificultad proporcionalmente a la composición real del banco filtrado** (área + subtema), método de mayor residuo — `PracticeSelector` (clase pura de dominio, testeable).
+  - Cantidad elegible: **5 / 10 / 20** preguntas (ajustada a las disponibles con esos filtros).
+- **Flujo**: Filtros (área RL/CL → subtema dinámico desde Room o "Todos" → cantidad) → **Sesión** → **Resultado**.
+- **Sesión con feedback inmediato** (plan §10): al responder se revela ✓/✗, tu respuesta vs la correcta, 💡 explicación, chips de subtema/dificultad y 📚 recomendación estática por subtema. La respuesta revelada **queda bloqueada**. Sin cronómetro límite (reloj informativo ascendente). Navegación anterior/siguiente, abandono y "terminar ahora" (no reveladas = omitidas). Progreso persistido en `SavedStateHandle` (sobrevive rotación/background).
+- **Resultado**: score, %, tiempo usado, repaso por pregunta con explicación + recomendación; "Nueva práctica" (vuelve a filtros conservando filtros) y "Volver al inicio".
+- **Persistencia**: `PracticeRepository.savePracticeSession()` guarda en Firestore `practiceSessions` (uid, filtros, score, tiempo) + subcolección `practiceQuestions` (batch, detalle por pregunta) — alimentará el módulo de Progreso.
+- **Consultas nuevas**: `QuestionDao.getDistinctSubtemasByArea()` y `countByFilters()` (+ métodos en `QuestionRepository`).
+- **Tests**: `PracticeSelectorTest` (7), `PracticaSesionViewModelTest` (7), `PracticaFiltrosViewModelTest` (5).
 
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
@@ -95,6 +111,9 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `QuestionJsonlLoaderTest` - 5 tests pasan
 - ✅ `QuestionSelectorTest` - 11 tests pasan (motor de selección)
 - ✅ `SplashViewModelTest` - 4 tests pasan (gate de autenticación)
+- ✅ `PracticeSelectorTest` - 7 tests pasan (estratificación proporcional, mayor residuo)
+- ✅ `PracticaSesionViewModelTest` - 7 tests pasan (feedback, bloqueo, navegación, SAH, restauración)
+- ✅ `PracticaFiltrosViewModelTest` - 5 tests pasan (subtemas por área, disponibles, iniciar)
 
 ### 8. Motor de selección de preguntas (100% completo)
 - **`QuestionSelector`** (`domain/services/QuestionSelector.kt`) — clase pura de dominio, testeable:
@@ -114,7 +133,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
 - ✅ `./gradlew installDebug` - **Instala en dispositivo físico**
-- ✅ Tests unitarios: `./gradlew test` - **PASAN (27 tests)**
+- ✅ Tests unitarios: `./gradlew test` - **PASAN (46 tests)**
 
 ---
 
@@ -167,23 +186,26 @@ app/src/main/java/com/udea/rutaudea/
 │   ├── repository/
 │   │   ├── QuestionRepository.kt      # ✅ Banco local + updateBankFromFirestore()
 │   │   ├── AuthRepository.kt          # ✅ Firebase Auth + colección users
-│   │   └── SimulationRepository.kt    # ✅ Guardado de simulacros en Firestore
+│   │   ├── SimulationRepository.kt    # ✅ Guardado de simulacros en Firestore
+│   │   └── PracticeRepository.kt      # ✅ Guardado de sesiones de práctica (batch)
 │   └── source/local/                  # ✅ JsonL loader + Seeder (maneja JsonNull)
 ├── domain/
 │   ├── model/Question.kt              # ✅ Modelo dominio
 │   ├── model/User.kt                  # ✅ Modelo usuario (uid, nombre, correo, rol)
-│   └── services/QuestionSelector.kt   # ✅ Motor de selección 80 preguntas (testeado)
+│   ├── services/QuestionSelector.kt   # ✅ Motor de selección 80 preguntas (testeado)
+│   └── services/PracticeSelector.kt   # ✅ Estratificación proporcional de práctica (testeado)
 ├── ui/
 │   ├── navigation/
-│   │   ├── AppNavHost.kt              # ✅ NavHost principal (8 destinos)
+│   │   ├── AppNavHost.kt              # ✅ NavHost principal (10 destinos)
 │   │   └── AppNavGraph.kt             # ✅ Rutas
 │   ├── screen/
-│   │   ├── splash/                    # ✅ Splash + ViewModel (poll DB seed)
+│   │   ├── splash/                    # ✅ Splash + ViewModel (poll DB seed + gate auth)
 │   │   ├── home/                      # ✅ Home + 5 tabs
 │   │   ├── simulacro/                 # ✅ 80 preguntas, timer 120 min
 │   │   ├── resultado/                 # ✅ Resultado + ViewModel (lee SavedStateHandle previo)
 │   │   ├── perfil/                    # ✅ Login/Registro/Perfil (Firebase Auth)
-│   │   └── common/ComingSoonScreen.kt # ✅ Placeholder (Práctica, Progreso, Info)
+│   │   ├── practica/                  # ✅ Filtros + Sesión feedback + Resultado
+│   │   └── common/ComingSoonScreen.kt # ✅ Placeholder (Progreso, Info)
 │   └── theme/                         # ✅ Material3 Forest Green
 ```
 
@@ -193,14 +215,14 @@ app/src/main/java/com/udea/rutaudea/
 
 | Prioridad | Tarea | Esfuerzo |
 |-----------|-------|----------|
-| **P0** | PR de `feat/auth-gate` a `main` cuando el gate esté validado en dispositivo | 15 min |
-| ~~**P0**~~ | ~~Gate de login al inicio~~ | ✅ HECHO (feat/auth-gate) |
+| **P0** | PR de `feat/practica` a `main` cuando esté validado en dispositivo (⚠️ deploy de `firestore.rules` incluido) | 15 min |
+| ~~**P0**~~ | ~~Gate de login al inicio~~ | ✅ HECHO (en main vía PR #3) |
 | ~~**P0**~~ | ~~Eliminar código basura sin uso~~ | ✅ HECHO |
 | **P1** | Migrar a Hilt para DI | 2 horas |
-| **P1** | Implementar Práctica filtrada real | 4 horas |
+| ~~**P1**~~ | ~~Implementar Práctica filtrada real~~ | ✅ HECHO (feat/practica) |
 | ~~**P2**~~ | ~~Motor selección 80 preguntas (40 RL + 40 CL)~~ | ✅ HECHO (en main) |
-| **P2** | Pantalla Práctica con feedback inmediato | 4 horas |
-| **P2** | Pantalla Progreso con gráficas (datos de `simulations` Firestore) | 6 horas |
+| ~~**P2**~~ | ~~Pantalla Práctica con feedback inmediato~~ | ✅ HECHO (feat/practica) |
+| **P1** | Pantalla Progreso con gráficas (datos de `simulations` + `practiceSessions` Firestore) | 6 horas |
 | **P2** | Contenido educativo Info por subtema | 4 horas |
 | **P2** | Recuperación de contraseña (sendPasswordResetEmail) | 1 hora |
 | **P2** | Tests UI Compose + Instrumentación | 4 horas |
@@ -232,6 +254,10 @@ app/src/main/java/com/udea/rutaudea/
 8. Background → Home → volver → Overlay "Continuar/Abandonar" → Continua timer
 9. Final → Resultado → Score X/80, %, tiempo, lista expandible ✓/✗ + 💡
 10. Con sesión (garantizada por el gate) → el simulacro se guarda en Firestore
+11. Tab 📝 Práctica → filtros (área RL/CL, subtema dinámico, cantidad 5/10/20, disponibles visibles)
+12. Iniciar → sesión sin límite de tiempo; al responder: ✓/✗ inmediato + 💡 explicación + 📚 recomendación; respuesta bloqueada; ←/→ navegar; Abandonar/Terminar
+13. Resultado práctica → score/%, tiempo, repaso por pregunta; "Nueva práctica" (conserva filtros) / "Volver al inicio"
+14. Firestore → colección `practiceSessions` con la sesión + subcolección `practiceQuestions`
 
 ---
 
@@ -266,4 +292,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-09-27 - Rama `feat/auth-gate` (desde main con PR #2: motor + firebase): gate de autenticación completo (splash decide Home/login, logout vuelve al login, login/registro navega a Home como raíz). Verificado: `test` (27 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21). Docs actualizados a estado real.*
+*Última actualización: 2026-09-30 - Rama `feat/practica` (desde main con PR #3): módulo de Práctica completo (filtros área/subtema/cantidad 5-10-20 → sesión con feedback inmediato y respuesta bloqueada → resultado con repaso y recomendación). Selección estratificada por dificultad proporcional al banco (`PracticeSelector`). Persistencia en `practiceSessions`/`practiceQuestions` (batch) + fix de scope de `isOwner` en `firestore.rules`. Verificado: `test` (46 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21).*

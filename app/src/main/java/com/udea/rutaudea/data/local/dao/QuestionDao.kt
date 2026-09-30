@@ -81,8 +81,23 @@ interface QuestionDao {
     @Query("SELECT DISTINCT subtema FROM questions ORDER BY subtema")
     suspend fun getDistinctSubtemas(): List<String>
 
+    /** Subtemas con preguntas aprobadas de un área (filtros de práctica). */
+    @Query("SELECT DISTINCT subtema FROM questions WHERE area = :area AND estado = 'aprobado' ORDER BY subtema")
+    suspend fun getDistinctSubtemasByArea(area: String): List<String>
+
     @Query("SELECT DISTINCT dificultad FROM questions ORDER BY dificultad")
     suspend fun getDistinctDificultades(): List<String>
+
+    /** Preguntas aprobadas disponibles con los filtros de práctica (área y/o subtema). */
+    @Query(
+        """
+        SELECT COUNT(*) FROM questions
+        WHERE (:area IS NULL OR area = :area)
+          AND (:subtema IS NULL OR subtema = :subtema)
+          AND estado = 'aprobado'
+        """
+    )
+    suspend fun countByFilters(area: String? = null, subtema: String? = null): Int
 
     /** Flujo reactivo con todas las preguntas aprobadas. */
     @Query("SELECT * FROM questions WHERE estado = 'aprobado'")
