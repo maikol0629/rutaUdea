@@ -28,11 +28,11 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
   - Modelo de dominio `Question` con helpers (`respuestaCorrectaTexto()`, `opcionPorLetra()`)
 
 ### 2. Preguntas MVP (6 seleccionadas del banco de 200)
-| ID | Área | Subtema | Tipo |
+| ID | Área | Subtema (normalizado) | Tipo |
 |----|------|---------|------|
-| profe_alex_4 | RL | Series | Suma/Resta |
-| profe_alex_7 | RL | Porcentajes | Suma/Resta |
-| profe_alex_23 | RL | Posibilidades lógicas | Lógica simple |
+| profe_alex_4 | RL | RL07 Sucesiones/Series | Suma/Resta |
+| profe_alex_7 | RL | RL02 Porcentajes | Suma/Resta |
+| profe_alex_23 | RL | RL11 Posibilidades lógicas | Lógica simple |
 | CL-ORG-001 | CL | CL11 Supuestos | Texto base |
 | CL-ORG-002 | CL | CL02 Inferencia | Texto base |
 | CL-ORG-007 | CL | CL03 Idea principal | Texto base |
@@ -100,6 +100,13 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Consultas nuevas**: `QuestionDao.getDistinctSubtemasByArea()` y `countByFilters()` (+ métodos en `QuestionRepository`).
 - **Tests**: `PracticeSelectorTest` (7), `PracticaSesionViewModelTest` (7), `PracticaFiltrosViewModelTest` (5).
 
+### 5.4 Normalización de subtemas del banco (rama `feat/practica`)
+- **Problema**: el banco RL mezclaba 2 convenciones (52 preguntas de `profe_alex` con nombres genéricos: "Series", "Geometria", el comodín "Razonamiento logico"... y 48 generadas con códigos oficiales RL01–RL18) → el filtro de práctica mostraba 27 subtemas con conceptos duplicados.
+- **Fix**: fusión de nombres genéricos a componentes oficiales + **reclasificación por contenido de las 15 preguntas del comodín** (mapeo id→subtema documentado en el commit). RL quedó en **15 subtemas oficiales** (RL01–RL18) y CL en 14 (CL01–CL14, ya era consistente).
+- **RLnn = componentes oficiales del examen de admisión UdeA** (RL01 Proporcionalidad, RL02 Porcentajes... RL18 Lógica; CLnn análogo para Competencia Lectora).
+- Archivos migrados: `app/src/main/assets/questions/questions.jsonl` (52 registros) y `docs/preguntas_validadas.json` (v2).
+- ⚠️ **Pendiente de réplica**: banco maestro en **Firestore** (colección `questions`) — recargarlo desde el JSONL corregido o aplicar el mismo mapeo. Instalaciones existentes conservan Room viejo hasta reinstalar/limpiar datos o sincronizar.
+
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
 - **Secondary**: Blue Accent (#2196F3)
@@ -138,6 +145,11 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 ---
 
 ## ❌ PROBLEMAS PENDIENTES / NO IMPLEMENTADOS
+
+### 0. Calidad del banco: 32 preguntas RL sin respuesta/enunciado (Alto)
+- **Problema**: 32 preguntas RL del banco (mayoría `profe_alex_*`, varias del extinto comodín "Razonamiento logico") no tienen `respuesta_correcta` o enunciado → los selectores las excluyen (banco válido: 68 RL + 100 CL = 168; el simulacro requiere 80 y RL ≥ 40: OK hoy, margen justo).
+- **Impacto**: no aparecen en simulacro ni práctica; fragmentan los pools por subtema; subutilizan las fuentes originales.
+- **Solución pendiente**: completar la validación (responderlas) con el panel administrativo o curación manual. El plan (§6) ya lo registra como riesgo "Preguntas sin validar".
 
 ### 1. Iconos de la App (Crítico)
 - **Problema**: Adaptive icons configurados (`ic_launcher_foreground.xml` + `launcher_background #1B4D3E`) pero se ve cuadrado verde en launcher
@@ -292,4 +304,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-09-30 - Rama `feat/practica` (desde main con PR #3): módulo de Práctica completo (filtros área/subtema/cantidad 5-10-20 → sesión con feedback inmediato y respuesta bloqueada → resultado con repaso y recomendación). Selección estratificada por dificultad proporcional al banco (`PracticeSelector`). Persistencia en `practiceSessions`/`practiceQuestions` (batch) + fix de scope de `isOwner` en `firestore.rules`. Verificado: `test` (46 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21).*
+*Última actualización: 2026-10-01 - Rama `feat/practica`: módulo de Práctica completo + normalización de subtemas del banco a componentes oficiales (RL: 27→15 subtemas RL01-RL18; 52 registros migrados en JSONL y docs JSON v2; 15 preguntas del comodín reclasificadas por contenido). Detectado: 32 preguntas RL sin respuesta (excluidas por selectores; banco válido 168/200). Verificado: `test` (46 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21). Pendiente: replicar normalización en Firestore.*

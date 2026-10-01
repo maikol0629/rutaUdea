@@ -134,7 +134,9 @@ El banco inicial está compuesto por **200 preguntas validadas** (100 de razonam
 - Copia de respaldo en formato JSON: `docs/preguntas_validadas.json`
 - Estructura por pregunta: `id`, `area`, `subtema`, `competencia`, `dificultad`, `contexto`, `pregunta`, `opciones` (A–D), `respuesta_correcta`, `explicacion`, `fuente`, `tipo_fuente`, `es_original`, `verificada`, `duplicado`.
 
-> **Nota de calidad:** Parte del banco aún está marcado con `respuesta_correcta` pendiente de verificación. El objetivo es completar la validación para que el motor del simulacro disponga de suficientes preguntas con respuesta correcta y explicación.
+> **Nota de calidad:** **32 preguntas RL** aún tienen `respuesta_correcta` pendiente (o enunciado incompleto) y quedan excluidas por los selectores — banco válido: 168 de 200. El objetivo es completar la validación para que el motor disponga de más margen por subtema.
+
+> **Normalización v2 (2026-10):** los subtemas de RL fueron unificados a los **componentes oficiales del examen** RL01–RL18 (antes conviven 27 etiquetas con duplicados: "Porcentajes" vs "RL02 Porcentajes", "Geometria" vs "RL13 Geometría", el comodín "Razonamiento logico"…). Las 15 preguntas del comodín fueron reclasificadas por contenido. CL ya usaba CL01–CL14 consistentemente. Cambios replicados en `questions.jsonl` y `docs/preguntas_validadas.json`; **falta replicar en el banco maestro de Firestore**.
 
 ---
 

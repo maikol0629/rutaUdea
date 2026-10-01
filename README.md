@@ -60,7 +60,8 @@ El dataset (JSONL) se empaqueta en:
 `app/src/main/assets/questions/questions.jsonl`
 
 Contiene **200 preguntas** (100 Razonamiento Lógico + 100 Competencia Lectora),
-listas para cargarse en Room en la primera ejecución.
+clasificadas por los **componentes oficiales del examen UdeA** (RL01–RL18 y
+CL01–CL14). Se cargan en Room en la primera ejecución.
 La sincronización `updateBankFromFirestore()` permite reemplazar el banco local
 con la versión maestra aprobada en Firestore.
 
