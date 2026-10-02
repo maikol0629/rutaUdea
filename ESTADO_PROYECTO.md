@@ -3,7 +3,7 @@
 ## Resumen General
 El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP + Firebase.
 
-**Estado actual: ✅ MVP COMPLETO Y FUNCIONAL + Firebase + gate de autenticación + Módulo de Práctica** - Todas las pantallas principales operativas, login/registro obligatorio (rama `feat/auth-gate`, ya en main), motor de selección de 80 preguntas, práctica dirigida con feedback inmediato y selección estratificada (rama `feat/practica`). Banco normalizado a componentes oficiales RL01–RL18/CL01–CL14 con seeder versionado. Build SUCCESS, tests PASS (50).
+**Estado actual: ✅ MVP COMPLETO Y FUNCIONAL + Firebase + gate auth + Práctica + Progreso** - Todas las pantallas principales operativas salvo Info; login/registro obligatorio (en main), motor de 80 preguntas, práctica dirigida con feedback inmediato (rama `feat/practica`), dashboard de progreso con analítica y recomendaciones (rama `feat/progreso`). Banco normalizado a componentes oficiales. Build SUCCESS, tests PASS (59).
 
 ## 🌿 Ramas
 | Rama | Estado | Contenido |
@@ -12,7 +12,8 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | `feat/firebase-config` | ✅ En origin | Firebase Auth + Firestore + sincronización (ya en main vía PR #2) |
 | `feat/motor-seleccion-preguntas` | ✅ En origin | Motor de selección 80 preguntas (ya en main vía PR #2) |
 | `feat/auth-gate` | ✅ En origin | Gate de autenticación (ya en main vía PR #3) |
-| `feat/practica` | 🔨 Rama actual de trabajo | Módulo de Práctica completo: filtros → sesión con feedback inmediato → resultado + persistencia `practiceSessions` |
+| `feat/practica` | ✅ En origin | Módulo de Práctica completo + normalización del banco + seeder versionado |
+| `feat/progreso` | 🔨 Rama actual de trabajo | Módulo de Progreso: dashboard, evolución, acierto por subtema, recomendaciones, historial |
 
 ---
 
@@ -48,7 +49,8 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | **PracticaFiltrosScreen** | ✅ Funciona | `PracticaFiltrosScreen.kt` + `PracticaFiltrosViewModel` (área → subtema → cantidad 5/10/20) |
 | **PracticaSesionScreen** | ✅ Funciona | `PracticaSesionScreen.kt` + `PracticaSesionViewModel` (feedback inmediato, respuesta bloqueada, sin límite de tiempo) |
 | **PracticaResultadoScreen** | ✅ Funciona | `PracticaResultadoScreen.kt` + `PracticaResultadoViewModel` (score, %, tiempo, repaso con explicación y recomendación) |
-| **ComingSoonScreen** | ✅ Placeholder | Para Progreso, Info |
+| **ProgresoScreen** | ✅ Funciona | `ProgresoScreen.kt` + `ProgresoViewModel` (métricas, gráfica evolución, áreas de mejora/fortalezas, recomendaciones, historial) |
+| **ComingSoonScreen** | ✅ Placeholder | Para Info |
 
 ### 4. Funcionalidades Core del Simulacro
 | Función | Estado | Detalle |
@@ -66,7 +68,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 |-----|------|--------|
 | 🧪 Simulacro | `simulacro` | ✅ Funcional |
 | 📝 Práctica | `practica` (+`practica/sesion`, `practica/resultado`) | ✅ Funcional (filtros → sesión → resultado) |
-| 📈 Progreso | `progreso` | 🟡 Placeholder |
+| 📈 Progreso | `progreso` | ✅ Funcional (dashboard + evolución + recomendaciones + historial) |
 | 📚 Info | `info` | 🟡 Placeholder |
 | 👤 Perfil | `perfil` | ✅ Funcional (login/registro Firebase Auth) |
 
@@ -100,6 +102,16 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Consultas nuevas**: `QuestionDao.getDistinctSubtemasByArea()` y `countByFilters()` (+ métodos en `QuestionRepository`).
 - **Tests**: `PracticeSelectorTest` (7), `PracticaSesionViewModelTest` (7), `PracticaFiltrosViewModelTest` (5).
 
+### 5.5 Módulo de Progreso — IMPLEMENTADO (rama `feat/progreso`)
+- **Dashboard** (tab 📈): métricas globales (nº simulacros, nº prácticas, promedio %, mejor puntaje).
+- **Evolución**: gráfica de línea (Canvas, sin dependencias externas) con el % de cada simulacro en orden cronológico; requiere ≥2 simulacros.
+- **Acierto por subtema**: agregado de `simulationQuestions` + `practiceQuestions` de las últimas 5 simulacros y 10 prácticas (solo preguntas respondidas); barras con % y evidencia (correctas/respondidas).
+- **Áreas de mejora / Fortalezas / Recomendaciones** (plan §12): solo subtemas con **evidencia ≥3 respuestas** («una pregunta no hace un tema débil»); top 5 en mejora/fortalezas, top 3 en recomendaciones.
+- **Historial unificado**: simulacros + prácticas ordenados por fecha desc, con score, % y tiempo.
+- **Empty state**: sin actividad → CTA a Simulacro/Práctica.
+- **Arquitectura**: `ProgressRepository` (lectura Firestore, graceful sin conexión), `AnalizadorProgreso` (dominio puro, 9 tests), `ProgresoViewModel`, `ProgresoScreen`.
+- **Pendiente del módulo**: análisis por componente (área) y por dificultad, vista detalle de un simulacro histórico, pull-to-refresh.
+
 ### 5.4 Normalización de subtemas del banco (rama `feat/practica`)
 - **Problema**: el banco RL mezclaba 2 convenciones (52 preguntas de `profe_alex` con nombres genéricos: "Series", "Geometria", el comodín "Razonamiento logico"... y 48 generadas con códigos oficiales RL01–RL18) → el filtro de práctica mostraba 27 subtemas con conceptos duplicados.
 - **Fix**: fusión de nombres genéricos a componentes oficiales + **reclasificación por contenido de las 15 preguntas del comodín** (mapeo id→subtema documentado en el commit). RL quedó en **15 subtemas oficiales** (RL01–RL18) y CL en 14 (CL01–CL14, ya era consistente).
@@ -123,6 +135,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `PracticeSelectorTest` - 7 tests pasan (estratificación proporcional, mayor residuo)
 - ✅ `PracticaSesionViewModelTest` - 7 tests pasan (feedback, bloqueo, navegación, SAH, restauración)
 - ✅ `PracticaFiltrosViewModelTest` - 5 tests pasan (subtemas por área, disponibles, iniciar)
+- ✅ `AnalizadorProgresoTest` - 9 tests pasan (evidencia mínima, orden, evolución, historial)
 
 ### 8. Motor de selección de preguntas (100% completo)
 - **`QuestionSelector`** (`domain/services/QuestionSelector.kt`) — clase pura de dominio, testeable:
@@ -142,7 +155,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
 - ✅ `./gradlew installDebug` - **Instala en dispositivo físico**
-- ✅ Tests unitarios: `./gradlew test` - **PASAN (50 tests)**
+- ✅ Tests unitarios: `./gradlew test` - **PASAN (59 tests)**
 
 ---
 
@@ -229,15 +242,16 @@ app/src/main/java/com/udea/rutaudea/
 
 | Prioridad | Tarea | Esfuerzo |
 |-----------|-------|----------|
-| **P0** | PR de `feat/practica` a `main` cuando esté validado en dispositivo (⚠️ deploy de `firestore.rules` incluido) | 15 min |
+| **P0** | PR de `feat/progreso` a `main` cuando esté validado en dispositivo (⚠️ deploy de `firestore.rules` incluido) | 15 min |
 | ~~**P0**~~ | ~~Gate de login al inicio~~ | ✅ HECHO (en main vía PR #3) |
 | ~~**P0**~~ | ~~Eliminar código basura sin uso~~ | ✅ HECHO |
 | **P1** | Migrar a Hilt para DI | 2 horas |
-| ~~**P1**~~ | ~~Implementar Práctica filtrada real~~ | ✅ HECHO (feat/practica) |
-| ~~**P2**~~ | ~~Motor selección 80 preguntas (40 RL + 40 CL)~~ | ✅ HECHO (en main) |
-| ~~**P2**~~ | ~~Pantalla Práctica con feedback inmediato~~ | ✅ HECHO (feat/practica) |
-| **P1** | Pantalla Progreso con gráficas (datos de `simulations` + `practiceSessions` Firestore) | 6 horas |
-| **P2** | Contenido educativo Info por subtema | 4 horas |
+| ~~**P1**~~ | ~~Implementar Práctica filtrada real~~ | ✅ HECHO (feat/practica, en origin) |
+| ~~**P1**~~ | ~~Pantalla Progreso con gráficas~~ | ✅ HECHO (feat/progreso) |
+| **P1** | Contenido educativo Info por subtema (tab 📚, último placeholder) | 4 horas |
+| **P1** | Análisis por componente y dificultad en Progreso (por subtema ya está) | 3 horas |
+| **P1** | Inactividad del cronómetro + registro de abandono (P0 del backlog) | 4 horas |
+| **P2** | Vista detalle de un simulacro del historial | 3 horas |
 | **P2** | Recuperación de contraseña (sendPasswordResetEmail) | 1 hora |
 | **P2** | Tests UI Compose + Instrumentación | 4 horas |
 | **P3** | Generar iconos PNG reales (mipmap-*) / fix adaptive icon | 30 min |
@@ -272,6 +286,8 @@ app/src/main/java/com/udea/rutaudea/
 12. Iniciar → sesión sin límite de tiempo; al responder: ✓/✗ inmediato + 💡 explicación + 📚 recomendación; respuesta bloqueada; ←/→ navegar; Abandonar/Terminar
 13. Resultado práctica → score/%, tiempo, repaso por pregunta; "Nueva práctica" (conserva filtros) / "Volver al inicio"
 14. Firestore → colección `practiceSessions` con la sesión + subcolección `practiceQuestions`
+15. Tab 📈 Progreso → dashboard: nº simulacros/prácticas, promedio, mejor; gráfica de evolución (≥2 simulacros); áreas de mejora y fortalezas por subtema (solo con ≥3 respuestas); recomendaciones; historial unificado
+16. Sin actividad → Progreso muestra empty state con botones a Simulacro/Práctica
 
 ---
 
@@ -306,4 +322,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-10-02 - Rama `feat/practica`: seeder versionado del banco (v2 — re-siembra automática sin reinstalar; política testeada) + script `scripts/upload_bank_to_firestore.js` (carga completa del banco maestro para el futuro panel admin; NO ejecutado — Firestore `questions` sigue sin poblar por decisión: contenido viaja en la APK). Verificado: `test` (50 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21).*
+*Última actualización: 2026-10-02 - Rama `feat/progreso` (apilada sobre feat/practica): módulo de Progreso completo — dashboard con métricas, gráfica de evolución por simulacro (Canvas), acierto por subtema con evidencia mínima ≥3 (plan §12), áreas de mejora/fortalezas, recomendaciones e historial unificado de simulacros+prácticas. ProgressRepository (graceful offline), AnalizadorProgreso (dominio puro, 9 tests). Verificado: `test` (59 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21).*
