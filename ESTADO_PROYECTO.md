@@ -3,7 +3,7 @@
 ## Resumen General
 El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP + Firebase.
 
-**Estado actual: ✅ MVP COMPLETO Y FUNCIONAL + Firebase + gate de autenticación + Módulo de Práctica** - Todas las pantallas principales operativas, login/registro obligatorio (rama `feat/auth-gate`, ya en main), motor de selección de 80 preguntas, práctica dirigida con feedback inmediato y selección estratificada (rama `feat/practica`). Build SUCCESS, tests PASS (46).
+**Estado actual: ✅ MVP COMPLETO Y FUNCIONAL + Firebase + gate de autenticación + Módulo de Práctica** - Todas las pantallas principales operativas, login/registro obligatorio (rama `feat/auth-gate`, ya en main), motor de selección de 80 preguntas, práctica dirigida con feedback inmediato y selección estratificada (rama `feat/practica`). Banco normalizado a componentes oficiales RL01–RL18/CL01–CL14 con seeder versionado. Build SUCCESS, tests PASS (50).
 
 ## 🌿 Ramas
 | Rama | Estado | Contenido |
@@ -105,7 +105,8 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Fix**: fusión de nombres genéricos a componentes oficiales + **reclasificación por contenido de las 15 preguntas del comodín** (mapeo id→subtema documentado en el commit). RL quedó en **15 subtemas oficiales** (RL01–RL18) y CL en 14 (CL01–CL14, ya era consistente).
 - **RLnn = componentes oficiales del examen de admisión UdeA** (RL01 Proporcionalidad, RL02 Porcentajes... RL18 Lógica; CLnn análogo para Competencia Lectora).
 - Archivos migrados: `app/src/main/assets/questions/questions.jsonl` (52 registros) y `docs/preguntas_validadas.json` (v2).
-- ⚠️ **Pendiente de réplica**: banco maestro en **Firestore** (colección `questions`) — recargarlo desde el JSONL corregido o aplicar el mismo mapeo. Instalaciones existentes conservan Room viejo hasta reinstalar/limpiar datos o sincronizar.
+- **Seeder versionado** (`DatabaseSeeder`, v2): los dispositivos con la app ya instalada **se re-siembran automáticamente** al detectar `BANK_SEED_VERSION >` instalada — no hace falta reinstalar ni borrar datos. Regla: incrementar `BANK_SEED_VERSION` en cada cambio del JSONL.
+- **Modelo de contenido decidido**: el banco viaja en la APK (offline-first); Firestore `questions` queda para el futuro panel administrativo. La colección **no está poblada** y ninguna funcionalidad activa la lee (`updateBankFromFirestore()` es contrato sin uso). Script de carga listo para ese día: `scripts/upload_bank_to_firestore.js` (Admin SDK, marca `aprobado`/`pendiente` según validez).
 
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
@@ -116,6 +117,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 ### 7. Tests Unitarios
 - ✅ `QuestionMapperTest` - 7 tests pasan
 - ✅ `QuestionJsonlLoaderTest` - 5 tests pasan
+- ✅ `DatabaseSeederTest` - 4 tests pasan (política de siembra versionada)
 - ✅ `QuestionSelectorTest` - 11 tests pasan (motor de selección)
 - ✅ `SplashViewModelTest` - 4 tests pasan (gate de autenticación)
 - ✅ `PracticeSelectorTest` - 7 tests pasan (estratificación proporcional, mayor residuo)
@@ -140,7 +142,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
 - ✅ `./gradlew installDebug` - **Instala en dispositivo físico**
-- ✅ Tests unitarios: `./gradlew test` - **PASAN (46 tests)**
+- ✅ Tests unitarios: `./gradlew test` - **PASAN (50 tests)**
 
 ---
 
@@ -304,4 +306,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-10-01 - Rama `feat/practica`: módulo de Práctica completo + normalización de subtemas del banco a componentes oficiales (RL: 27→15 subtemas RL01-RL18; 52 registros migrados en JSONL y docs JSON v2; 15 preguntas del comodín reclasificadas por contenido). Detectado: 32 preguntas RL sin respuesta (excluidas por selectores; banco válido 168/200). Verificado: `test` (46 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21). Pendiente: replicar normalización en Firestore.*
+*Última actualización: 2026-10-02 - Rama `feat/practica`: seeder versionado del banco (v2 — re-siembra automática sin reinstalar; política testeada) + script `scripts/upload_bank_to_firestore.js` (carga completa del banco maestro para el futuro panel admin; NO ejecutado — Firestore `questions` sigue sin poblar por decisión: contenido viaja en la APK). Verificado: `test` (50 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21).*

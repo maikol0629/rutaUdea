@@ -62,8 +62,14 @@ El dataset (JSONL) se empaqueta en:
 Contiene **200 preguntas** (100 Razonamiento Lógico + 100 Competencia Lectora),
 clasificadas por los **componentes oficiales del examen UdeA** (RL01–RL18 y
 CL01–CL14). Se cargan en Room en la primera ejecución.
-La sincronización `updateBankFromFirestore()` permite reemplazar el banco local
-con la versión maestra aprobada en Firestore.
+
+**Actualizaciones del banco:** el contenido viaja en la APK (offline-first).
+El `DatabaseSeeder` es **versionado**: al cambiar el JSONL, incrementa
+`BANK_SEED_VERSION` y las instalaciones existentes se re-siembran solas.
+
+**Banco maestro en la nube (opcional/futuro):** la colección `questions` de
+Firestore no se usa en ningún flujo activo; `scripts/upload_bank_to_firestore.js`
+está listo para poblarla cuando arranque el panel administrativo.
 
 ## Consultas disponibles (`QuestionRepository`)
 
