@@ -6,6 +6,8 @@ object AppNavGraph {
     const val SIMULACRO = "simulacro"
     const val RESULTADO = "resultado"
     const val PRACTICA = "practica"
+    const val PRACTICA_SESION = "practica/sesion"
+    const val PRACTICA_RESULTADO = "practica/resultado"
     const val PROGRESO = "progreso"
     const val INFO = "info"
     const val PERFIL = "perfil"

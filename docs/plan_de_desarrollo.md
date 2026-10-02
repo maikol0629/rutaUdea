@@ -106,19 +106,23 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
 - **Firebase — ✅ implementado** (rama `feat/firebase-config`, ya en `main`):
   - **Reglas de seguridad Firestore** (`firestore.rules`) completas: users, questions, contexts, components, subtopics, simulations/simulationQuestions, educationalContent, settings, con roles aspirante/admin.
   - **Sincronización del banco**: `QuestionRepository.updateBankFromFirestore()` descarga preguntas aprobadas y reemplaza el banco local.
-- **Tests unitarios**: 27 tests (mapper, loader JSONL, motor de selección, gate de autenticación) — `./gradlew test` PASS.
+- **Módulo de Práctica — ✅ implementado** (rama `feat/practica`):
+  - Filtros: área (RL/CL) → subtema (dinámico desde Room, u "Todos") → cantidad (5/10/20). La **dificultad no es filtrable**: la selección se estratifica por dificultad **proporcional a la composición del banco filtrado** (`PracticeSelector`, método de mayor residuo).
+  - Sesión con **retroalimentación inmediata** (plan §10): ✓/✗, respuesta dada vs correcta, explicación, subtema/dificultad y recomendación estática por subtema; respuesta bloqueada al revelarse; sin límite de tiempo; progreso persistido en `SavedStateHandle`.
+  - Resultado: score, %, tiempo y repaso por pregunta; "Nueva práctica" conserva los filtros.
+  - Persistencia: colección `practiceSessions` + subcolección `practiceQuestions` (escritura en batch) vía `PracticeRepository` — alimenta el futuro módulo de Progreso.
+- **Tests unitarios**: 46 tests (mapper, loader JSONL, motor de selección, gate de autenticación, selector de práctica, sesión y filtros de práctica) — `./gradlew test` PASS.
 
 ### 🔶 Pendiente / En construcción
 - **Recuperación de contraseña** (`sendPasswordResetEmail`).
 - **Inactividad del cronómetro**: cierre por inactividad configurable y registro de abandono.
 - **Análisis avanzado** por componente/subtema/dificultad (hoy: detalle por pregunta).
 - **Información educativa** por componente/subtema.
-- **Práctica** con retroalimentación inmediata.
-- **Progreso histórico y recomendaciones** (los datos ya se persisten en `simulations`).
+- **Progreso histórico y recomendaciones** (los datos ya se persisten en `simulations` y `practiceSessions`).
 - **Panel administrativo web** (CRUD de preguntas, carga CSV, estados).
 - **Asistencia IA** para explicaciones con revisión administrativa.
 - **Iconos de lanzador**: revisar adaptive icon (se ve cuadrado verde en algunos launchers).
-- **Migrar DI manual a Hilt**; **tests de instrumentación UI/Room**.
+- **Migrar DI manual a Hilt**; **tests de instrumentación UI/Room**; **deploy de `firestore.rules`**.
 
 ---
 
@@ -130,7 +134,9 @@ El banco inicial está compuesto por **200 preguntas validadas** (100 de razonam
 - Copia de respaldo en formato JSON: `docs/preguntas_validadas.json`
 - Estructura por pregunta: `id`, `area`, `subtema`, `competencia`, `dificultad`, `contexto`, `pregunta`, `opciones` (A–D), `respuesta_correcta`, `explicacion`, `fuente`, `tipo_fuente`, `es_original`, `verificada`, `duplicado`.
 
-> **Nota de calidad:** Parte del banco aún está marcado con `respuesta_correcta` pendiente de verificación. El objetivo es completar la validación para que el motor del simulacro disponga de suficientes preguntas con respuesta correcta y explicación.
+> **Nota de calidad:** **32 preguntas RL** aún tienen `respuesta_correcta` pendiente (o enunciado incompleto) y quedan excluidas por los selectores — banco válido: 168 de 200. El objetivo es completar la validación para que el motor disponga de más margen por subtema.
+
+> **Normalización v2 (2026-10):** los subtemas de RL fueron unificados a los **componentes oficiales del examen** RL01–RL18 (antes conviven 27 etiquetas con duplicados: "Porcentajes" vs "RL02 Porcentajes", "Geometria" vs "RL13 Geometría", el comodín "Razonamiento logico"…). Las 15 preguntas del comodín fueron reclasificadas por contenido. CL ya usaba CL01–CL14 consistentemente. Cambios replicados en `questions.jsonl` y `docs/preguntas_validadas.json`; **falta replicar en el banco maestro de Firestore**.
 
 ---
 
@@ -157,7 +163,7 @@ El banco inicial está compuesto por **200 preguntas validadas** (100 de razonam
 | `verificada` | Boolean | Si fue verificada |
 | `estado` | String | `aprobado` / `pendiente` / `deshabilitado` |
 
-### Colecciones Firestore (✅ reglas desplegadas; `users`, `simulations` y `simulationQuestions` en uso; sincronización de `questions` implementada)
+### Colecciones Firestore (✅ reglas desplegadas; `users`, `simulations`/`simulationQuestions` y `practiceSessions`/`practiceQuestions` en uso; sincronización de `questions` implementada)
 | Colección | Propósito |
 | :--- | :--- |
 | `users` | `uid`, `nombre`, `correo`, `rol`, `fechaCreacion`, `estado` |
@@ -197,8 +203,8 @@ Cada simulacro tendrá **80 preguntas totales**: 40 de razonamiento lógico y 40
 ---
 
 ## 10. Retroalimentación y aprendizaje
-- En **práctica**: retroalimentación inmediata (respuesta correcta, respuesta seleccionada, explicación, componente, subtema, dificultad y recomendación).
-- En **simulacro**: preservar las condiciones de evaluación y mostrar la retroalimentación al finalizar.
+- ✅ En **práctica**: retroalimentación inmediata (respuesta correcta, respuesta seleccionada, explicación, componente, subtema, dificultad y recomendación estática por subtema; el motor de recomendaciones es P1 futuro).
+- En **simulacro**: preservar las condiciones de evaluación y mostrar la retroalimentación al finalizar (✅ implementado).
 
 ---
 
@@ -243,8 +249,8 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 | **P0** | Cálculo de resultados | Resultados | ✅ (score, %, detalle por pregunta) |
 | **P0** | Análisis por componente/subtema/dificultad | Analítica | 🔶 |
 | **P0** | Contenido informativo | Aprendizaje | 🔶 |
-| **P1** | Práctica filtrada con feedback inmediato | Aprendizaje | 🔶 |
-| **P1** | Historial y gráficas de progreso | Analítica | 🔶 (datos ya persistidos en `simulations`) |
+| **P1** | Práctica filtrada con feedback inmediato | Aprendizaje | ✅ (estratificación proporcional; recomendación estática hasta tener motor P1) |
+| **P1** | Historial y gráficas de progreso | Analítica | 🔶 (datos ya persistidos en `simulations` y `practiceSessions`) |
 | **P1** | Motor de recomendaciones | Personalización | 🔶 |
 | **P1** | Asistencia IA para explicaciones | Administración | 🔶 |
 | **P1** | Pruebas con 15 estudiantes | Validación | 🔶 |
@@ -269,14 +275,14 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 12. ✅ Implementar cálculo y almacenamiento de resultados.
 13. 🔶 Implementar análisis detallado por componente/subtema/dificultad.
 14. 🔶 Implementar información educativa.
-15. 🔶 Implementar práctica con feedback.
+15. ✅ Implementar práctica con feedback (filtros, estratificación, sesión con feedback inmediato, resultado y persistencia).
 16. 🔶 Implementar historial y recomendaciones.
 17. 🔶 Integrar asistencia de IA.
-18. 🔶 Ejecutar pruebas técnicas (27 unitarias ✅; faltan UI/integración).
+18. 🔶 Ejecutar pruebas técnicas (46 unitarias ✅; faltan UI/integración).
 19. 🔶 Ejecutar piloto con ~15 estudiantes.
 20. 🔶 Corregir, documentar y preparar entrega.
 
-> **Próximo hito sugerido:** PR de `feat/auth-gate` a `main` → módulo de **Práctica**.
+> **Próximo hito sugerido:** PR de `feat/practica` a `main` → módulo de **Progreso** (los datos de `simulations` y `practiceSessions` ya están listos para graficar).
 
 ---
 

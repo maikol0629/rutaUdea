@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "descripcion": "Banco de preguntas validadas RutaUdeA",
+  "version": 2,
+  "descripcion": "Banco de preguntas validadas RutaUdeA | v2: subtemas RL normalizados a componentes oficiales RL01-RL18 (fusión de nombres genéricos + reclasificación por contenido).",
   "total": 200,
   "distribucion": {
     "razonamiento_logico": 100,
@@ -3710,7 +3710,7 @@
     {
       "id": "profe_alex_1",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento cuantitativo",
       "dificultad": "media",
       "contexto": "",
@@ -3735,7 +3735,7 @@
     {
       "id": "profe_alex_10",
       "area": "razonamiento_logico",
-      "subtema": "Sucesiones",
+      "subtema": "RL07 Sucesiones/Series",
       "competencia": "Razonamiento numerico",
       "dificultad": "alta",
       "contexto": "",
@@ -3760,7 +3760,7 @@
     {
       "id": "profe_alex_11",
       "area": "razonamiento_logico",
-      "subtema": "Geometria",
+      "subtema": "RL13 Geometría",
       "competencia": "Razonamiento espacial",
       "dificultad": "baja",
       "contexto": "",
@@ -3785,7 +3785,7 @@
     {
       "id": "profe_alex_12",
       "area": "razonamiento_logico",
-      "subtema": "Geometria",
+      "subtema": "RL13 Geometría",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -3810,7 +3810,7 @@
     {
       "id": "profe_alex_13",
       "area": "razonamiento_logico",
-      "subtema": "Geometria",
+      "subtema": "RL13 Geometría",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -3835,7 +3835,7 @@
     {
       "id": "profe_alex_14",
       "area": "razonamiento_logico",
-      "subtema": "Geometria",
+      "subtema": "RL13 Geometría",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -3860,7 +3860,7 @@
     {
       "id": "profe_alex_15",
       "area": "razonamiento_logico",
-      "subtema": "Geometria",
+      "subtema": "RL13 Geometría",
       "competencia": "Razonamiento espacial",
       "dificultad": "media",
       "contexto": "",
@@ -3885,7 +3885,7 @@
     {
       "id": "profe_alex_16",
       "area": "razonamiento_logico",
-      "subtema": "Geometria",
+      "subtema": "RL13 Geometría",
       "competencia": "Razonamiento espacial",
       "dificultad": "baja",
       "contexto": "",
@@ -3910,7 +3910,7 @@
     {
       "id": "profe_alex_17",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL18 Lógica",
       "competencia": "Razonamiento lógico",
       "dificultad": "baja",
       "contexto": "",
@@ -3935,7 +3935,7 @@
     {
       "id": "profe_alex_18",
       "area": "razonamiento_logico",
-      "subtema": "Geometria",
+      "subtema": "RL13 Geometría",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -3960,7 +3960,7 @@
     {
       "id": "profe_alex_19",
       "area": "razonamiento_logico",
-      "subtema": "Relaciones espaciales",
+      "subtema": "RL14 Relaciones espaciales",
       "competencia": "Razonamiento espacial",
       "dificultad": "media",
       "contexto": "",
@@ -3985,7 +3985,7 @@
     {
       "id": "profe_alex_2",
       "area": "razonamiento_logico",
-      "subtema": "Relaciones espaciales",
+      "subtema": "RL14 Relaciones espaciales",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4010,7 +4010,7 @@
     {
       "id": "profe_alex_20",
       "area": "razonamiento_logico",
-      "subtema": "Geometria",
+      "subtema": "RL13 Geometría",
       "competencia": "Razonamiento espacial",
       "dificultad": "media",
       "contexto": "",
@@ -4035,7 +4035,7 @@
     {
       "id": "profe_alex_21",
       "area": "razonamiento_logico",
-      "subtema": "Aritmetica",
+      "subtema": "RL03 Aritmética",
       "competencia": "Razonamiento numerico",
       "dificultad": "media",
       "contexto": "",
@@ -4060,7 +4060,7 @@
     {
       "id": "profe_alex_22",
       "area": "razonamiento_logico",
-      "subtema": "Gráficas y tablas",
+      "subtema": "RL15 Gráficas y tablas",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4085,7 +4085,7 @@
     {
       "id": "profe_alex_23",
       "area": "razonamiento_logico",
-      "subtema": "Posibilidades logicas",
+      "subtema": "RL11 Posibilidades lógicas",
       "competencia": "Razonamiento logico",
       "dificultad": "baja",
       "contexto": "",
@@ -4110,7 +4110,7 @@
     {
       "id": "profe_alex_24",
       "area": "razonamiento_logico",
-      "subtema": "Combinatoria",
+      "subtema": "RL09 Combinatoria",
       "competencia": "Razonamiento combinatorio",
       "dificultad": "media",
       "contexto": "",
@@ -4135,7 +4135,7 @@
     {
       "id": "profe_alex_25",
       "area": "razonamiento_logico",
-      "subtema": "Gráficas y tablas",
+      "subtema": "RL15 Gráficas y tablas",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4160,7 +4160,7 @@
     {
       "id": "profe_alex_26",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL18 Lógica",
       "competencia": "Razonamiento logico",
       "dificultad": "media",
       "contexto": "",
@@ -4185,7 +4185,7 @@
     {
       "id": "profe_alex_27",
       "area": "razonamiento_logico",
-      "subtema": "Posibilidades logicas",
+      "subtema": "RL11 Posibilidades lógicas",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4210,7 +4210,7 @@
     {
       "id": "profe_alex_28",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL14 Relaciones espaciales",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4235,7 +4235,7 @@
     {
       "id": "profe_alex_29",
       "area": "razonamiento_logico",
-      "subtema": "Posibilidades logicas",
+      "subtema": "RL11 Posibilidades lógicas",
       "competencia": "Razonamiento logico",
       "dificultad": "media",
       "contexto": "",
@@ -4260,7 +4260,7 @@
     {
       "id": "profe_alex_3",
       "area": "razonamiento_logico",
-      "subtema": "Operaciones no convencionales",
+      "subtema": "RL17 Operaciones no convencionales",
       "competencia": "Razonamiento abstracto",
       "dificultad": "media",
       "contexto": "",
@@ -4285,7 +4285,7 @@
     {
       "id": "profe_alex_30",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL17 Operaciones no convencionales",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4310,7 +4310,7 @@
     {
       "id": "profe_alex_31",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL03 Aritmética",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4335,7 +4335,7 @@
     {
       "id": "profe_alex_32",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4360,7 +4360,7 @@
     {
       "id": "profe_alex_33",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4385,7 +4385,7 @@
     {
       "id": "profe_alex_34",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL01 Proporcionalidad",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4410,7 +4410,7 @@
     {
       "id": "profe_alex_35",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL01 Proporcionalidad",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4435,7 +4435,7 @@
     {
       "id": "profe_alex_36",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL11 Posibilidades lógicas",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4460,7 +4460,7 @@
     {
       "id": "profe_alex_37",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL11 Posibilidades lógicas",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4485,7 +4485,7 @@
     {
       "id": "profe_alex_38",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4510,7 +4510,7 @@
     {
       "id": "profe_alex_39",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4535,7 +4535,7 @@
     {
       "id": "profe_alex_4",
       "area": "razonamiento_logico",
-      "subtema": "Series",
+      "subtema": "RL07 Sucesiones/Series",
       "competencia": "Razonamiento numerico",
       "dificultad": "baja",
       "contexto": "",
@@ -4560,7 +4560,7 @@
     {
       "id": "profe_alex_40",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4585,7 +4585,7 @@
     {
       "id": "profe_alex_41",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4610,7 +4610,7 @@
     {
       "id": "profe_alex_42",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL01 Proporcionalidad",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4635,7 +4635,7 @@
     {
       "id": "profe_alex_43",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento lógico",
       "dificultad": "baja",
       "contexto": "",
@@ -4660,7 +4660,7 @@
     {
       "id": "profe_alex_44",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL04 Álgebra/Ecuaciones",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4685,7 +4685,7 @@
     {
       "id": "profe_alex_45",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL01 Proporcionalidad",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4710,7 +4710,7 @@
     {
       "id": "profe_alex_46",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL07 Sucesiones/Series",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4735,7 +4735,7 @@
     {
       "id": "profe_alex_47",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL04 Álgebra/Ecuaciones",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4760,7 +4760,7 @@
     {
       "id": "profe_alex_48",
       "area": "razonamiento_logico",
-      "subtema": "Razonamiento logico",
+      "subtema": "RL03 Aritmética",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4785,7 +4785,7 @@
     {
       "id": "profe_alex_49",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento lógico",
       "dificultad": "media",
       "contexto": "",
@@ -4810,7 +4810,7 @@
     {
       "id": "profe_alex_5",
       "area": "razonamiento_logico",
-      "subtema": "Sucesiones",
+      "subtema": "RL07 Sucesiones/Series",
       "competencia": "Razonamiento numerico",
       "dificultad": "media",
       "contexto": "",
@@ -4835,7 +4835,7 @@
     {
       "id": "profe_alex_50",
       "area": "razonamiento_logico",
-      "subtema": "Proporcionalidad",
+      "subtema": "RL01 Proporcionalidad",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4860,7 +4860,7 @@
     {
       "id": "profe_alex_51",
       "area": "razonamiento_logico",
-      "subtema": "Gráficas y tablas",
+      "subtema": "RL15 Gráficas y tablas",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4885,7 +4885,7 @@
     {
       "id": "profe_alex_52",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento lógico",
       "dificultad": "alta",
       "contexto": "",
@@ -4910,7 +4910,7 @@
     {
       "id": "profe_alex_6",
       "area": "razonamiento_logico",
-      "subtema": "Sucesiones",
+      "subtema": "RL07 Sucesiones/Series",
       "competencia": "Razonamiento numerico",
       "dificultad": "media",
       "contexto": "",
@@ -4935,7 +4935,7 @@
     {
       "id": "profe_alex_7",
       "area": "razonamiento_logico",
-      "subtema": "Porcentajes",
+      "subtema": "RL02 Porcentajes",
       "competencia": "Razonamiento cuantitativo",
       "dificultad": "baja",
       "contexto": "",
@@ -4960,7 +4960,7 @@
     {
       "id": "profe_alex_8",
       "area": "razonamiento_logico",
-      "subtema": "Posibilidades logicas",
+      "subtema": "RL11 Posibilidades lógicas",
       "competencia": "Razonamiento logico",
       "dificultad": "media",
       "contexto": "",
@@ -4985,7 +4985,7 @@
     {
       "id": "profe_alex_9",
       "area": "razonamiento_logico",
-      "subtema": "Posibilidades logicas",
+      "subtema": "RL11 Posibilidades lógicas",
       "competencia": "Razonamiento logico",
       "dificultad": "media",
       "contexto": "",
