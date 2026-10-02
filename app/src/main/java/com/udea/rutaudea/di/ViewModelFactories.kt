@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.udea.rutaudea.data.repository.AuthRepository
 import com.udea.rutaudea.data.repository.PracticeRepository
+import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
@@ -14,6 +15,7 @@ import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaFiltrosViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaResultadoViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaSesionViewModel
+import com.udea.rutaudea.ui.screen.progreso.ProgresoViewModel
 import com.udea.rutaudea.ui.screen.resultado.ResultadoViewModel
 import com.udea.rutaudea.ui.screen.simulacro.SimulacroViewModel
 import com.udea.rutaudea.ui.screen.splash.SplashViewModel
@@ -95,5 +97,13 @@ object ViewModelFactories {
                 questions, practiceRepository, userAnswers,
                 area, subtema, score, total, timeUsedMs
             ) as T
+    }
+
+    class ProgresoFactory(
+        private val progressRepository: ProgressRepository
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            ProgresoViewModel(progressRepository) as T
     }
 }

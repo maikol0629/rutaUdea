@@ -26,13 +26,16 @@ app/src/main/java/com/udea/rutaudea/
 │   │   ├── QuestionRepository.kt  # Banco local + sincronización desde Firestore
 │   │   ├── AuthRepository.kt      # Firebase Auth + perfil (colección users)
 │   │   ├── SimulationRepository.kt# Registro de simulacros en Firestore
-│   │   └── PracticeRepository.kt  # Registro de sesiones de práctica (batch)
+│   │   ├── PracticeRepository.kt  # Registro de sesiones de práctica (batch)
+│   │   └── ProgressRepository.kt    # Lectura del historial para Progreso
 │   └── source/local/              # JsonL loader + Seeder
 ├── domain/
 │   ├── model/Question.kt          # Modelo de dominio de preguntas
 │   ├── model/User.kt              # Modelo de usuario (uid, nombre, correo, rol)
+│   ├── model/Progreso.kt          # Modelos del módulo de Progreso
 │   ├── services/QuestionSelector.kt # Motor de selección de 80 preguntas
-│   └── services/PracticeSelector.kt # Estratificación proporcional por dificultad
+│   ├── services/PracticeSelector.kt # Estratificación proporcional por dificultad
+│   └── services/AnalizadorProgreso.kt # Reglas de analítica y recomendaciones
 ├── ui/
 │   ├── navigation/                # AppNavHost + AppNavGraph
 │   ├── screen/
@@ -42,6 +45,7 @@ app/src/main/java/com/udea/rutaudea/
 │   │   ├── resultado/             # Score, análisis y detalle por pregunta
 │   │   ├── perfil/                # Login / Registro / Perfil (Firebase Auth)
 │   │   ├── practica/              # Filtros → sesión con feedback → resultado
+│   │   ├── progreso/              # Dashboard: evolución, subtemas, recomendaciones, historial
 │   │   └── common/ComingSoonScreen.kt
 │   └── theme/                     # Material3 Forest Green
 └── tests unitarios: data/mapper, data/source/local, domain/services, ui/screen
@@ -110,8 +114,8 @@ está listo para poblarla cuando arranque el panel administrativo.
 
 ## Próximos pasos
 
-1. Implementar pantalla de **Progreso** con historial y gráficas (datos en `simulations` y `practiceSessions`).
-2. Contenido educativo **Info** por componente/subtema.
-3. Recuperación de contraseña.
+1. Módulo de **Información educativa** por componente/subtema (último tab placeholder).
+2. Análisis por componente y dificultad en Progreso.
+3. Inactividad del cronómetro + recuperación de contraseña.
 4. Panel administrativo web (CRUD del banco, carga CSV, roles admin).
 5. Migrar inyección manual a **Hilt**.

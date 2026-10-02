@@ -23,6 +23,8 @@ import com.udea.rutaudea.ui.screen.practica.PracticaResultadoScreen
 import com.udea.rutaudea.ui.screen.practica.PracticaResultadoViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaSesionScreen
 import com.udea.rutaudea.ui.screen.practica.PracticaSesionViewModel
+import com.udea.rutaudea.ui.screen.progreso.ProgresoScreen
+import com.udea.rutaudea.ui.screen.progreso.ProgresoViewModel
 import com.udea.rutaudea.ui.screen.resultado.ResultadoScreen
 import com.udea.rutaudea.ui.screen.resultado.ResultadoViewModel
 import com.udea.rutaudea.ui.screen.simulacro.SimulacroScreen
@@ -217,10 +219,15 @@ fun AppNavHost() {
         }
 
         composable(AppNavGraph.PROGRESO) {
-            ComingSoonScreen(
-                title = "Progreso",
-                description = "Historial de simulacros, gráficas de evolución\ny análisis de fortalezas y debilidades.",
-                onBack = { navController.navigate(AppNavGraph.HOME) }
+            val progresoViewModel: ProgresoViewModel = viewModel(
+                factory = ViewModelFactories.ProgresoFactory(
+                    AppModule.provideProgressRepository(app)
+                )
+            )
+            ProgresoScreen(
+                viewModel = progresoViewModel,
+                onSimulacroClick = { navController.navigate(AppNavGraph.SIMULACRO) },
+                onPracticaClick = { navController.navigate(AppNavGraph.PRACTICA) }
             )
         }
 

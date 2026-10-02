@@ -111,14 +111,21 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
   - Sesión con **retroalimentación inmediata** (plan §10): ✓/✗, respuesta dada vs correcta, explicación, subtema/dificultad y recomendación estática por subtema; respuesta bloqueada al revelarse; sin límite de tiempo; progreso persistido en `SavedStateHandle`.
   - Resultado: score, %, tiempo y repaso por pregunta; "Nueva práctica" conserva los filtros.
   - Persistencia: colección `practiceSessions` + subcolección `practiceQuestions` (escritura en batch) vía `PracticeRepository` — alimenta el futuro módulo de Progreso.
-- **Tests unitarios**: 46 tests (mapper, loader JSONL, motor de selección, gate de autenticación, selector de práctica, sesión y filtros de práctica) — `./gradlew test` PASS.
+- **Módulo de Progreso — ✅ implementado** (rama `feat/progreso`):
+  - Dashboard (tab 📈): nº de simulacros/prácticas, promedio global y mejor puntaje.
+  - **Evolución**: gráfica de línea con el % de cada simulacro en orden cronológico.
+  - **Acierto por subtema**: agregado de los detalles por pregunta (`simulationQuestions` + `practiceQuestions`) de las sesiones recientes.
+  - **Fortalezas, áreas de mejora y recomendaciones** según §12: solo subtemas con evidencia ≥3 respuestas («una pregunta no hace un tema débil»).
+  - Historial unificado (simulacros + prácticas) con score, % y tiempo; empty state con CTAs.
+  - Arquitectura: `ProgressRepository` (Firestore, degrada a vacío sin conexión) + `AnalizadorProgreso` (dominio puro, testeado).
+- **Tests unitarios**: 59 tests (mapper, loader, seeder, motor de selección, gate de autenticación, selector/sesión/filtros de práctica, analítica de progreso) — `./gradlew test` PASS.
 
 ### 🔶 Pendiente / En construcción
 - **Recuperación de contraseña** (`sendPasswordResetEmail`).
 - **Inactividad del cronómetro**: cierre por inactividad configurable y registro de abandono.
-- **Análisis avanzado** por componente/subtema/dificultad (hoy: detalle por pregunta).
-- **Información educativa** por componente/subtema.
-- **Progreso histórico y recomendaciones** (los datos ya se persisten en `simulations` y `practiceSessions`).
+- **Análisis por componente (área) y dificultad**: el acierto por subtema ya está en Progreso; falta el desglose por componente y por dificultad (hoy: detalle por pregunta en resultados).
+- **Información educativa** por componente/subtema (tab 📚, último placeholder).
+- **Vista detalle** de un simulacro del historial de Progreso.
 - **Panel administrativo web** (CRUD de preguntas, carga CSV, estados).
 - **Asistencia IA** para explicaciones con revisión administrativa.
 - **Iconos de lanzador**: revisar adaptive icon (se ve cuadrado verde en algunos launchers).
@@ -222,7 +229,9 @@ La IA se incorporará como herramienta de apoyo al administrador, no como public
 ## 12. Analítica y recomendaciones
 **Indicadores:** acierto global, por componente, subtema y dificultad; respondidas/incorrectas/omitidas; tiempos; evolución entre simulacros; completados/abandonados; fortalezas y áreas de mejora.
 
-Las recomendaciones priorizarán subtemas con bajo desempeño y suficiente evidencia, evitando recomendar un tema como «débil» por una sola pregunta.
+> ✅ **Implementado en el módulo de Progreso** (rama `feat/progreso`): acierto global y por subtema (con evidencia ≥3), evolución entre simulacros, fortalezas/áreas de mejora y recomendaciones basadas en evidencia. Pendiente: desglose por componente y dificultad, y tiempos por pregunta (se guardan como 0).
+
+Las recomendaciones priorizarán subtemas con bajo desempeño y suficiente evidencia, evitando recomendar un tema como «débil» por una sola pregunta. ✅ (regla de evidencia mínima implementada y testeada).
 
 ---
 
@@ -247,11 +256,11 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 | **P0** | Cronómetro + persistencia + inactividad | Simulacro | ✅ / 🔶 (falta cierre por inactividad registrada) |
 | **P0** | Registro de respuestas y tiempos | Resultados | ✅ (respuestas; 🔶 tiempo por pregunta guardado como 0) |
 | **P0** | Cálculo de resultados | Resultados | ✅ (score, %, detalle por pregunta) |
-| **P0** | Análisis por componente/subtema/dificultad | Analítica | 🔶 |
+| **P0** | Análisis por componente/subtema/dificultad | Analítica | 🔶 (por subtema ✅ en Progreso; falta componente y dificultad) |
 | **P0** | Contenido informativo | Aprendizaje | 🔶 |
 | **P1** | Práctica filtrada con feedback inmediato | Aprendizaje | ✅ (estratificación proporcional; recomendación estática hasta tener motor P1) |
-| **P1** | Historial y gráficas de progreso | Analítica | 🔶 (datos ya persistidos en `simulations` y `practiceSessions`) |
-| **P1** | Motor de recomendaciones | Personalización | 🔶 |
+| **P1** | Historial y gráficas de progreso | Analítica | ✅ (dashboard, evolución, acierto por subtema, historial) |
+| **P1** | Motor de recomendaciones | Personalización | 🔶 (V1 basada en evidencia incluida en Progreso; motor personalizado pendiente) |
 | **P1** | Asistencia IA para explicaciones | Administración | 🔶 |
 | **P1** | Pruebas con 15 estudiantes | Validación | 🔶 |
 | **P2** | Mejoras avanzadas de IA | Evolución | 🔶 |
@@ -276,13 +285,13 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 13. 🔶 Implementar análisis detallado por componente/subtema/dificultad.
 14. 🔶 Implementar información educativa.
 15. ✅ Implementar práctica con feedback (filtros, estratificación, sesión con feedback inmediato, resultado y persistencia).
-16. 🔶 Implementar historial y recomendaciones.
+16. ✅ Implementar historial y recomendaciones (dashboard de Progreso con regla de evidencia ≥3).
 17. 🔶 Integrar asistencia de IA.
-18. 🔶 Ejecutar pruebas técnicas (46 unitarias ✅; faltan UI/integración).
+18. 🔶 Ejecutar pruebas técnicas (59 unitarias ✅; faltan UI/integración).
 19. 🔶 Ejecutar piloto con ~15 estudiantes.
 20. 🔶 Corregir, documentar y preparar entrega.
 
-> **Próximo hito sugerido:** PR de `feat/practica` a `main` → módulo de **Progreso** (los datos de `simulations` y `practiceSessions` ya están listos para graficar).
+> **Próximo hito sugerido:** PR de `feat/progreso` a `main` → módulo de **Información educativa** (último tab placeholder) y análisis por componente/dificultad.
 
 ---
 
