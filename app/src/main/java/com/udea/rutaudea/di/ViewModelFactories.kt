@@ -11,6 +11,7 @@ import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.domain.services.PracticeSelector
 import com.udea.rutaudea.domain.services.QuestionSelector
+import com.udea.rutaudea.ui.screen.info.InfoViewModel
 import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaFiltrosViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaResultadoViewModel
@@ -105,5 +106,11 @@ object ViewModelFactories {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             ProgresoViewModel(progressRepository) as T
+    }
+
+    class InfoFactory(private val app: android.app.Application) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            InfoViewModel(app) as T
     }
 }
