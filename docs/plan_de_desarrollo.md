@@ -138,7 +138,7 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
 - **Panel administrativo web** (CRUD de preguntas, carga CSV, estados).
 - **Asistencia IA** para explicaciones con revisión administrativa.
 - **Iconos de lanzador**: revisar adaptive icon (se ve cuadrado verde en algunos launchers).
-- **Migrar DI manual a Hilt**; **tests de instrumentación UI/Room**; **deploy de `firestore.rules`**.
+- **Migrar DI manual a Hilt**; **tests de instrumentación UI/Room**.
 
 ---
 
