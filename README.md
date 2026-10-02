@@ -46,7 +46,7 @@ app/src/main/java/com/udea/rutaudea/
 │   │   ├── perfil/                # Login / Registro / Perfil (Firebase Auth)
 │   │   ├── practica/              # Filtros → sesión con feedback → resultado
 │   │   ├── progreso/              # Dashboard: evolución, subtemas, recomendaciones, historial
-│   │   └── common/ComingSoonScreen.kt
+│   │   └── info/                  # Contenido educativo por componente (acordeón)
 │   └── theme/                     # Material3 Forest Green
 └── tests unitarios: data/mapper, data/source/local, domain/services, ui/screen
 ```
@@ -114,8 +114,7 @@ está listo para poblarla cuando arranque el panel administrativo.
 
 ## Próximos pasos
 
-1. Módulo de **Información educativa** por componente/subtema (último tab placeholder).
-2. Análisis por componente y dificultad en Progreso.
-3. Inactividad del cronómetro + recuperación de contraseña.
-4. Panel administrativo web (CRUD del banco, carga CSV, roles admin).
-5. Migrar inyección manual a **Hilt**.
+1. Análisis por componente y dificultad en Progreso.
+2. Inactividad del cronómetro + recuperación de contraseña.
+3. Panel administrativo web (CRUD del banco, carga CSV, roles admin).
+4. Migrar inyección manual a **Hilt**.

@@ -13,8 +13,9 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.udea.rutaudea.di.AppModule
 import com.udea.rutaudea.di.ViewModelFactories
-import com.udea.rutaudea.ui.screen.common.ComingSoonScreen
 import com.udea.rutaudea.ui.screen.home.HomeScreen
+import com.udea.rutaudea.ui.screen.info.InfoScreen
+import com.udea.rutaudea.ui.screen.info.InfoViewModel
 import com.udea.rutaudea.ui.screen.perfil.PerfilScreen
 import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaFiltrosScreen
@@ -232,11 +233,10 @@ fun AppNavHost() {
         }
 
         composable(AppNavGraph.INFO) {
-            ComingSoonScreen(
-                title = "Información educativa",
-                description = "Contenido teórico por componente y subtema\nde Razonamiento Lógico y Competencia Lectora.",
-                onBack = { navController.navigate(AppNavGraph.HOME) }
+            val infoViewModel: InfoViewModel = viewModel(
+                factory = ViewModelFactories.InfoFactory(app)
             )
+            InfoScreen(viewModel = infoViewModel)
         }
 
         composable(

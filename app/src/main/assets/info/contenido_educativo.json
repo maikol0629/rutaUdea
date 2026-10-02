@@ -1,0 +1,205 @@
+[
+  {
+    "id": "RL01",
+    "nombre": "RL01 Proporcionalidad",
+    "descripcion": "Relación de cambio conjunto entre dos o más magnitudes. Incluye regla de tres directa e inversa y proporcionalidad compuesta, típicas del examen.",
+    "estrategia": "Identifica las magnitudes y su tipo de relación: si una sube y la otra sube (directa) o si una sube y la otra baja (inversa). Escribe la proporción con unidades explícitas antes de calcular. Verifica el resultado con un valor extremo: ¿tendría sentido si la cantidad fuera el doble?",
+    "erroresComunes": "Confundir proporcionalidad directa con inversa; operar magnitudes en unidades distintas (minutos vs horas) y no detectar que la proporción compuesta exige analizar cada magnitud por separado."
+  },
+  {
+    "id": "RL02",
+    "nombre": "RL02 Porcentajes",
+    "descripcion": "El porcentaje como fracción de 100: descuentos, incrementos, porcentajes encadenados y porcentaje de un porcentaje.",
+    "estrategia": "Convierte el % a decimal (25% = 0,25) y multiplica. En aumentos o descuentos sucesivos calcula siempre sobre la NUEVA base. Para hallar el total conociendo una parte, usa el complemento.",
+    "erroresComunes": "Sumar porcentajes que tienen bases distintas: un alza del 10% seguida de otra del 10% NO es un alza del 20%, sino del 21%. También fallar al identificar cuál es el 100% de referencia en cada paso."
+  },
+  {
+    "id": "RL03",
+    "nombre": "RL03 Aritmética",
+    "descripcion": "Propiedades de los números: divisibilidad, múltiplos, pares/impares, cifras y operaciones elementales aplicadas a situaciones concretas.",
+    "estrategia": "Usa criterios de divisibilidad (última cifra para 2 y 5, suma de cifras para 3 y 9) y la relación «dividendo = divisor × cociente + residuo». En problemas de filas o repartos, ensaya con los múltiplos compatibles.",
+    "erroresComunes": "Olvidar el residuo en divisiones exactas «con sobra»; suponer que todo número cumple el patrón que muestra el primer caso sin verificar al menos dos casos."
+  },
+  {
+    "id": "RL04",
+    "nombre": "RL04 Álgebra/Ecuaciones",
+    "descripcion": "Traducción del enunciado a una ecuación o sistema: plantear la relación antes de calcular.",
+    "estrategia": "Define claramente la variable (¿qué es x?), escribe la ecuación tal como la describe el texto y solo entonces despeja. Si hay dos incógnitas, busca la segunda relación que las conecta (sistema). Comprueba la solución sustituyendo en el enunciado, no solo en la ecuación.",
+    "erroresComunes": "Cambiar de signo al pasar términos de un lado a otro; resolver la ecuación bien pero responder otra cosa distinta a la preguntada (piden la edad «hace 5 años» y responden la actual)."
+  },
+  {
+    "id": "RL07",
+    "nombre": "RL07 Sucesiones/Series",
+    "descripcion": "Patrones numéricos: progresiones aritméticas (suma constante), geométricas (razón constante), alternadas y de doble nivel.",
+    "estrategia": "Calcula las diferencias entre términos consecutivos; si no son constantes, calcula las diferencias de las diferencias o la razón entre términos. Verifica el patrón con al menos DOS pasos de la serie antes de proyectar el siguiente término.",
+    "erroresComunes": "Asumir que la serie es lineal cuando alterna (sube, baja, sube); extrapolar un patrón que solo se comprobó con un par de términos."
+  },
+  {
+    "id": "RL09",
+    "nombre": "RL09 Combinatoria",
+    "descripcion": "Principio multiplicativo y aditivo, permutaciones (orden) y combinaciones (selección sin orden).",
+    "estrategia": "Pregúntate dos cosas: ¿importa el orden? ¿pueden repetirse los elementos? Con orden y sin repetición: n!/(n-r)!. Sin orden: n!/(r!(n-r)!). Descompón el problema en etapas y multiplica las posibilidades de cada etapa.",
+    "erroresComunes": "Contar como distintas combinaciones que solo difieren en el orden; olvidar restar los casos prohibidos por las restricciones del enunciado."
+  },
+  {
+    "id": "RL10",
+    "nombre": "RL10 Probabilidad",
+    "descripcion": "Probabilidad clásica: casos favorables sobre casos posibles, eventos compuestos y complemento.",
+    "estrategia": "Enumera explícitamente el espacio muestral cuando sea pequeño. Para «al menos uno» usa el complemento: P = 1 - P(ninguno). En eventos independientes multiplica; en mutuamente excluyentes suma.",
+    "erroresComunes": "Sumar probabilidades de eventos que NO son mutuamente excluyentes; contar dos veces el mismo resultado favorable al enumerar."
+  },
+  {
+    "id": "RL11",
+    "nombre": "RL11 Posibilidades lógicas",
+    "descripcion": "Conteo y ordenamiento con restricciones: ¿cuántas formas hay?, ¿quién va primero?, ¿qué configuraciones cumplen todas las condiciones?",
+    "estrategia": "Haz una tabla o esquema con las condiciones y elimina los casos imposibles uno a uno. Empieza por la condición más restrictiva. Cuenta los casos válidos que quedan y verifica que cada uno cumple TODAS las condiciones.",
+    "erroresComunes": "Ignorar una de las restricciones (suele estar al final del enunciado); perder tiempo enumerando casos que una condición ya descartaba."
+  },
+  {
+    "id": "RL12",
+    "nombre": "RL12 Control de variables",
+    "descripcion": "Relaciones entre variables: qué depende de qué, gráficas de crecimiento/decrecimiento y lectura de tendencias.",
+    "estrategia": "Identifica la variable independiente (causa) y la dependiente (efecto). Ante una gráfica pregúntate: ¿dónde crece?, ¿dónde se estanca?, ¿dónde cae? Relaciona cada tramo con la historia del problema.",
+    "erroresComunes": "Confundir correlación con causalidad; leer la gráfica al revés (qué está en cada eje) o suponer tendencias lineales entre puntos aislados."
+  },
+  {
+    "id": "RL13",
+    "nombre": "RL13 Geometría",
+    "descripcion": "Áreas, perímetros, Teorema de Pitágoras, ángulos, semejanza y figuras compuestas.",
+    "estrategia": "Dibuja siempre la figura, rotula los datos y descompón las figuras irregulares en figuras conocidas. En semejanza, iguala razones de lados correspondientes, no lados cualesquiera.",
+    "erroresComunes": "Responder perímetro cuando piden área (unidades lineales vs cuadradas); usar el radio como diámetro; sumar ángulos que no comparten vértice."
+  },
+  {
+    "id": "RL14",
+    "nombre": "RL14 Relaciones espaciales",
+    "descripcion": "Mapas, planos, vecindades, posiciones relativas y rotaciones mentales: quién está a la derecha, cuáles comparten frontera, cómo se ve desde otro punto.",
+    "estrategia": "Reproduce el esquema en papel y marca las posiciones a medida que las lees. Distingue izquierda/derecha del OBSERVADOR vs del OBJETO. Verifica la conclusión con las referencias absolutas (puntos cardinales o extremos del plano).",
+    "erroresComunes": "Cambiar de perspectiva a mitad del problema; asumir vecindad donde el texto dice «comparten un segmento» (no basta un punto)."
+  },
+  {
+    "id": "RL15",
+    "nombre": "RL15 Gráficas y tablas",
+    "descripcion": "Lectura e interpretación de datos: escalas, tendencias, comparaciones e interpolación.",
+    "estrategia": "Lee primero títulos, ejes, unidades y leyenda. Antes de calcular, pregunta qué pide el problema (¿un valor puntual, una diferencia, un promedio, una tendencia?). Interpola solo si la gráfica es razonablemente lineal en ese tramo.",
+    "erroresComunes": "No notar escalas no uniformes o truncadas en el eje; comparar barras por altura visual cuando los tramos del eje no son iguales."
+  },
+  {
+    "id": "RL16",
+    "nombre": "RL16 Funciones",
+    "descripcion": "Noción de función, dominio, recorrido, valores y crecimiento: cómo cambia la salida al cambiar la entrada.",
+    "estrategia": "Construye una tabla de valores pequeña (0, 1, 2, 10) para «ver» el comportamiento. Para funciones definidas por tramos, identifica a qué tramo pertenece el valor antes de evaluar.",
+    "erroresComunes": "Evaluar con el orden de operaciones equivocado (la multiplicación antes que la suma); usar la fórmula de un tramo que no corresponde al valor pedido."
+  },
+  {
+    "id": "RL17",
+    "nombre": "RL17 Operaciones no convencionales",
+    "descripcion": "Operadores definidos ad hoc (a*b = ...) y criptoaritmética (letras o símbolos que representan dígitos).",
+    "estrategia": "Aplica la definición LITERAL del operador, sin asumir aritmética normal. En criptoaritmética, empieza por las columnas con pistas fuertes: acarreos, cifras de unidades, letra repetida o dígitos ya dados por el enunciado.",
+    "erroresComunes": "«Simplificar» aplicando propiedades que el operador no tiene; olvidar que dos letras distintas no pueden ser el mismo dígito, y que los acarreos solo pueden ser 0 o 1."
+  },
+  {
+    "id": "RL18",
+    "nombre": "RL18 Lógica",
+    "descripcion": "Proposiciones, conectores (no, y, o, si...entonces), cuantificadores (todos/algunos) y deducción válida a partir de premisas.",
+    "estrategia": "Simboliza las premisas antes de razonar. Recuerda las equivalencias clave: la contrapositiva de «si P entonces Q» es «si no Q entonces no P» (válida); negar «todos» da «alguno no», negar «alguno» da «ninguno». Distingue lo que PUEDE ser cierto de lo que NECESARIAMENTE se sigue.",
+    "erroresComunes": "Aceptar la inversa («si Q entonces P») como válida; confundir «no todos» con «ninguno»; leer una mera posibilidad como conclusión forzosa."
+  },
+  {
+    "id": "CL01",
+    "nombre": "CL01 Comprensión literal",
+    "descripcion": "Localizar información explícitamente escrita en el texto: datos, fechas, nombres y afirmaciones puntuales.",
+    "estrategia": "Ubica la frase exacta que responde la pregunta y subraya sus límites (¿dice «todos» o «la mayoría»?). Responde con una paráfrasis fiel, sin añadir nada de tu conocimiento previo.",
+    "erroresComunes": "Sumar información que el texto no dice (aunque sea cierta en la realidad); no respetar los calificadores del texto original («algunos», «casi todos», «según el autor»)."
+  },
+  {
+    "id": "CL02",
+    "nombre": "CL02 Inferencia",
+    "descripcion": "Deducir lo que el texto NO dice explícitamente pero se desprende necesariamente de él.",
+    "estrategia": "Formula la respuesta como algo que DEBE ser cierto si el texto es cierto: parte de una o dos frases textuales y da un paso, no cinco. La inferencia correcta casi nunca necesita información externa al texto.",
+    "erroresComunes": "Elegir opciones «posibles» pero no forzadas por el texto; proyectar opiniones o datos propios como si fueran deducción."
+  },
+  {
+    "id": "CL03",
+    "nombre": "CL03 Idea principal",
+    "descripcion": "La afirmación global que resume el contenido esencial del texto completo.",
+    "estrategia": "Pregúntate: ¿cómo titularía el texto en una frase? La idea principal ABARCA todo el texto; los detalles interesantes pero parciales quedan por debajo. Verifica que ninguna parte del texto contradiga tu elección.",
+    "erroresComunes": "Elegir el detalle más llamativo o la primera frase (que puede ser introductoria); confundir el tema (de qué habla) con la idea principal (qué dice del tema)."
+  },
+  {
+    "id": "CL04",
+    "nombre": "CL04 Tesis",
+    "descripcion": "La postura del autor en textos argumentativos: aquello que se propone demostrar.",
+    "estrategia": "Busca la oración que condensa lo que el autor defiende; suele estar cerca del inicio o del final y suele apoyarse en conectores como «por lo tanto», «en conclusión». Distingue la tesis de las tesis ajenas que el autor solo cita para refutar.",
+    "erroresComunes": "Tomar la posición de un autor citado (concesiva: «es cierto que… pero») como la tesis del texto; confundir tesis con argumento que la respalda."
+  },
+  {
+    "id": "CL05",
+    "nombre": "CL05 Argumentación",
+    "descripcion": "Cómo se sostiene la tesis: razones, pruebas, ejemplos y conectores argumentativos.",
+    "estrategia": "Identifica primero la tesis y luego pregúntate «¿con qué la apoya?». Marca los conectores («porque», «dado que», «por ejemplo») que introducen razones. Clasifica cada argumento: dato, ejemplo, autoridad o analogía.",
+    "erroresComunes": "Confundir un ejemplo ilustrativo con la conclusión; contar los contraargumentos que el autor menciona solo para desmontarlos."
+  },
+  {
+    "id": "CL06",
+    "nombre": "CL06 Relación entre ideas",
+    "descripcion": "Conexión entre oraciones y párrafos: referentes de pronombres, sinonimia, elipsis y conectores.",
+    "estrategia": "Rastrea los referentes: cuando aparece «este», «aquella», «dicha ley», pregúntate a qué remonta. Los conectores son pistas de la relación (contraste, causa, consecuencia, adición): si cambias «sin embargo» por «además», ¿cambia el sentido?",
+    "erroresComunes": "Asignar el pronombre al sustantivo más cercano cuando el referente real es otro; ignorar la elipsis (frases con verbo omitido)."
+  },
+  {
+    "id": "CL07",
+    "nombre": "CL07 Propósito comunicativo",
+    "descripcion": "Para qué se escribió el texto: informar, persuadir, opinar, entretener, instruir o denunciar.",
+    "estrategia": "Encuentra el verbo del propósito: ¿quiere que yo sepa algo, que haga algo o que piense como él? Fíjate en el tipo de texto y en los recursos usados: un texto con datos y neutro busca informar; con advertencias y preguntas retóricas busca persuadir.",
+    "erroresComunes": "Confundir el tema del texto con su propósito; responder «informar» cuando el texto en realidad evalúa o critica una postura."
+  },
+  {
+    "id": "CL08",
+    "nombre": "CL08 Intención del autor",
+    "descripcion": "La actitud implícita del autor frente a lo que cuenta: ironía, respaldo, crítica o neutralidad.",
+    "estrategia": "Lee entre líneas los adjetivos valorativos, el tono y el uso de comillas o eufemismos. Compara cómo describe el autor lo que aprueba versus lo que rechaza: ahí está su postura.",
+    "erroresComunes": "Tomar literalmente una ironía; leer como neutral un texto cargado de adjetivos valorativos, o atribuirle al autor una intención que pertenece a los personajes citados."
+  },
+  {
+    "id": "CL09",
+    "nombre": "CL09 Significado contextual",
+    "descripcion": "El sentido que una palabra o expresión toma en ese texto concreto, que puede no coincidir con su primera acepción.",
+    "estrategia": "Sustituye la palabra por un sinónimo candidato y relee la frase completa: si el párrafo sigue coherente, vas bien. Usa las pistas del entorno: definiciones insertadas, ejemplos, contrastes o aclaraciones que el propio texto da.",
+    "erroresComunes": "Responder con el significado del diccionario más común sin verificar el contexto; ignorar que el mismo término puede tener sentido técnico en ese texto."
+  },
+  {
+    "id": "CL10",
+    "nombre": "CL10 Conclusiones",
+    "descripcion": "Síntesis derivable del texto en su conjunto: lo que se sigue después de leerlo todo.",
+    "estrategia": "Resume el texto en una frase y verifica tu conclusión contra TODAS las partes, no solo contra el último párrafo. Una conclusión válida no introduce información nueva: organiza la que hay.",
+    "erroresComunes": "Concluir más allá del texto (extrapolaciones); elegir una conclusión parcial de un solo párrafo cuando el texto tiene varios movimientos."
+  },
+  {
+    "id": "CL11",
+    "nombre": "CL11 Supuestos",
+    "descripcion": "Premisas implícitas que el argumento da por sentadas sin enunciarlas, y sin las cuales no funcionaría.",
+    "estrategia": "Pregúntate: «para que esta conclusión sea válida, ¿qué tendría que ser cierto pero no se dijo?». El supuesto suele ser un puente entre la evidencia y la conclusión. Para verificarlo, niégalo: si el argumento se derrumba, era el supuesto correcto.",
+    "erroresComunes": "Confundir el supuesto con un argumento explícito; elegir una crítica externa al argumento en lugar del presupuesto interno que lo sostiene."
+  },
+  {
+    "id": "CL12",
+    "nombre": "CL12 Evaluación de argumentos",
+    "descripcion": "Juzgar la fuerza de un argumento: si la evidencia sostiene la tesis y qué la debilitaría o fortalecería.",
+    "estrategia": "Separa tesis y evidencia, y mide el hueco entre ambas: ¿la prueba presentada obliga a aceptar la conclusión o solo la hace verosímil? En preguntas de debilitamiento, busca la opción que ataca ese puente; en fortalecimiento, la que lo refuerza.",
+    "erroresComunes": "Evaluar el estilo o la autoridad de quien habla y no la sustancia; atacar un detalle menor cuando la falla real está en la conexión evidencia-conclusión."
+  },
+  {
+    "id": "CL13",
+    "nombre": "CL13 Relación texto-contexto",
+    "descripcion": "Cómo la situación comunicativa (quién habla, a quién, desde dónde y para qué) condiciona el sentido del texto.",
+    "estrategia": "Ubica el texto: ¿quién enuncia, desde qué posición y en qué circunstancia? Reconoce si el texto asume un contexto científico, legal, periodístico o cotidiano, y qué convenciones de ese contexto influyen en las palabras.",
+    "erroresComunes": "Leer un texto antiguo o técnico con criterios actuales o cotidianos; ignorar el destinatario implícito, que cambia el tono y la cortesía del texto."
+  },
+  {
+    "id": "CL14",
+    "nombre": "CL14 Comparación de textos",
+    "descripcion": "Frente a dos textos sobre un mismo tema: semejanzas y diferencias de contenido, postura, propósito y tono.",
+    "estrategia": "Haz una tabla paralela: para cada texto anota tema, postura del autor, propósito y evidencia usada. Compara columna por columna: las preguntas suelen apuntar a UNA dimensión (coinciden en tema pero no en postura, etc.).",
+    "erroresComunes": "Atribuir a un texto las ideas del otro por leerlos seguido; responder solo la comparación de temas sin revisar si la pregunta pedía comparar posturas o propósitos."
+  }
+]

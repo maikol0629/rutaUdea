@@ -118,13 +118,16 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
   - **Fortalezas, áreas de mejora y recomendaciones** según §12: solo subtemas con evidencia ≥3 respuestas («una pregunta no hace un tema débil»).
   - Historial unificado (simulacros + prácticas) con score, % y tiempo; empty state con CTAs.
   - Arquitectura: `ProgressRepository` (Firestore, degrada a vacío sin conexión) + `AnalizadorProgreso` (dominio puro, testeado).
-- **Tests unitarios**: 59 tests (mapper, loader, seeder, motor de selección, gate de autenticación, selector/sesión/filtros de práctica, analítica de progreso) — `./gradlew test` PASS.
+- **Módulo Info (educativo) — ✅ implementado** (rama `feat/info`):
+  - Contenido de los **29 componentes del examen** (15 RL + 14 CL): descripción, estrategia de resolución y errores comunes, empaquetado como asset (`assets/info/contenido_educativo.json`, offline-first; la colección `educationalContent` queda para el futuro panel admin).
+  - Tab 📚 con filtro por área y acordeón expandible por componente.
+  - `ComingSoonScreen` eliminado: las 5 pestañas de la app son funcionales.
+- **Tests unitarios**: 66 tests (mapper, loader, seeder, motor de selección, gate de autenticación, selector/sesión/filtros de práctica, analítica de progreso, módulo Info) — `./gradlew test` PASS.
 
 ### 🔶 Pendiente / En construcción
 - **Recuperación de contraseña** (`sendPasswordResetEmail`).
 - **Inactividad del cronómetro**: cierre por inactividad configurable y registro de abandono.
 - **Análisis por componente (área) y dificultad**: el acierto por subtema ya está en Progreso; falta el desglose por componente y por dificultad (hoy: detalle por pregunta en resultados).
-- **Información educativa** por componente/subtema (tab 📚, último placeholder).
 - **Vista detalle** de un simulacro del historial de Progreso.
 - **Panel administrativo web** (CRUD de preguntas, carga CSV, estados).
 - **Asistencia IA** para explicaciones con revisión administrativa.
@@ -257,7 +260,7 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 | **P0** | Registro de respuestas y tiempos | Resultados | ✅ (respuestas; 🔶 tiempo por pregunta guardado como 0) |
 | **P0** | Cálculo de resultados | Resultados | ✅ (score, %, detalle por pregunta) |
 | **P0** | Análisis por componente/subtema/dificultad | Analítica | 🔶 (por subtema ✅ en Progreso; falta componente y dificultad) |
-| **P0** | Contenido informativo | Aprendizaje | 🔶 |
+| **P0** | Contenido informativo | Aprendizaje | ✅ (29 componentes: descripción, estrategia y errores comunes) |
 | **P1** | Práctica filtrada con feedback inmediato | Aprendizaje | ✅ (estratificación proporcional; recomendación estática hasta tener motor P1) |
 | **P1** | Historial y gráficas de progreso | Analítica | ✅ (dashboard, evolución, acierto por subtema, historial) |
 | **P1** | Motor de recomendaciones | Personalización | 🔶 (V1 basada en evidencia incluida en Progreso; motor personalizado pendiente) |
@@ -283,15 +286,15 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 11. ✅ Implementar cronómetro (120 min) — 🔶 pendiente inactividad/abandono.
 12. ✅ Implementar cálculo y almacenamiento de resultados.
 13. 🔶 Implementar análisis detallado por componente/subtema/dificultad.
-14. 🔶 Implementar información educativa.
+14. ✅ Implementar información educativa (módulo Info con 29 componentes, asset offline-first).
 15. ✅ Implementar práctica con feedback (filtros, estratificación, sesión con feedback inmediato, resultado y persistencia).
 16. ✅ Implementar historial y recomendaciones (dashboard de Progreso con regla de evidencia ≥3).
 17. 🔶 Integrar asistencia de IA.
-18. 🔶 Ejecutar pruebas técnicas (59 unitarias ✅; faltan UI/integración).
+18. 🔶 Ejecutar pruebas técnicas (66 unitarias ✅; faltan UI/integración).
 19. 🔶 Ejecutar piloto con ~15 estudiantes.
 20. 🔶 Corregir, documentar y preparar entrega.
 
-> **Próximo hito sugerido:** PR de `feat/progreso` a `main` → módulo de **Información educativa** (último tab placeholder) y análisis por componente/dificultad.
+> **Próximo hito sugerido:** PRs de `feat/practica` → `feat/progreso` → `feat/info` a `main` → **análisis por componente/dificultad** e **inactividad del cronómetro** (P0 restantes del simulacro).
 
 ---
 
