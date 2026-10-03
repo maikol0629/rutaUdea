@@ -60,8 +60,11 @@ class DatabaseSeeder(
          *
          * v1: banco original (subtemas genéricos mezclados).
          * v2: normalización a componentes oficiales RL01–RL18 / CL01–CL14.
+         * v3: limpieza del banco — frase plantilla deduplicada en textos
+         *     CL-ORG, scraping de profe_alex_52 truncado, 12 preguntas RL
+         *     con figuras inexistentes deshabilitadas.
          */
-        const val BANK_SEED_VERSION = 2
+        const val BANK_SEED_VERSION = 3
 
         /**
          * Política de siembra (pura y testeable):

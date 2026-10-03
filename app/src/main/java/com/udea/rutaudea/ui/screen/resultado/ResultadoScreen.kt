@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.udea.rutaudea.ui.screen.common.TextoApoyoCard
 
 @Composable
 fun ResultadoScreen(
@@ -213,6 +214,8 @@ private fun QuestionResultItem(result: QuestionResult) {
                     fontWeight = FontWeight.Bold
                 )
             }
+
+            result.textoApoyo?.let { TextoApoyoCard(texto = it) }
 
             if (!isCorrect) {
                 Text(

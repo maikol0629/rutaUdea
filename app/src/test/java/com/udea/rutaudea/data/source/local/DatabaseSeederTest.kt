@@ -25,13 +25,23 @@ class DatabaseSeederTest {
 
     @Test
     fun `no re-siembra si ya esta en la version actual del banco`() {
-        assertFalse(DatabaseSeeder.debeSembrar(preguntasEnBd = 200, versionInstalada = 2))
+        assertFalse(
+            DatabaseSeeder.debeSembrar(
+                preguntasEnBd = 200,
+                versionInstalada = DatabaseSeeder.BANK_SEED_VERSION
+            )
+        )
     }
 
     @Test
     fun `no re-siembra si la version instalada es mayor (downgrade de APK)`() {
         // Evita sobrescribir un banco más nuevo (p. ej. APK vieja instalada
         // sobre datos de una versión superior).
-        assertFalse(DatabaseSeeder.debeSembrar(preguntasEnBd = 200, versionInstalada = 3))
+        assertFalse(
+            DatabaseSeeder.debeSembrar(
+                preguntasEnBd = 200,
+                versionInstalada = DatabaseSeeder.BANK_SEED_VERSION + 1
+            )
+        )
     }
 }

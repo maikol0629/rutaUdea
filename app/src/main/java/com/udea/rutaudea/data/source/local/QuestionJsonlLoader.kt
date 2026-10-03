@@ -91,7 +91,7 @@ class QuestionJsonlLoader(private val context: Context, private val gson: Gson) 
             tipoFuente = json.get("tipo_fuente")?.getStringOrNull(),
             esOriginal = json.get("es_original")?.getBooleanOrNull() ?: false,
             verificada = json.get("verificada")?.getBooleanOrNull() ?: false,
-            estado = "aprobado"
+            estado = json.get("estado")?.getStringOrNull() ?: "aprobado"
         )
     }
 }

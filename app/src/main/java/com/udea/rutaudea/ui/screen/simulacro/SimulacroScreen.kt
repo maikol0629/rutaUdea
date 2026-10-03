@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -24,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.udea.rutaudea.ui.screen.common.TextoApoyoCard
+import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 
 @Composable
 fun SimulacroScreen(
@@ -49,8 +53,10 @@ fun SimulacroScreen(
 
     val questionIndex = uiState.currentIndex
     val totalQuestions = uiState.questions.size
-    val questionText = viewModel.currentQuestion?.pregunta ?: ""
-    val options = viewModel.currentQuestion?.opciones ?: emptyList()
+    val currentQuestion = viewModel.currentQuestion
+    val questionText = currentQuestion?.pregunta ?: ""
+    val textoApoyo = currentQuestion?.let { textoApoyoDe(it) }
+    val options = currentQuestion?.opciones ?: emptyList()
     val selectedOption = uiState.currentAnswer
     val timeRemainingSeconds = uiState.timeRemainingSeconds
     val isLastQuestion = uiState.isLastQuestion
@@ -106,9 +112,13 @@ fun SimulacroScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Texto de apoyo (Competencia Lectora y textos compartidos)
+                textoApoyo?.let { TextoApoyoCard(texto = it) }
+
                 Text(
                     text = questionText,
                     fontSize = 18.sp,

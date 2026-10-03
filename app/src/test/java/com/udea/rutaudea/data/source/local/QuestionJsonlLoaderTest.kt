@@ -81,6 +81,19 @@ class QuestionJsonlLoaderTest {
     }
 
     @Test
+    fun parseJsonl_estadoDelJsonSeRespeta() {
+        val jsonl = """
+            {"id": "off-1", "area": "razonamiento_logico", "subtema": "RL01", "dificultad": "baja", "pregunta": "p", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A", "verificada": false, "estado": "deshabilitado"}
+            {"id": "on-1", "area": "competencia_lectora", "subtema": "CL01", "dificultad": "baja", "pregunta": "p", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A", "verificada": true, "estado": "aprobado"}
+        """.trimIndent()
+
+        val entities = loader.parseJsonl(jsonl)
+
+        assertEquals("deshabilitado", entities[0].estado)
+        assertEquals("aprobado", entities[1].estado)
+    }
+
+    @Test
     fun parseJsonl_missingOptionalFieldsUsesDefaults() {
         val minimalJsonl = """
             {"id": "min-1", "area": "razonamiento_logico", "subtema": "Test", "dificultad": "baja", "pregunta": "Test?", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A"}

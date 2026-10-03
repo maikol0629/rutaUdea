@@ -6,5 +6,7 @@ data class QuestionResult(
     val isCorrect: Boolean,
     val userAnswer: String,
     val correctAnswer: String,
-    val explanation: String
+    val explanation: String,
+    /** Texto de apoyo de la pregunta (CL), si existe, para releer al repasar. */
+    val textoApoyo: String? = null
 )
