@@ -63,7 +63,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | Selección opciones A/B/C/D | ✅ | Visual feedback ✓, color primario |
 | Navegación siguiente/anterior/final | ✅ | Botón contextual "Siguiente →" / "Finalizar" |
 | Auto-finalizar a 0:00 | ✅ | Navega a Resultado automáticamente |
-| Texto de apoyo CL visible | ✅ | `TextoApoyoCard` (scroll, máx 240.dp) en simulacro, práctica y repaso de resultados |
+| Texto de apoyo CL visible | ✅ | `TextoApoyo` (sin recuadro anidado, 16sp, scroll, máx 260.dp) en simulacro, práctica y repaso de resultados |
 | Pantalla Resultado | ✅ | Score X/80, %, tiempo, lista expandible ✓/✗ + 💡 explicación + texto de apoyo |
 | Compatibilidad edge-to-edge | ✅ | `safeDrawingPadding()` global en `MainActivity` (Android 15 / targetSdk 35) |
 
@@ -132,13 +132,13 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Seeder versionado** (`DatabaseSeeder`, v2): los dispositivos con la app ya instalada **se re-siembran automáticamente** al detectar `BANK_SEED_VERSION >` instalada — no hace falta reinstalar ni borrar datos. Regla: incrementar `BANK_SEED_VERSION` en cada cambio del JSONL.
 - **Modelo de contenido decidido**: el banco viaja en la APK (offline-first); Firestore `questions` queda para el futuro panel administrativo. La colección **no está poblada** y ninguna funcionalidad activa la lee (`updateBankFromFirestore()` es contrato sin uso). Script de carga listo para ese día: `scripts/upload_bank_to_firestore.js` (Admin SDK, marca `aprobado`/`pendiente` según validez).
 
-### 5.7 Limpieza del banco v3 (rama `fix/ui-textos-notch-banco`)
-- **Frase relleno duplicada**: los 92 `texto_base` de CL-ORG repetían 10 veces la frase *"El tema sigue siendo objeto de estudio…"* → deduplicados a 1 ocurrencia (`scripts/limpiar_banco.py`).
+### 5.7 Limpieza del banco v3/v4 (rama `fix/ui-textos-notch-banco`)
+- **Frase relleno eliminada**: los 92 `texto_base` de CL-ORG repetían 10 veces la frase *"El tema sigue siendo objeto de estudio…"* (relleno sin aporte) → **eliminada por completo** (`scripts/limpiar_banco.py`, banco v4).
 - **Scraping truncado**: `profe_alex_52` traía ~28.000 caracteres de comentarios/JS de Blogger en el enunciado → truncado al primer párrafo coherente.
 - **12 preguntas RL deshabilitadas** (`estado="deshabilitado"`): referencian figuras/diagramas/tablas que no existen en la app (profe_alex_12/14/15/18/19/36/51/52, RL-ORG-035/037/038/039). El DAO ya filtra `estado='aprobado'` en todas las consultas, así que quedan fuera de selección sin tocar los selectores.
 - **Loader respeta `estado` del JSONL** (antes hardcodeaba `"aprobado"`). **Banco aprobado resultante: 88 RL + 100 CL = 188** (el simulacro requiere 40/40: margen sano).
-- **`BANK_SEED_VERSION = 3`**: re-siembra automática en dispositivos instalados.
-- **UI**: `TextoApoyoCard` (componente común con scroll y altura acotada) — el simulacro ya muestra los textos de apoyo de las preguntas CL, la práctica ya no desborda con textos largos, y el resultado permite releer el texto al repasar.
+- **`BANK_SEED_VERSION = 4`**: re-siembra automática en dispositivos instalados.
+- **UI**: `TextoApoyo` (componente común, sin recuadro anidado, 16sp, scroll acotado 260.dp) — el simulacro ya muestra los textos de apoyo de las preguntas CL, la práctica ya no desborda con textos largos, y el resultado permite releer el texto al repasar. Home actualizado: "Simulacro — 120 min • 80 preguntas • 40 RL + 40 CL".
 
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
@@ -340,9 +340,11 @@ app/src/main/java/com/udea/rutaudea/
 
 | Botón "Abandonar" del overlay cerraba la app | `popBackStack(HOME, inclusive=true)` vaciaba el back stack → `inclusive=false` para volver a Home |
 | Simulacro no mostraba textos CL | `SimulacroScreen` solo renderizaba `pregunta` → añadido `TextoApoyoCard` (componente común, scroll acotado 240.dp) con `textoBase ?: contexto` |
-| Frase repetida al final de textos CL | Era el **dato**, no la UI: 92 `texto_base` traían la frase plantilla 10 veces → deduplicados con `scripts/limpiar_banco.py` (banco v3) |
+| Frase repetida al final de textos CL | Era el **dato**, no la UI: 92 `texto_base` traían la frase plantilla 10 veces → **eliminada por completo** con `scripts/limpiar_banco.py` (banco v4) |
 | Info bajo el notch | `targetSdk=35` fuerza edge-to-edge en Android 15 y no había insets en ninguna pantalla → `safeDrawingPadding()` global en `MainActivity` |
+| Card doble/padding excesivo en texto de apoyo | `TextoApoyoCard` anidaba una Card con fondo dentro de la Card de pregunta (doble padding ~32dp, fuente 14sp) → reemplazado por `TextoApoyo` plano: etiqueta + texto 16sp, sin recuadro |
+| Home decía "Simulacro MVP / 5 min / 6 preguntas" | Texto obsoleto del MVP → "Simulacro / 120 min • 80 preguntas • 40 RL + 40 CL" |
 
 ---
 
-*Última actualización: 2026-10-03 - Rama `fix/ui-textos-notch-banco`: texto de apoyo visible en simulacro/práctica/resultado, fix notch edge-to-edge, limpieza del banco v3 (frase deduplicada ×92, scraping de profe_alex_52 truncado, 12 RL rotas deshabilitadas, seeder v3). Verificado: `test` (72 PASS) + `assembleDebug` BUILD SUCCESSFUL.*
+*Última actualización: 2026-10-03 - Rama `fix/ui-textos-notch-banco`: texto de apoyo visible y legible (sin recuadro anidado) en simulacro/práctica/resultado, fix notch edge-to-edge, limpieza del banco v4 (frase plantilla eliminada ×92, scraping de profe_alex_52 truncado, 12 RL rotas deshabilitadas, seeder v4), Home con datos reales del simulacro. Verificado: `test` (72 PASS) + `assembleDebug` BUILD SUCCESSFUL.*

@@ -63,8 +63,10 @@ class DatabaseSeeder(
          * v3: limpieza del banco — frase plantilla deduplicada en textos
          *     CL-ORG, scraping de profe_alex_52 truncado, 12 preguntas RL
          *     con figuras inexistentes deshabilitadas.
+         * v4: frase plantilla eliminada por completo de los textos CL-ORG
+         *     (era relleno sin aporte de contenido).
          */
-        const val BANK_SEED_VERSION = 3
+        const val BANK_SEED_VERSION = 4
 
         /**
          * Política de siembra (pura y testeable):

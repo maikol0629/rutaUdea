@@ -40,14 +40,14 @@ class BancoIntegridadTest {
     }
 
     @Test
-    fun banco_sinFrasePlantillaRepetida() {
-        val repetidas = preguntas.filter { p ->
+    fun banco_sinFrasePlantillaDeRelleno() {
+        val contaminados = preguntas.filter { p ->
             val tb = p.textoBase() ?: return@filter false
             FRASE_REGEX.containsMatchIn(tb)
         }
         assertTrue(
-            "texto_base con la frase repetida consecutivamente: ${repetidas.map { it.get("id").asString }}",
-            repetidas.isEmpty()
+            "texto_base que aún contienen la frase plantilla: ${contaminados.map { it.get("id").asString }}",
+            contaminados.isEmpty()
         )
     }
 
@@ -80,10 +80,10 @@ class BancoIntegridadTest {
     }
 
     companion object {
-        /** La frase de relleno dos o más veces seguidas (tolerante a tildes). */
+        /** La frase de relleno, incluso una sola ocurrencia (tolerante a tildes). */
         private val FRASE_REGEX = Regex(
-            "(?:El tema sigue siendo objeto de estudio y an[áa]lisis constante " +
-                "en la comunidad acad[ée]mica y profesional\\.\\s*){2,}"
+            "El tema sigue siendo objeto de estudio y an[áa]lisis constante " +
+                "en la comunidad acad[ée]mica y profesional\\."
         )
 
         private val DESHABILITADAS_ESPERADAS = setOf(

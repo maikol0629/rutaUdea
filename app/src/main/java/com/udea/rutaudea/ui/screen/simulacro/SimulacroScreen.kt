@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.udea.rutaudea.ui.screen.common.TextoApoyoCard
+import com.udea.rutaudea.ui.screen.common.TextoApoyo
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 
 @Composable
@@ -117,7 +117,7 @@ fun SimulacroScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Texto de apoyo (Competencia Lectora y textos compartidos)
-                textoApoyo?.let { TextoApoyoCard(texto = it) }
+                textoApoyo?.let { TextoApoyo(texto = it) }
 
                 Text(
                     text = questionText,

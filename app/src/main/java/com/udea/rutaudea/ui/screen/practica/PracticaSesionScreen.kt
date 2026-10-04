@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.udea.rutaudea.domain.model.Question
-import com.udea.rutaudea.ui.screen.common.TextoApoyoCard
+import com.udea.rutaudea.ui.screen.common.TextoApoyo
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 
 /**
@@ -126,7 +126,7 @@ fun PracticaSesionScreen(
                         ChipInfo(texto = "Dificultad: ${question.dificultad}")
                     }
                     textoApoyoDe(question)?.let { textoApoyo ->
-                        TextoApoyoCard(texto = textoApoyo)
+                        TextoApoyo(texto = textoApoyo)
                     }
                     Text(
                         text = question.pregunta,
