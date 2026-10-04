@@ -71,13 +71,13 @@ fun HomeScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Simulacro MVP",
+                            text = "Simulacro",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "5 min • 6 preguntas • 3 RL + 3 CL",
+                            text = "120 min • 80 preguntas • 40 RL + 40 CL",
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

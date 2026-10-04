@@ -13,8 +13,9 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | `feat/motor-seleccion-preguntas` | ✅ En origin | Motor de selección 80 preguntas (ya en main vía PR #2) |
 | `feat/auth-gate` | ✅ En origin | Gate de autenticación (ya en main vía PR #3) |
 | `feat/practica` | ✅ En origin | Módulo de Práctica completo + normalización del banco + seeder versionado |
-| `feat/progreso` | ✅ En local, apilada | Módulo de Progreso: dashboard, evolución, acierto por subtema, recomendaciones, historial |
-| `feat/info` | 🔨 Rama actual de trabajo | Módulo Info: contenido educativo de los 29 componentes (asset offline-first) |
+| `feat/progreso` | ✅ En main (PR #5) | Módulo de Progreso: dashboard, evolución, acierto por subtema, recomendaciones, historial |
+| `feat/info` | ✅ En main (PR #6) | Módulo Info: contenido educativo de los 29 componentes (asset offline-first) |
+| `fix/ui-textos-notch-banco` | 🔨 Rama actual | Texto de apoyo visible en simulacro/resultado/práctica (scroll), fix notch edge-to-edge, limpieza banco v3 (frase deduplicada, 12 preguntas rotas deshabilitadas) |
 
 ---
 
@@ -62,7 +63,9 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | Selección opciones A/B/C/D | ✅ | Visual feedback ✓, color primario |
 | Navegación siguiente/anterior/final | ✅ | Botón contextual "Siguiente →" / "Finalizar" |
 | Auto-finalizar a 0:00 | ✅ | Navega a Resultado automáticamente |
-| Pantalla Resultado | ✅ | Score X/80, %, tiempo, lista expandible ✓/✗ + 💡 explicación |
+| Texto de apoyo CL visible | ✅ | `TextoApoyo` (sin recuadro anidado, 16sp, scroll, máx 260.dp) en simulacro, práctica y repaso de resultados |
+| Pantalla Resultado | ✅ | Score X/80, %, tiempo, detalle por pregunta con `RepasoPreguntaCard` compartida (sin recuadros internos), enunciado + texto de apoyo compacto |
+| Compatibilidad edge-to-edge | ✅ | `safeDrawingPadding()` global en `MainActivity` (Android 15 / targetSdk 35) |
 
 ### 5. Navegación (5 tabs Bottom Bar)
 | Tab | Ruta | Estado |
@@ -129,6 +132,14 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Seeder versionado** (`DatabaseSeeder`, v2): los dispositivos con la app ya instalada **se re-siembran automáticamente** al detectar `BANK_SEED_VERSION >` instalada — no hace falta reinstalar ni borrar datos. Regla: incrementar `BANK_SEED_VERSION` en cada cambio del JSONL.
 - **Modelo de contenido decidido**: el banco viaja en la APK (offline-first); Firestore `questions` queda para el futuro panel administrativo. La colección **no está poblada** y ninguna funcionalidad activa la lee (`updateBankFromFirestore()` es contrato sin uso). Script de carga listo para ese día: `scripts/upload_bank_to_firestore.js` (Admin SDK, marca `aprobado`/`pendiente` según validez).
 
+### 5.7 Limpieza del banco v3/v4 (rama `fix/ui-textos-notch-banco`)
+- **Frase relleno eliminada**: los 92 `texto_base` de CL-ORG repetían 10 veces la frase *"El tema sigue siendo objeto de estudio…"* (relleno sin aporte) → **eliminada por completo** (`scripts/limpiar_banco.py`, banco v4).
+- **Scraping truncado**: `profe_alex_52` traía ~28.000 caracteres de comentarios/JS de Blogger en el enunciado → truncado al primer párrafo coherente.
+- **12 preguntas RL deshabilitadas** (`estado="deshabilitado"`): referencian figuras/diagramas/tablas que no existen en la app (profe_alex_12/14/15/18/19/36/51/52, RL-ORG-035/037/038/039). El DAO ya filtra `estado='aprobado'` en todas las consultas, así que quedan fuera de selección sin tocar los selectores.
+- **Loader respeta `estado` del JSONL** (antes hardcodeaba `"aprobado"`). **Banco aprobado resultante: 88 RL + 100 CL = 188** (el simulacro requiere 40/40: margen sano).
+- **`BANK_SEED_VERSION = 4`**: re-siembra automática en dispositivos instalados.
+- **UI**: `TextoApoyo` (componente común, sin recuadro anidado, 16sp, scroll acotado 260.dp) — el simulacro ya muestra los textos de apoyo de las preguntas CL, la práctica ya no desborda con textos largos, y el resultado permite releer el texto al repasar. Home actualizado: "Simulacro — 120 min • 80 preguntas • 40 RL + 40 CL".
+
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
 - **Secondary**: Blue Accent (#2196F3)
@@ -146,6 +157,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `PracticaFiltrosViewModelTest` - 5 tests pasan (subtemas por área, disponibles, iniciar)
 - ✅ `AnalizadorProgresoTest` - 9 tests pasan (evidencia mínima, orden, evolución, historial)
 - ✅ `InfoViewModelTest` - 7 tests pasan (parseo, filtro por área, estructura del asset)
+- ✅ `BancoIntegridadTest` - 5 tests pasan (200 preguntas, sin frase repetida, 12 deshabilitadas exactas, cobertura simulacro, scraping truncado)
 
 ### 8. Motor de selección de preguntas (100% completo)
 - **`QuestionSelector`** (`domain/services/QuestionSelector.kt`) — clase pura de dominio, testeable:
@@ -171,10 +183,9 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 
 ## ❌ PROBLEMAS PENDIENTES / NO IMPLEMENTADOS
 
-### 0. Calidad del banco: 32 preguntas RL sin respuesta/enunciado (Alto)
-- **Problema**: 32 preguntas RL del banco (mayoría `profe_alex_*`, varias del extinto comodín "Razonamiento logico") no tienen `respuesta_correcta` o enunciado → los selectores las excluyen (banco válido: 68 RL + 100 CL = 168; el simulacro requiere 80 y RL ≥ 40: OK hoy, margen justo).
-- **Impacto**: no aparecen en simulacro ni práctica; fragmentan los pools por subtema; subutilizan las fuentes originales.
-- **Solución pendiente**: completar la validación (responderlas) con el panel administrativo o curación manual. El plan (§6) ya lo registra como riesgo "Preguntas sin validar".
+### 0. Calidad del banco (Alto)
+- **Resuelto (v3)**: frase relleno duplicada en 92 textos CL, scraping de `profe_alex_52`, y 12 preguntas RL con figuras inexistentes → deshabilitadas. Banco aprobado: **88 RL + 100 CL = 188**.
+- **Pendiente**: ~20 preguntas RL aprobadas siguen sin `respuesta_correcta` o enunciado (los selectores las excluyen con `esValida`; pool válido efectivo ≈ 68 RL). Completar con curación manual o el panel administrativo.
 
 ### 1. Iconos de la App (Crítico)
 - **Problema**: Adaptive icons configurados (`ic_launcher_foreground.xml` + `launcher_background #1B4D3E`) pero se ve cuadrado verde en launcher
@@ -328,7 +339,13 @@ app/src/main/java/com/udea/rutaudea/
 | Logo no se mostraba en SplashScreen | `ic_splash_logo.xml` pinta todo el canvas verde oscuro de fondo; el `ColorFilter.tint(ForestGreen)` teñía TODO el vector (cuadrado verde sólido). Fix: eliminado el tint, logo se muestra con sus colores originales a 120.dp |
 
 | Botón "Abandonar" del overlay cerraba la app | `popBackStack(HOME, inclusive=true)` vaciaba el back stack → `inclusive=false` para volver a Home |
+| Simulacro no mostraba textos CL | `SimulacroScreen` solo renderizaba `pregunta` → añadido `TextoApoyoCard` (componente común, scroll acotado 240.dp) con `textoBase ?: contexto` |
+| Frase repetida al final de textos CL | Era el **dato**, no la UI: 92 `texto_base` traían la frase plantilla 10 veces → **eliminada por completo** con `scripts/limpiar_banco.py` (banco v4) |
+| Info bajo el notch | `targetSdk=35` fuerza edge-to-edge en Android 15 y no había insets en ninguna pantalla → `safeDrawingPadding()` global en `MainActivity` |
+| Card doble/padding excesivo en texto de apoyo | `TextoApoyoCard` anidaba una Card con fondo dentro de la Card de pregunta (doble padding ~32dp, fuente 14sp) → reemplazado por `TextoApoyo` plano: etiqueta + texto 16sp, sin recuadro |
+| Detalle de resultados con recuadros anidados | Unificados ambos resultados (simulacro y práctica) en el componente compartido `RepasoPreguntaCard` (`ui/screen/common/`): Card tintada por estado (correcta/incorrecta/omitida) con contenido plano — encabezado, enunciado, texto de apoyo compacto, corrección, 💡 y 📚 — sin ningún cuadrado interno que duplique márgenes |
+| Home decía "Simulacro MVP / 5 min / 6 preguntas" | Texto obsoleto del MVP → "Simulacro / 120 min • 80 preguntas • 40 RL + 40 CL" |
 
 ---
 
-*Última actualización: 2026-10-02 - Rama `feat/info` (apilada sobre feat/progreso): módulo Info educativo completo — contenido de los 29 componentes del examen (15 RL + 14 CL: descripción, estrategia y errores comunes) empaquetado como asset offline-first; acordeón por componente con filtro de área. ComingSoonScreen eliminado: las 5 pestañas son funcionales (MVP del aspirante completo). Verificado: `test` (66 PASS) + `assembleDebug` BUILD SUCCESSFUL (JBR 21).*
+*Última actualización: 2026-10-03 - Rama `fix/ui-textos-notch-banco`: texto de apoyo legible (sin recuadro anidado, parametrizable en altura/fuente), detalle de resultados plano con enunciado por pregunta, fix notch edge-to-edge, limpieza del banco v4 (frase plantilla eliminada ×92, scraping de profe_alex_52 truncado, 12 RL rotas deshabilitadas, seeder v4), Home con datos reales del simulacro. Verificado: `test` (72 PASS) + `assembleDebug` BUILD SUCCESSFUL.*

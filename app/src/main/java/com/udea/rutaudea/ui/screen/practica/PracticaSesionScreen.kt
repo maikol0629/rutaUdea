@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.ui.screen.common.TextoApoyo
+import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 
 /**
  * Sesión de práctica: una pregunta a la vez con retroalimentación
@@ -123,12 +125,8 @@ fun PracticaSesionScreen(
                         ChipInfo(texto = question.subtema)
                         ChipInfo(texto = "Dificultad: ${question.dificultad}")
                     }
-                    question.textoBase?.let { textoBase ->
-                        Text(
-                            text = textoBase,
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    textoApoyoDe(question)?.let { textoApoyo ->
+                        TextoApoyo(texto = textoApoyo)
                     }
                     Text(
                         text = question.pregunta,

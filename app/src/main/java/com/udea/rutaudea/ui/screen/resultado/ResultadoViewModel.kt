@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -44,7 +45,9 @@ class ResultadoViewModel(
                     isCorrect = isCorrect,
                     userAnswer = userAnswer ?: "—",
                     correctAnswer = question.respuestaCorrecta,
-                    explanation = question.explicacion ?: ""
+                    explanation = question.explicacion ?: "",
+                    enunciado = question.pregunta,
+                    textoApoyo = textoApoyoDe(question)
                 )
             }
 

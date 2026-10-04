@@ -22,6 +22,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.udea.rutaudea.ui.screen.common.EstadoRespuesta
+import com.udea.rutaudea.ui.screen.common.RepasoPreguntaCard
 
 @Composable
 fun ResultadoScreen(
@@ -131,7 +133,9 @@ fun ResultadoScreen(
             }
         }
 
-        // Detail list - use weight to take remaining space but leave room for button
+        // Detail list - use weight to take remaining space but leave room for button.
+        // Mismo formato que el repaso de práctica: Card contenedora + una
+        // Card tintada por pregunta, sin recuadros internos adicionales.
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -180,62 +184,23 @@ fun ResultadoScreen(
 
 @Composable
 private fun QuestionResultItem(result: QuestionResult) {
-    val isCorrect = result.isCorrect
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = if (isCorrect)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Pregunta ${result.index + 1} (${result.areaLabel})",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = if (isCorrect) "✓" else "✗",
-                    fontSize = 20.sp,
-                    color = if (isCorrect) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            if (!isCorrect) {
-                Text(
-                    text = "Tu respuesta: ${result.userAnswer}",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Text(
-                    text = "Correcta: ${result.correctAnswer}",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            if (result.explanation.isNotBlank()) {
-                Text(
-                    text = "💡 ${result.explanation}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+    // Componente compartido con el repaso de práctica: Card tintada por
+    // estado y contenido plano (sin recuadros internos).
+    val estado = when {
+        result.isCorrect -> EstadoRespuesta.CORRECTA
+        result.userAnswer == "—" -> EstadoRespuesta.OMITIDA
+        else -> EstadoRespuesta.INCORRECTA
     }
+    RepasoPreguntaCard(
+        encabezado = "Pregunta ${result.index + 1} (${result.areaLabel})",
+        estado = estado,
+        enunciado = result.enunciado,
+        textoApoyo = result.textoApoyo,
+        correccion = if (estado != EstadoRespuesta.CORRECTA)
+            "Tu respuesta: ${result.userAnswer} · Correcta: ${result.correctAnswer}"
+        else null,
+        explicacion = result.explanation
+    )
 }
 
 private fun formatTime(seconds: Int): String {
