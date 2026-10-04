@@ -64,7 +64,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | Navegación siguiente/anterior/final | ✅ | Botón contextual "Siguiente →" / "Finalizar" |
 | Auto-finalizar a 0:00 | ✅ | Navega a Resultado automáticamente |
 | Texto de apoyo CL visible | ✅ | `TextoApoyo` (sin recuadro anidado, 16sp, scroll, máx 260.dp) en simulacro, práctica y repaso de resultados |
-| Pantalla Resultado | ✅ | Score X/80, %, tiempo, lista expandible ✓/✗ + 💡 explicación + texto de apoyo |
+| Pantalla Resultado | ✅ | Score X/80, %, tiempo, detalle por pregunta con `RepasoPreguntaCard` compartida (sin recuadros internos), enunciado + texto de apoyo compacto |
 | Compatibilidad edge-to-edge | ✅ | `safeDrawingPadding()` global en `MainActivity` (Android 15 / targetSdk 35) |
 
 ### 5. Navegación (5 tabs Bottom Bar)
@@ -343,8 +343,9 @@ app/src/main/java/com/udea/rutaudea/
 | Frase repetida al final de textos CL | Era el **dato**, no la UI: 92 `texto_base` traían la frase plantilla 10 veces → **eliminada por completo** con `scripts/limpiar_banco.py` (banco v4) |
 | Info bajo el notch | `targetSdk=35` fuerza edge-to-edge en Android 15 y no había insets en ninguna pantalla → `safeDrawingPadding()` global en `MainActivity` |
 | Card doble/padding excesivo en texto de apoyo | `TextoApoyoCard` anidaba una Card con fondo dentro de la Card de pregunta (doble padding ~32dp, fuente 14sp) → reemplazado por `TextoApoyo` plano: etiqueta + texto 16sp, sin recuadro |
+| Detalle de resultados con recuadros anidados | Unificados ambos resultados (simulacro y práctica) en el componente compartido `RepasoPreguntaCard` (`ui/screen/common/`): Card tintada por estado (correcta/incorrecta/omitida) con contenido plano — encabezado, enunciado, texto de apoyo compacto, corrección, 💡 y 📚 — sin ningún cuadrado interno que duplique márgenes |
 | Home decía "Simulacro MVP / 5 min / 6 preguntas" | Texto obsoleto del MVP → "Simulacro / 120 min • 80 preguntas • 40 RL + 40 CL" |
 
 ---
 
-*Última actualización: 2026-10-03 - Rama `fix/ui-textos-notch-banco`: texto de apoyo visible y legible (sin recuadro anidado) en simulacro/práctica/resultado, fix notch edge-to-edge, limpieza del banco v4 (frase plantilla eliminada ×92, scraping de profe_alex_52 truncado, 12 RL rotas deshabilitadas, seeder v4), Home con datos reales del simulacro. Verificado: `test` (72 PASS) + `assembleDebug` BUILD SUCCESSFUL.*
+*Última actualización: 2026-10-03 - Rama `fix/ui-textos-notch-banco`: texto de apoyo legible (sin recuadro anidado, parametrizable en altura/fuente), detalle de resultados plano con enunciado por pregunta, fix notch edge-to-edge, limpieza del banco v4 (frase plantilla eliminada ×92, scraping de profe_alex_52 truncado, 12 RL rotas deshabilitadas, seeder v4), Home con datos reales del simulacro. Verificado: `test` (72 PASS) + `assembleDebug` BUILD SUCCESSFUL.*

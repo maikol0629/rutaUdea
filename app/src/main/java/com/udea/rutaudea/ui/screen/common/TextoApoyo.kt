@@ -12,6 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -27,7 +29,11 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun TextoApoyo(
     texto: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Altura máxima del texto scrolleable (compacto en listas de repaso). */
+    alturaMaxima: Dp = 260.dp,
+    /** Tamaño de la fuente del texto (compacto en listas de repaso). */
+    tamanoFuente: TextUnit = 16.sp
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -42,12 +48,12 @@ fun TextoApoyo(
         )
         Text(
             text = texto,
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
+            fontSize = tamanoFuente,
+            lineHeight = tamanoFuente * 1.5f,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 260.dp)
+                .heightIn(max = alturaMaxima)
                 .verticalScroll(rememberScrollState())
         )
     }

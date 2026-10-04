@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.udea.rutaudea.data.repository.PracticeRepository
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +33,8 @@ class PracticaResultadoViewModel(
         val respondida: Boolean,
         val respuestaUsuario: String,
         val respuestaCorrecta: String,
+        val enunciado: String,
+        val textoApoyo: String?,
         val explicacion: String,
         val recomendacion: String
     )
@@ -71,6 +74,8 @@ class PracticaResultadoViewModel(
                 respondida = userAnswer != null,
                 respuestaUsuario = userAnswer ?: "—",
                 respuestaCorrecta = question.respuestaCorrecta,
+                enunciado = question.pregunta,
+                textoApoyo = textoApoyoDe(question),
                 explicacion = question.explicacion.orEmpty(),
                 recomendacion = recomendacionPara(question.subtema, esCorrecta, userAnswer != null)
             )

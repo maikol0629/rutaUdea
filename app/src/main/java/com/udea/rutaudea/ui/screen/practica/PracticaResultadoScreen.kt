@@ -24,6 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.udea.rutaudea.ui.screen.common.EstadoRespuesta
+import com.udea.rutaudea.ui.screen.common.RepasoPreguntaCard
 
 /**
  * Resumen de la sesión de práctica: score, tiempo, repaso por pregunta
@@ -199,71 +201,24 @@ fun PracticaResultadoScreen(
 
 @Composable
 private fun PracticaResultItem(result: PracticaResultadoViewModel.PracticaResult) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                result.esCorrecta -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                result.respondida -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Pregunta ${result.index + 1} · ${result.subtema} · ${result.dificultad}",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = when {
-                        result.esCorrecta -> "✓"
-                        result.respondida -> "✗"
-                        else -> "—"
-                    },
-                    fontSize = 18.sp,
-                    color = when {
-                        result.esCorrecta -> MaterialTheme.colorScheme.primary
-                        result.respondida -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            if (result.respondida && !result.esCorrecta) {
-                Text(
-                    text = "Tu respuesta: ${result.respuestaUsuario} · Correcta: ${result.respuestaCorrecta}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            if (result.explicacion.isNotBlank()) {
-                Text(
-                    text = "💡 ${result.explicacion}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Text(
-                text = "📚 ${result.recomendacion}",
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    // Componente compartido con el resultado del simulacro: Card tintada por
+    // estado y contenido plano (sin recuadros internos).
+    val estado = when {
+        result.esCorrecta -> EstadoRespuesta.CORRECTA
+        result.respondida -> EstadoRespuesta.INCORRECTA
+        else -> EstadoRespuesta.OMITIDA
     }
+    RepasoPreguntaCard(
+        encabezado = "Pregunta ${result.index + 1} · ${result.subtema} · ${result.dificultad}",
+        estado = estado,
+        enunciado = result.enunciado,
+        textoApoyo = result.textoApoyo,
+        correccion = if (result.respondida && !result.esCorrecta)
+            "Tu respuesta: ${result.respuestaUsuario} · Correcta: ${result.respuestaCorrecta}"
+        else null,
+        explicacion = result.explicacion,
+        recomendacion = result.recomendacion
+    )
 }
 
 private fun formatTime(seconds: Int): String {
