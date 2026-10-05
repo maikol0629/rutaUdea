@@ -106,15 +106,19 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Consultas nuevas**: `QuestionDao.getDistinctSubtemasByArea()` y `countByFilters()` (+ métodos en `QuestionRepository`).
 - **Tests**: `PracticeSelectorTest` (7), `PracticaSesionViewModelTest` (7), `PracticaFiltrosViewModelTest` (5).
 
-### 5.5 Módulo de Progreso — IMPLEMENTADO (rama `feat/progreso`)
+### 5.5 Módulo de Progreso — IMPLEMENTADO + OFFLINE-FIRST (rama `feat/progreso-offline-room`)
 - **Dashboard** (tab 📈): métricas globales (nº simulacros, nº prácticas, promedio %, mejor puntaje).
 - **Evolución**: gráfica de línea (Canvas, sin dependencias externas) con el % de cada simulacro en orden cronológico; requiere ≥2 simulacros.
-- **Acierto por subtema**: agregado de `simulationQuestions` + `practiceQuestions` de las últimas 5 simulacros y 10 prácticas (solo preguntas respondidas); barras con % y evidencia (correctas/respondidas).
+- **Acierto por subtema**: agregado de `simulationQuestions` + `practiceQuestions` de las últimas 20 simulacros y 30 prácticas (solo preguntas respondidas); barras con % y evidencia (correctas/respondidas).
 - **Áreas de mejora / Fortalezas / Recomendaciones** (plan §12): solo subtemas con **evidencia ≥3 respuestas** («una pregunta no hace un tema débil»); top 5 en mejora/fortalezas, top 3 en recomendaciones.
 - **Historial unificado**: simulacros + prácticas ordenados por fecha desc, con score, % y tiempo.
 - **Empty state**: sin actividad → CTA a Simulacro/Práctica.
-- **Arquitectura**: `ProgressRepository` (lectura Firestore, graceful sin conexión), `AnalizadorProgreso` (dominio puro, 9 tests), `ProgresoViewModel`, `ProgresoScreen`.
-- **Pendiente del módulo**: análisis por componente (área) y por dificultad, vista detalle de un simulacro histórico, pull-to-refresh.
+- **Arquitectura offline-first (Room)**: `simulations_cache`, `practice_sessions_cache`, `simulation_questions_cache`, `practice_questions_cache` en Room (`RutaUdeaDatabase` v2, `ProgressDao`). Guardar es **local-first** (Room) y luego best-effort a Firestore; el dashboard **lee siempre de Room** y `ProgressRepository.sincronizar()` sube pendientes y descarga lo de la nube.
+- **Índices Firestore**: `firebase.json` + `firestore.indexes.json` (compuestos `uid ASC, fechaCreacion DESC` en `simulations` y `practiceSessions`). La descarga tiene **fallback sin `orderBy`** si el índice no está desplegado.
+- **Refresco**: pull-to-refresh + recarga silenciosa al reanudar la pantalla.
+- **Bug corregido**: el simulacro que se auto-finaliza al agotar los 120 min ahora sí persiste su resultado (antes se perdía).
+- **Tests**: `ProgressMapperTest`, `ProgresoViewModelTest`, `AnalizadorProgresoTest`.
+- **Pendiente del módulo**: análisis por componente (área) y por dificultad, vista detalle de un simulacro histórico, limpieza de cache al cerrar sesión.
 
 ### 5.6 Módulo Info (educativo) — IMPLEMENTADO (rama `feat/info`)
 - **Contenido de los 29 componentes del examen** (15 RL + 14 CL) autorado en `assets/info/contenido_educativo.json`: descripción del componente, estrategia de resolución ("Cómo resolverlo") y errores comunes.

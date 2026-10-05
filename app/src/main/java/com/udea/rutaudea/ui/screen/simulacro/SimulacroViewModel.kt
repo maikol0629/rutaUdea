@@ -142,6 +142,9 @@ class SimulacroViewModel(
 
                 if (remaining == 0L) {
                     val finalState = _uiState.value
+                    // Persistir el resultado antes de marcar como finalizado:
+                    // si no, un simulacro que se agota por tiempo no se guarda.
+                    saveSimulationResults(finalState)
                     _uiState.value = finalState.copy(isFinished = true)
                     break
                 }
@@ -170,6 +173,7 @@ class SimulacroViewModel(
 
                 if (currentRemaining == 0L) {
                     val finalState = _uiState.value
+                    saveSimulationResults(finalState)
                     _uiState.value = finalState.copy(isFinished = true)
                     break
                 }
