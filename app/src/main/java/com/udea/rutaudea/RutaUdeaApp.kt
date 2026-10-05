@@ -17,6 +17,9 @@ class RutaUdeaApp : Application() {
         QuestionRepository(database.questionDao())
     }
 
+    /** Cache local del historial de progreso (simulacros y prácticas). */
+    val progressDao by lazy { database.progressDao() }
+
     override fun onCreate() {
         super.onCreate()
         // Siembra el banco de preguntas local en la primera ejecución.

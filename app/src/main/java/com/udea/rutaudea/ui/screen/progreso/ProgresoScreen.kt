@@ -17,11 +17,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -32,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.udea.rutaudea.domain.model.ItemHistorial
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
@@ -42,6 +49,7 @@ import com.udea.rutaudea.domain.model.TipoActividad
  * simulacros, acierto por subtema (fortalezas y áreas de mejora),
  * recomendaciones e historial unificado.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgresoScreen(
     viewModel: ProgresoViewModel,
@@ -50,15 +58,32 @@ fun ProgresoScreen(
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
 
-    if (state.sinDatos && !state.isLoading) {
-        ProgresoVacio(onSimulacroClick, onPracticaClick)
-        return
+    // Refresco silencioso al volver a la pantalla (no en la primera entrada,
+    // que ya la cubre el `init` del ViewModel).
+    var primeraReanudacion by remember { mutableStateOf(true) }
+    LifecycleResumeEffect(Unit) {
+        if (primeraReanudacion) {
+            primeraReanudacion = false
+        } else {
+            viewModel.refrescar()
+        }
+        onPauseOrDispose { }
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = { viewModel.refrescar() },
+        modifier = Modifier.fillMaxSize()
     ) {
+        if (state.sinDatos && !state.isLoading) {
+            ProgresoVacio(onSimulacroClick, onPracticaClick)
+            return@PullToRefreshBox
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         // Resumen global
         item {
             Card(
@@ -179,6 +204,7 @@ fun ProgresoScreen(
             FilaHistorial(item, modifier = Modifier.padding(horizontal = 16.dp))
         }
         item { Spacer(modifier = Modifier.height(16.dp)) }
+        }
     }
 }
 

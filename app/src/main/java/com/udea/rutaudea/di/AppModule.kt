@@ -36,21 +36,26 @@ object AppModule {
     fun providePracticeRepository(app: Application): PracticeRepository {
         return PracticeRepository(
             auth = FirebaseAuth.getInstance(),
-            firestore = FirebaseFirestore.getInstance()
+            firestore = FirebaseFirestore.getInstance(),
+            progressDao = (app as RutaUdeaApp).progressDao
         )
     }
 
     fun provideProgressRepository(app: Application): ProgressRepository {
         return ProgressRepository(
             auth = FirebaseAuth.getInstance(),
-            firestore = FirebaseFirestore.getInstance()
+            firestore = FirebaseFirestore.getInstance(),
+            progressDao = (app as RutaUdeaApp).progressDao,
+            simulationRepository = provideSimulationRepository(app),
+            practiceRepository = providePracticeRepository(app)
         )
     }
 
     fun provideSimulationRepository(app: Application): SimulationRepository {
         return SimulationRepository(
             auth = FirebaseAuth.getInstance(),
-            firestore = FirebaseFirestore.getInstance()
+            firestore = FirebaseFirestore.getInstance(),
+            progressDao = (app as RutaUdeaApp).progressDao
         )
     }
 }
