@@ -79,7 +79,7 @@ fun SimulacroScreen(
 
 /**
  * Contenido puro (sin ViewModel) para poder previsualizar y validar la
- * orientación. Igual que la Práctica, todo el contenido vive en un único
+ * orientación. Igual que la Práctica, el contenido vive en un único
  * `Column` scrolleable, con el enunciado y las opciones en tarjetas
  * separadas: así en horizontal (poca altura) la pregunta sigue siendo
  * legible y navegable en vez de quedar comprimida en una tarjeta con peso.

@@ -41,7 +41,7 @@ fun ResultadoScreen(
 }
 
 /**
- * Contenido puro (sin ViewModel). Todo el resumen vive en un único
+ * Contenido puro (sin ViewModel). el resumen vive en un único
  * `LazyColumn` para que en horizontal (poca altura) el header no empuje al
  * detalle por pregunta fuera de pantalla: antes el detalle usaba
  * `weight(1f, fill = false)` y colapsaba a 0.
