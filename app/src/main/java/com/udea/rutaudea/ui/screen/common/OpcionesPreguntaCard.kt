@@ -84,23 +84,19 @@ fun OpcionesPreguntaCard(
                             fontSize = 16.sp,
                             color = contentColor
                         )
-                        when {
-                            revelada && esLaCorrecta -> Text(
-                                text = "✓",
+                        val indicador: String? = when {
+                            revelada && esLaCorrecta -> "✓"
+                            revelada && isSelected -> "✗"
+                            isSelected -> "✓"
+                            else -> null
+                        }
+                        if (indicador != null) {
+                            Text(
+                                text = indicador,
                                 fontSize = 20.sp,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                            revelada && isSelected -> Text(
-                                text = "✗",
-                                fontSize = 20.sp,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Bold
-                            )
-                            isSelected -> Text(
-                                text = "✓",
-                                fontSize = 20.sp,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = if (indicador == "✗")
+                                    MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
                             )
                         }
