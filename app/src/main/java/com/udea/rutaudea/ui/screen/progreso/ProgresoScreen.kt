@@ -279,7 +279,7 @@ private fun FilaSubtema(stat: SubtemaEstadistica) {
             )
         }
         LinearProgressIndicator(
-            progress = stat.porcentaje / 100f,
+            progress = { stat.porcentaje / 100f },
             color = color,
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.fillMaxWidth()
