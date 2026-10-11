@@ -128,6 +128,17 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Limpieza**: `ComingSoonScreen` **eliminado** (ya no quedan placeholders — las 5 pestañas son funcionales).
 - **Tests**: `InfoViewModelTest` (7: parseo, inferencia de área por código, filtros, JSON inválido, estructura del asset real: 29/15/14 sin duplicados).
 
+### 5.8 Pausa y persistencia de sesión (rama `feat/pausa-persistencia-sesion`)
+- **Objetivo**: al cambiar de app y volver, tanto Simulacro como Práctica quedan "en pausa" con un overlay de **Salir / Resumir**.
+- **Detección de background real**: `AppBackgroundEffect` observa `ProcessLifecycleOwner` (ON_STOP/ON_START), así la **rotación no** dispara la pausa (a diferencia del ciclo de vida de la Activity).
+- **Simulacro** (`feat`): el cronómetro de 120 min **sigue corriendo** en segundo plano (realista). El overlay es informativo y muestra el tiempo restante. `PauseOverlay` compartido reemplaza el overlay propio (que no cubría la pantalla). Botón atrás abre la pausa.
+- **Práctica**: el reloj informativo se **congela** al salir y se descuenta el tiempo pausado al resumir (`practica_paused_at_ms`).
+- **Persistencia**: `SavedStateHandle` (sobrevive rotación y muerte de proceso del sistema); si el proceso muere en pausa, se reanuda en pausa.
+- **Fixes**: `resumeTimer()` ya no borra el overlay en cada tick; si el tiempo se agotó mientras el proceso estaba muerto, el simulacro se finaliza y guarda en vez de quedar atascado en 0:00.
+- **UI compartida**: `ui/screen/common/PauseOverlay.kt` (scrim a pantalla completa que bloquea toques y consume el back) + `AppBackgroundEffect.kt`.
+- **Dependencia**: `androidx.lifecycle:lifecycle-process`.
+- **Tests**: `SimulacroViewModelTest` (5) + 4 casos de pausa en `PracticaSesionViewModelTest`.
+
 ### 5.4 Normalización de subtemas del banco (rama `feat/practica`)
 - **Problema**: el banco RL mezclaba 2 convenciones (52 preguntas de `profe_alex` con nombres genéricos: "Series", "Geometria", el comodín "Razonamiento logico"... y 48 generadas con códigos oficiales RL01–RL18) → el filtro de práctica mostraba 27 subtemas con conceptos duplicados.
 - **Fix**: fusión de nombres genéricos a componentes oficiales + **reclasificación por contenido de las 15 preguntas del comodín** (mapeo id→subtema documentado en el commit). RL quedó en **15 subtemas oficiales** (RL01–RL18) y CL en 14 (CL01–CL14, ya era consistente).

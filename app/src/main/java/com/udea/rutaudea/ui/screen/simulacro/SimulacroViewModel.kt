@@ -35,7 +35,9 @@ class SimulacroViewModel(
     private val selector: QuestionSelector,
     private val repository: QuestionRepository,
     private val simulationRepository: SimulationRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
+    /** Desactivable en pruebas: el cronómetro es un bucle infinito. */
+    private val relojActivo: Boolean = true
 ) : ViewModel() {
 
     companion object {
@@ -52,6 +54,13 @@ class SimulacroViewModel(
 
     private var timerJob: kotlinx.coroutines.Job? = null
     private var pendingRestoredIndex: Int = 0
+
+    /**
+     * Marca que la app pasó a segundo plano de verdad (no una rotación).
+     * Se usa para no mostrar la pausa en el `ON_START` sintético que
+     * dispara el registro del observador de ciclo de vida.
+     */
+    private var pausadoPorBackground: Boolean = false
 
     init {
         restoreState()
@@ -86,13 +95,16 @@ class SimulacroViewModel(
                     questions = questions,
                     currentIndex = pendingRestoredIndex.coerceAtMost(questions.lastIndex)
                 )
+                val state = _uiState.value
                 if (!savedStateHandle.contains(START_TIME_KEY)) {
                     startTimer()
-                } else {
-                    val state = _uiState.value
-                    if (state.timeRemainingMs > 0 && !state.isFinished) {
-                        resumeTimer()
-                    }
+                } else if (state.timeRemainingMs <= 0L) {
+                    // El tiempo se agotó mientras el proceso estaba muerto:
+                    // persistir el resultado en vez de quedar atascado en 0:00.
+                    saveSimulationResults(state)
+                    _uiState.value = state.copy(isFinished = true)
+                } else if (!state.isFinished) {
+                    resumeTimer()
                 }
             }
         }
@@ -129,6 +141,10 @@ class SimulacroViewModel(
         savedStateHandle[CURRENT_INDEX_KEY] = 0
 
         timerJob?.cancel()
+        if (!relojActivo) {
+            _uiState.value = _uiState.value.copy(timeRemainingMs = TOTAL_DURATION_MS)
+            return
+        }
         timerJob = viewModelScope.launch {
             while (true) {
                 val elapsed = System.currentTimeMillis() - startTime
@@ -159,15 +175,20 @@ class SimulacroViewModel(
         val remaining = maxOf(0L, TOTAL_DURATION_MS - elapsed)
 
         timerJob?.cancel()
+        if (!relojActivo) {
+            _uiState.value = _uiState.value.copy(timeRemainingMs = remaining)
+            return
+        }
         timerJob = viewModelScope.launch {
             while (true) {
                 val currentElapsed = System.currentTimeMillis() - startTime
                 val currentRemaining = maxOf(0L, TOTAL_DURATION_MS - currentElapsed)
 
                 val currentState = _uiState.value
+                // No se limpia `showResumeOverlay` aquí: el overlay debe
+                // permanecer hasta que el usuario pulse «Resumir».
                 _uiState.value = currentState.copy(
                     timeRemainingMs = currentRemaining,
-                    showResumeOverlay = false,
                     isFinished = currentRemaining == 0L && !currentState.isFinished
                 )
 
@@ -229,10 +250,42 @@ class SimulacroViewModel(
         savedStateHandle["simulation_questions_json"] = gson.toJson(questions)
     }
 
+    // ----- Pausa / persistencia al cambiar de app -----
+
+    /**
+     * La app pasó a segundo plano. En el modo simulacro el cronómetro
+     * **sigue corriendo** (examen realista); solo marcamos que hubo un
+     * background real para mostrar el overlay al volver.
+     */
+    fun onAppBackgrounded() {
+        val state = _uiState.value
+        if (state.questions.isEmpty() || state.isFinished) return
+        pausadoPorBackground = true
+    }
+
+    /** La app volvió a primer plano: mostrar el overlay de pausa. */
+    fun onAppResumed() {
+        val state = _uiState.value
+        if (!pausadoPorBackground || state.isFinished || state.questions.isEmpty()) return
+        pausadoPorBackground = false
+        _uiState.value = state.copy(showResumeOverlay = true)
+    }
+
+    /** El usuario pulsó atrás: abrir el overlay en vez de salir. */
+    fun onPauseRequested() {
+        val state = _uiState.value
+        if (state.questions.isEmpty() || state.isFinished) return
+        _uiState.value = state.copy(showResumeOverlay = true)
+    }
+
     fun onResumeConfirmed() {
-        val currentState = _uiState.value
-        _uiState.value = currentState.copy(showResumeOverlay = false)
-        resumeTimer()
+        pausadoPorBackground = false
+        _uiState.value = _uiState.value.copy(showResumeOverlay = false)
+        // El cronómetro sigue activo en segundo plano; si el proceso fue
+        // recreado y aún no late, se reanuda.
+        if (timerJob?.isActive != true) {
+            resumeTimer()
+        }
     }
 
     private fun saveAnswers(answers: MutableMap<Int, String>) {

@@ -1,6 +1,8 @@
 package com.udea.rutaudea.ui.screen.practica
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.ui.screen.common.AppBackgroundEffect
+import com.udea.rutaudea.ui.screen.common.PauseOverlay
 import com.udea.rutaudea.ui.screen.common.TextoApoyo
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 
@@ -41,6 +45,17 @@ fun PracticaSesionScreen(
     onTerminada: () -> Unit
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
+
+    // Pausa al cambiar de app (solo background real, no rotación).
+    AppBackgroundEffect(
+        onBackground = { viewModel.onAppBackgrounded() },
+        onForeground = { viewModel.onAppResumed() }
+    )
+
+    // El botón atrás abre la pausa en vez de salir sin confirmar.
+    BackHandler(enabled = state.questions.isNotEmpty()) {
+        viewModel.onPauseRequested()
+    }
 
     LaunchedEffect(Unit) {
         viewModel.evento.collect { evento ->
@@ -61,6 +76,7 @@ fun PracticaSesionScreen(
     val errorContainerColor = MaterialTheme.colorScheme.errorContainer
     val onPrimaryContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -277,6 +293,16 @@ fun PracticaSesionScreen(
                 Text("Terminar práctica ahora", fontSize = 13.sp)
             }
         }
+    }
+
+    if (state.showPauseOverlay) {
+        PauseOverlay(
+            titulo = "Práctica en pausa",
+            mensaje = "Tu práctica está en pausa. ¿Qué deseas hacer?",
+            onSalir = onAbandonar,
+            onResumir = { viewModel.onResumeConfirmed() }
+        )
+    }
     }
 }
 

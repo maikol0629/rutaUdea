@@ -1,5 +1,6 @@
 package com.udea.rutaudea.ui.screen.simulacro
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.udea.rutaudea.ui.screen.common.AppBackgroundEffect
+import com.udea.rutaudea.ui.screen.common.PauseOverlay
 import com.udea.rutaudea.ui.screen.common.TextoApoyo
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 
@@ -36,6 +38,17 @@ fun SimulacroScreen(
     onFinish: (() -> Unit)? = null
 ) {
     val uiState: SimulacroState = viewModel.uiState.collectAsStateWithLifecycle().value
+
+    // Pausa al cambiar de app (solo background real, no rotación).
+    AppBackgroundEffect(
+        onBackground = { viewModel.onAppBackgrounded() },
+        onForeground = { viewModel.onAppResumed() }
+    )
+
+    // El botón atrás abre la pausa en vez de salir sin confirmar.
+    BackHandler(enabled = uiState.questions.isNotEmpty() && !uiState.isFinished) {
+        viewModel.onPauseRequested()
+    }
 
     // Capture theme colors at composable level
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -62,6 +75,7 @@ fun SimulacroScreen(
     val isLastQuestion = uiState.isLastQuestion
     val showResumeOverlay = uiState.showResumeOverlay
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -200,84 +214,16 @@ fun SimulacroScreen(
             }
         }
 
-        // Resume Overlay
-        if (showResumeOverlay) {
-            ResumeOverlayDialog(
-                viewModel = viewModel,
-                timeRemainingSeconds = timeRemainingSeconds,
-                onContinue = { viewModel.onResumeConfirmed() },
-                onAbandon = onAbandon
-            )
-        }
     }
-}
 
-@Composable
-private fun ResumeOverlayDialog(
-    viewModel: SimulacroViewModel,
-    timeRemainingSeconds: Int,
-    onContinue: () -> Unit,
-    onAbandon: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "⏸",
-                    fontSize = 48.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Simulacro en pausa",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Tu tiempo se ha guardado: ${formatTime(timeRemainingSeconds)} restantes.\n¿Qué deseas hacer?",
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { onAbandon() },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Text("Abandonar", fontWeight = FontWeight.Medium)
-                    }
-                    Button(
-                        onClick = { viewModel.onResumeConfirmed() },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Text("Continuar", fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
-        }
+    if (showResumeOverlay) {
+        PauseOverlay(
+            titulo = "Simulacro en pausa",
+            mensaje = "Tu tiempo sigue corriendo: ${formatTime(timeRemainingSeconds)} restantes.\n¿Qué deseas hacer?",
+            onSalir = onAbandon,
+            onResumir = { viewModel.onResumeConfirmed() }
+        )
+    }
     }
 }
 

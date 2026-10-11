@@ -161,4 +161,50 @@ class PracticaSesionViewModelTest {
         assertFalse(state.isRevealed)
         assertNull(state.currentAnswer)
     }
+
+    @Test
+    fun `al cambiar de app y volver se muestra la pausa`() = runTest {
+        val vm = viewModel(listOf(pregunta("q1"), pregunta("q2")))
+
+        assertFalse(vm.uiState.value.showPauseOverlay)
+
+        vm.onAppBackgrounded()
+        assertFalse(vm.uiState.value.showPauseOverlay) // aún no vuelve
+
+        vm.onAppResumed()
+        assertTrue(vm.uiState.value.showPauseOverlay)
+    }
+
+    @Test
+    fun `sin background previo no se muestra la pausa`() = runTest {
+        val vm = viewModel(listOf(pregunta("q1")))
+
+        vm.onAppResumed()
+
+        assertFalse(vm.uiState.value.showPauseOverlay)
+    }
+
+    @Test
+    fun `el boton atras abre la pausa y resumir la oculta`() = runTest {
+        val vm = viewModel(listOf(pregunta("q1")))
+
+        vm.onPauseRequested()
+        assertTrue(vm.uiState.value.showPauseOverlay)
+
+        vm.onResumeConfirmed()
+        assertFalse(vm.uiState.value.showPauseOverlay)
+    }
+
+    @Test
+    fun `si el proceso murio en pausa se reanuda en pausa`() = runTest {
+        val sah = SavedStateHandle(
+            mapOf("practica_paused_at_ms" to System.currentTimeMillis())
+        )
+        val vm = viewModel(listOf(pregunta("q1")), sah)
+
+        assertTrue(vm.uiState.value.showPauseOverlay)
+
+        vm.onResumeConfirmed()
+        assertFalse(vm.uiState.value.showPauseOverlay)
+    }
 }

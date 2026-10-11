@@ -45,7 +45,9 @@ class PracticaSesionViewModel(
         val answers: Map<Int, String> = emptyMap(),
         /** Índices ya revelados (respuesta registrada y bloqueada). */
         val revealed: Set<Int> = emptySet(),
-        val elapsedMs: Long = 0L
+        val elapsedMs: Long = 0L,
+        /** Overlay de pausa visible (app en segundo plano o botón atrás). */
+        val showPauseOverlay: Boolean = false
     ) {
         val currentQuestion: Question?
             get() = questions.getOrNull(currentIndex)
@@ -82,7 +84,13 @@ class PracticaSesionViewModel(
 
     private var tickerJob: Job? = null
 
-    private val startTimeMs: Long
+    private var startTimeMs: Long
+
+    /**
+     * Marca que la app pasó a segundo plano de verdad (no una rotación),
+     * para no mostrar la pausa en el `ON_START` sintético del registro.
+     */
+    private var pausadoPorBackground: Boolean = false
 
     init {
         // Restauración de progreso (rotación / background).
@@ -91,7 +99,12 @@ class PracticaSesionViewModel(
             savedStateHandle[START_TIME_KEY] = it
         }
         restoreProgreso()
-        iniciarTicker()
+        // Si el proceso muere mientras estaba en pausa, se reanuda en pausa.
+        if (savedStateHandle.contains(PAUSED_AT_KEY)) {
+            _uiState.value = _uiState.value.copy(showPauseOverlay = true)
+        } else {
+            iniciarTicker()
+        }
     }
 
     private fun restoreProgreso() {
@@ -119,6 +132,53 @@ class PracticaSesionViewModel(
                 delay(1000)
             }
         }
+    }
+
+    // ----- Pausa / persistencia al cambiar de app -----
+
+    /**
+     * La app pasó a segundo plano: se congela el reloj informativo (el
+     * tiempo de práctica no debe contar mientras no se practica).
+     */
+    fun onAppBackgrounded() {
+        if (_uiState.value.questions.isEmpty()) return
+        pausadoPorBackground = true
+        pausarCronometro()
+    }
+
+    /** La app volvió a primer plano: mostrar el overlay de pausa. */
+    fun onAppResumed() {
+        if (!pausadoPorBackground) return
+        pausadoPorBackground = false
+        if (_uiState.value.questions.isEmpty()) return
+        _uiState.value = _uiState.value.copy(showPauseOverlay = true)
+    }
+
+    /** El usuario pulsó atrás: abrir el overlay en vez de salir. */
+    fun onPauseRequested() {
+        if (_uiState.value.questions.isEmpty()) return
+        pausarCronometro()
+        _uiState.value = _uiState.value.copy(showPauseOverlay = true)
+    }
+
+    /** Detiene el reloj y registra el instante de pausa (idempotente). */
+    private fun pausarCronometro() {
+        if (savedStateHandle.contains(PAUSED_AT_KEY)) return
+        savedStateHandle[PAUSED_AT_KEY] = System.currentTimeMillis()
+        tickerJob?.cancel()
+    }
+
+    /** Reanuda la práctica descontando el tiempo que estuvo en pausa. */
+    fun onResumeConfirmed() {
+        val pausedAt: Long? = savedStateHandle[PAUSED_AT_KEY]
+        if (pausedAt != null) {
+            startTimeMs += (System.currentTimeMillis() - pausedAt)
+            savedStateHandle[START_TIME_KEY] = startTimeMs
+            savedStateHandle.remove<Long>(PAUSED_AT_KEY)
+        }
+        pausadoPorBackground = false
+        _uiState.value = _uiState.value.copy(showPauseOverlay = false)
+        iniciarTicker()
     }
 
     /** Registra la respuesta de la pregunta actual y revela el feedback. */
@@ -190,6 +250,7 @@ class PracticaSesionViewModel(
         const val AREA_KEY = "practica_area"
         const val SUBTEMA_KEY = "practica_subtema"
         private const val START_TIME_KEY = "practica_start_time_ms"
+        private const val PAUSED_AT_KEY = "practica_paused_at_ms"
         private const val CURRENT_INDEX_KEY = "practica_current_index"
         private const val ANSWERS_KEY = "practica_answers"
         private const val REVEALED_KEY = "practica_revealed"
