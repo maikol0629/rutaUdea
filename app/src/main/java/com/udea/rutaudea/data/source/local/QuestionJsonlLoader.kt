@@ -52,11 +52,14 @@ class QuestionJsonlLoader(private val context: Context, private val gson: Gson) 
         return result
     }
 
+    // El receptor es un `JsonElement` no nulo: solo hay que comprobar si es
+    // el centinela `JsonNull` (de `get()` sobre una clave ausente ya se
+    // encarga el `?.` en cada llamada).
     private fun JsonElement.getStringOrNull(): String? =
-        if (this == null || this is JsonNull) null else asString
+        if (isJsonNull) null else asString
 
     private fun JsonElement.getBooleanOrNull(): Boolean? =
-        if (this == null || this is JsonNull) null else asBoolean
+        if (isJsonNull) null else asBoolean
 
     private fun parseObject(json: JsonObject): QuestionEntity {
         val opciones = json.getAsJsonObject("opciones")
