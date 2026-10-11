@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,12 +13,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.ui.screen.common.AppBackgroundEffect
+import com.udea.rutaudea.ui.screen.common.BarraProgresoSesion
+import com.udea.rutaudea.ui.screen.common.OpcionesPreguntaCard
 import com.udea.rutaudea.ui.screen.common.PauseOverlay
 import com.udea.rutaudea.ui.screen.common.TextoApoyo
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
@@ -93,9 +92,6 @@ private fun SimulacroContent(
     onNextOrFinish: () -> Unit
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
-    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val onPrimaryContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
     val errorColor = MaterialTheme.colorScheme.error
 
     val questionIndex = state.currentIndex
@@ -110,43 +106,17 @@ private fun SimulacroContent(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Barra superior: progreso + cronómetro
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        BarraProgresoSesion(
+            texto = "Pregunta ${questionIndex + 1} de $totalQuestions",
+            progreso = if (totalQuestions > 0) (questionIndex + 1).toFloat() / totalQuestions else 0f,
+            modifier = Modifier.padding(16.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Pregunta ${questionIndex + 1} de $totalQuestions",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = formatTime(timeRemainingSeconds),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (timeRemainingSeconds <= 60) errorColor else primaryColor
-                    )
-                }
-                LinearProgressIndicator(
-                    progress = {
-                        if (totalQuestions > 0) (questionIndex + 1).toFloat() / totalQuestions else 0f
-                    },
-                    color = primaryColor,
-                    trackColor = primaryContainerColor,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            Text(
+                text = formatTime(timeRemainingSeconds),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (timeRemainingSeconds <= 60) errorColor else primaryColor
+            )
         }
 
         currentQuestion?.let { question ->
@@ -174,55 +144,12 @@ private fun SimulacroContent(
             }
 
             // Opciones
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    question.opciones.forEachIndexed { index, option ->
-                        val letter = ('A' + index).toString()
-                        val isSelected = selectedOption == letter
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(
-                                defaultElevation = if (isSelected) 4.dp else 1.dp
-                            ),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) primaryContainerColor else surfaceColor
-                            ),
-                            onClick = { onOptionSelected(letter) }
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "$letter) $option",
-                                    fontSize = 16.sp,
-                                    color = if (isSelected) onPrimaryContainerColor
-                                    else MaterialTheme.colorScheme.onSurface
-                                )
-                                if (isSelected) {
-                                    Text(
-                                        text = "✓",
-                                        fontSize = 20.sp,
-                                        color = primaryColor,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            OpcionesPreguntaCard(
+                opciones = question.opciones,
+                seleccionada = selectedOption,
+                onSelect = onOptionSelected,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
 
         // Botón de avance/finalizar

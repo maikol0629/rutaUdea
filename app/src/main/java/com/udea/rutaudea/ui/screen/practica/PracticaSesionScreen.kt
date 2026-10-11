@@ -14,7 +14,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -29,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.ui.screen.common.AppBackgroundEffect
+import com.udea.rutaudea.ui.screen.common.BarraProgresoSesion
+import com.udea.rutaudea.ui.screen.common.OpcionesPreguntaCard
 import com.udea.rutaudea.ui.screen.common.PauseOverlay
 import com.udea.rutaudea.ui.screen.common.TextoApoyo
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
@@ -71,242 +72,167 @@ fun PracticaSesionScreen(
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
-    val surfaceColor = MaterialTheme.colorScheme.surface
     val errorColor = MaterialTheme.colorScheme.error
     val errorContainerColor = MaterialTheme.colorScheme.errorContainer
     val onPrimaryContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
 
     Box(modifier = Modifier.fillMaxSize()) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Barra superior: progreso + reloj informativo
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Barra superior: progreso + reloj informativo + abandono
+            BarraProgresoSesion(
+                texto = "Pregunta ${state.currentIndex + 1} de ${state.questions.size}",
+                progreso = if (state.questions.isNotEmpty())
+                    (state.currentIndex + 1).toFloat() / state.questions.size else 0f,
+                modifier = Modifier.padding(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Pregunta ${state.currentIndex + 1} de ${state.questions.size}",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = "⏱ ${formatTime(state.elapsedSeconds)}",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "⏱ ${formatTime(state.elapsedSeconds)}",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        TextButton(onClick = onAbandonar) {
-                            Text("Abandonar", fontSize = 13.sp, color = errorColor)
-                        }
-                    }
-                }
-                LinearProgressIndicator(
-                    progress = {
-                        if (state.questions.isNotEmpty())
-                            (state.currentIndex + 1).toFloat() / state.questions.size
-                        else 0f
-                    },
-                    color = primaryColor,
-                    trackColor = primaryContainerColor,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-
-        // Enunciado + chips de contexto
-        if (question != null) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ChipInfo(texto = question.subtema)
-                        ChipInfo(texto = "Dificultad: ${question.dificultad}")
-                    }
-                    textoApoyoDe(question)?.let { textoApoyo ->
-                        TextoApoyo(texto = textoApoyo)
-                    }
-                    Text(
-                        text = question.pregunta,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            // Opciones
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    question.opciones.forEachIndexed { index, option ->
-                        val letter = ('A' + index).toString()
-                        val isSelected = state.currentAnswer == letter
-                        val esLaCorrecta = letter == question.respuestaCorrecta
-                        val container = when {
-                            !isRevealed && isSelected -> primaryContainerColor
-                            isRevealed && esLaCorrecta -> primaryContainerColor
-                            isRevealed && isSelected && !esLaCorrecta -> errorContainerColor
-                            else -> surfaceColor
-                        }
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(
-                                defaultElevation = if (isSelected || (isRevealed && esLaCorrecta)) 3.dp else 1.dp
-                            ),
-                            colors = CardDefaults.cardColors(containerColor = container),
-                            onClick = { viewModel.onOptionSelected(letter) }
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "$letter) $option",
-                                    fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                when {
-                                    isRevealed && esLaCorrecta -> Text(
-                                        "✓", fontSize = 18.sp,
-                                        color = primaryColor, fontWeight = FontWeight.Bold
-                                    )
-                                    isRevealed && isSelected -> Text(
-                                        "✗", fontSize = 18.sp,
-                                        color = errorColor, fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
+                    TextButton(onClick = onAbandonar) {
+                        Text("Abandonar", fontSize = 13.sp, color = errorColor)
                     }
                 }
             }
 
-            // Feedback inmediato (plan §10)
-            if (isRevealed) {
+            // Enunciado + chips de contexto
+            if (question != null) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isCorrect) primaryContainerColor else errorContainerColor
-                    )
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = if (isCorrect) "✓ ¡Correcto!" else "✗ Incorrecto",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = onPrimaryContainerColor
-                        )
-                        if (!isCorrect) {
-                            Text(
-                                text = "Tu respuesta: ${state.currentAnswer} · Correcta: ${question.respuestaCorrecta}",
-                                fontSize = 13.sp,
-                                color = onPrimaryContainerColor
-                            )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ChipInfo(texto = question.subtema)
+                            ChipInfo(texto = "Dificultad: ${question.dificultad}")
                         }
-                        val explicacion = question.explicacion.orEmpty()
-                        if (explicacion.isNotBlank()) {
-                            Text(
-                                text = "💡 $explicacion",
-                                fontSize = 13.sp,
-                                color = onPrimaryContainerColor
-                            )
+                        textoApoyoDe(question)?.let { textoApoyo ->
+                            TextoApoyo(texto = textoApoyo)
                         }
                         Text(
-                            text = "📚 ${recomendacion(isCorrect, question.subtema)}",
-                            fontSize = 12.sp,
-                            color = onPrimaryContainerColor.copy(alpha = 0.85f)
+                            text = question.pregunta,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
+                }
+
+                // Opciones con feedback inmediato
+                OpcionesPreguntaCard(
+                    opciones = question.opciones,
+                    seleccionada = state.currentAnswer,
+                    onSelect = viewModel::onOptionSelected,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    respuestaCorrecta = question.respuestaCorrecta,
+                    revelada = isRevealed
+                )
+
+                // Feedback inmediato (plan §10)
+                if (isRevealed) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isCorrect) primaryContainerColor else errorContainerColor
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = if (isCorrect) "✓ ¡Correcto!" else "✗ Incorrecto",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = onPrimaryContainerColor
+                            )
+                            if (!isCorrect) {
+                                Text(
+                                    text = "Tu respuesta: ${state.currentAnswer} · Correcta: ${question.respuestaCorrecta}",
+                                    fontSize = 13.sp,
+                                    color = onPrimaryContainerColor
+                                )
+                            }
+                            val explicacion = question.explicacion.orEmpty()
+                            if (explicacion.isNotBlank()) {
+                                Text(
+                                    text = "💡 $explicacion",
+                                    fontSize = 13.sp,
+                                    color = onPrimaryContainerColor
+                                )
+                            }
+                            Text(
+                                text = "📚 ${recomendacion(isCorrect, question.subtema)}",
+                                fontSize = 12.sp,
+                                color = onPrimaryContainerColor.copy(alpha = 0.85f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Botones de navegación
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = viewModel::onPrevious,
+                    enabled = state.currentIndex > 0,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("← Anterior")
+                }
+                Button(
+                    onClick = viewModel::onNext,
+                    enabled = state.isRevealed,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                ) {
+                    Text(
+                        text = if (state.isLastQuestion) "Ver resultado" else "Siguiente →",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            if (!state.isRevealed) {
+                TextButton(
+                    onClick = viewModel::onTerminar,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Text("Terminar práctica ahora", fontSize = 13.sp)
                 }
             }
         }
 
-        // Botones de navegación
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedButton(
-                onClick = viewModel::onPrevious,
-                enabled = state.currentIndex > 0,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("← Anterior")
-            }
-            Button(
-                onClick = viewModel::onNext,
-                enabled = state.isRevealed,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
-            ) {
-                Text(
-                    text = if (state.isLastQuestion) "Ver resultado" else "Siguiente →",
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+        if (state.showPauseOverlay) {
+            PauseOverlay(
+                titulo = "Práctica en pausa",
+                mensaje = "Tu práctica está en pausa. ¿Qué deseas hacer?",
+                onSalir = onAbandonar,
+                onResumir = { viewModel.onResumeConfirmed() }
+            )
         }
-
-        if (!state.isRevealed) {
-            TextButton(
-                onClick = viewModel::onTerminar,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            ) {
-                Text("Terminar práctica ahora", fontSize = 13.sp)
-            }
-        }
-    }
-
-    if (state.showPauseOverlay) {
-        PauseOverlay(
-            titulo = "Práctica en pausa",
-            mensaje = "Tu práctica está en pausa. ¿Qué deseas hacer?",
-            onSalir = onAbandonar,
-            onResumir = { viewModel.onResumeConfirmed() }
-        )
-    }
     }
 }
 
