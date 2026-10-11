@@ -19,17 +19,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.ui.screen.common.AppBackgroundEffect
 import com.udea.rutaudea.ui.screen.common.PauseOverlay
 import com.udea.rutaudea.ui.screen.common.TextoApoyo
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
+import com.udea.rutaudea.ui.theme.RutaUdeaTheme
 
 @Composable
 fun SimulacroScreen(
@@ -50,13 +52,6 @@ fun SimulacroScreen(
         viewModel.onPauseRequested()
     }
 
-    // Capture theme colors at composable level
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val onPrimaryContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
-    val errorColor = MaterialTheme.colorScheme.error
-
     // Navigate to RESULTADO when simulation finishes
     LaunchedEffect(uiState) {
         if (uiState.isFinished) {
@@ -64,25 +59,62 @@ fun SimulacroScreen(
         }
     }
 
-    val questionIndex = uiState.currentIndex
-    val totalQuestions = uiState.questions.size
-    val currentQuestion = viewModel.currentQuestion
-    val questionText = currentQuestion?.pregunta ?: ""
-    val textoApoyo = currentQuestion?.let { textoApoyoDe(it) }
-    val options = currentQuestion?.opciones ?: emptyList()
-    val selectedOption = uiState.currentAnswer
-    val timeRemainingSeconds = uiState.timeRemainingSeconds
-    val isLastQuestion = uiState.isLastQuestion
-    val showResumeOverlay = uiState.showResumeOverlay
-
     Box(modifier = Modifier.fillMaxSize()) {
+        SimulacroContent(
+            state = uiState,
+            currentQuestion = viewModel.currentQuestion,
+            onOptionSelected = viewModel::onOptionSelected,
+            onNextOrFinish = viewModel::onNextOrFinish
+        )
+
+        if (uiState.showResumeOverlay) {
+            PauseOverlay(
+                titulo = "Simulacro en pausa",
+                mensaje = "Tu tiempo sigue corriendo: ${formatTime(uiState.timeRemainingSeconds)} restantes.\n¿Qué deseas hacer?",
+                onSalir = onAbandon,
+                onResumir = { viewModel.onResumeConfirmed() }
+            )
+        }
+    }
+}
+
+/**
+ * Contenido puro (sin ViewModel) para poder previsualizar y validar la
+ * orientación. Igual que la Práctica, todo el contenido vive en un único
+ * `Column` scrolleable, con el enunciado y las opciones en tarjetas
+ * separadas: así en horizontal (poca altura) la pregunta sigue siendo
+ * legible y navegable en vez de quedar comprimida en una tarjeta con peso.
+ */
+@Composable
+private fun SimulacroContent(
+    state: SimulacroState,
+    currentQuestion: Question?,
+    onOptionSelected: (String) -> Unit,
+    onNextOrFinish: () -> Unit
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onPrimaryContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
+    val errorColor = MaterialTheme.colorScheme.error
+
+    val questionIndex = state.currentIndex
+    val totalQuestions = state.questions.size
+    val selectedOption = state.currentAnswer
+    val timeRemainingSeconds = state.timeRemainingSeconds
+    val isLastQuestion = state.isLastQuestion
+
     Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Top bar with timer
+        // Barra superior: progreso + cronómetro
         Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
@@ -107,7 +139,9 @@ fun SimulacroScreen(
                     )
                 }
                 LinearProgressIndicator(
-                    progress = (questionIndex + 1).toFloat() / totalQuestions,
+                    progress = {
+                        if (totalQuestions > 0) (questionIndex + 1).toFloat() / totalQuestions else 0f
+                    },
                     color = primaryColor,
                     trackColor = primaryContainerColor,
                     modifier = Modifier.fillMaxWidth()
@@ -115,38 +149,42 @@ fun SimulacroScreen(
             }
         }
 
-        // Question content
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .weight(1f),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
+        currentQuestion?.let { question ->
+            // Enunciado + texto de apoyo
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                // Texto de apoyo (Competencia Lectora y textos compartidos)
-                textoApoyo?.let { TextoApoyo(texto = it) }
-
-                Text(
-                    text = questionText,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Start
-                )
-
-                // Options
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    options.forEachIndexed { index, option ->
+                    textoApoyoDe(question)?.let { textoApoyo ->
+                        TextoApoyo(texto = textoApoyo)
+                    }
+                    Text(
+                        text = question.pregunta,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            // Opciones
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    question.opciones.forEachIndexed { index, option ->
                         val letter = ('A' + index).toString()
                         val isSelected = selectedOption == letter
                         Card(
@@ -154,12 +192,10 @@ fun SimulacroScreen(
                             elevation = CardDefaults.cardElevation(
                                 defaultElevation = if (isSelected) 4.dp else 1.dp
                             ),
-                            colors = androidx.compose.material3.CardDefaults.cardColors(
-                                containerColor = if (isSelected)
-                                    primaryContainerColor
-                                    else surfaceColor
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) primaryContainerColor else surfaceColor
                             ),
-                            onClick = { viewModel.onOptionSelected(letter) }
+                            onClick = { onOptionSelected(letter) }
                         ) {
                             Row(
                                 modifier = Modifier
@@ -171,9 +207,8 @@ fun SimulacroScreen(
                                 Text(
                                     text = "$letter) $option",
                                     fontSize = 16.sp,
-                                    color = if (isSelected)
-                                        onPrimaryContainerColor
-                                        else MaterialTheme.colorScheme.onSurface
+                                    color = if (isSelected) onPrimaryContainerColor
+                                    else MaterialTheme.colorScheme.onSurface
                                 )
                                 if (isSelected) {
                                     Text(
@@ -190,7 +225,7 @@ fun SimulacroScreen(
             }
         }
 
-        // Bottom action button
+        // Botón de avance/finalizar
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -198,7 +233,7 @@ fun SimulacroScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Button(
-                onClick = { viewModel.onNextOrFinish() },
+                onClick = onNextOrFinish,
                 enabled = selectedOption != null,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
@@ -213,17 +248,6 @@ fun SimulacroScreen(
                 )
             }
         }
-
-    }
-
-    if (showResumeOverlay) {
-        PauseOverlay(
-            titulo = "Simulacro en pausa",
-            mensaje = "Tu tiempo sigue corriendo: ${formatTime(timeRemainingSeconds)} restantes.\n¿Qué deseas hacer?",
-            onSalir = onAbandon,
-            onResumir = { viewModel.onResumeConfirmed() }
-        )
-    }
     }
 }
 
@@ -231,4 +255,36 @@ private fun formatTime(seconds: Int): String {
     val mins = seconds / 60
     val secs = seconds % 60
     return String.format("%02d:%02d", mins, secs)
+}
+
+private val previewQuestion = Question(
+    id = "q1",
+    area = "razonamiento_logico",
+    subtema = "RL07 Sucesiones",
+    dificultad = "media",
+    pregunta = "Si la secuencia es 2, 4, 8, 16, ¿cuál es el siguiente término?",
+    opciones = listOf("18", "24", "32", "64"),
+    respuestaCorrecta = "C",
+    explicacion = "Cada término se obtiene duplicando el anterior."
+)
+
+private fun previewState() = SimulacroState(
+    questions = listOf(previewQuestion),
+    currentIndex = 0,
+    userAnswers = mapOf(0 to "C"),
+    timeRemainingMs = 12 * 60 * 1000L
+)
+
+@Preview(showBackground = true, name = "Simulacro · vertical")
+@Preview(showBackground = true, widthDp = 800, heightDp = 360, name = "Simulacro · horizontal")
+@Composable
+private fun SimulacroContentPreview() {
+    RutaUdeaTheme {
+        SimulacroContent(
+            state = previewState(),
+            currentQuestion = previewQuestion,
+            onOptionSelected = {},
+            onNextOrFinish = {}
+        )
+    }
 }

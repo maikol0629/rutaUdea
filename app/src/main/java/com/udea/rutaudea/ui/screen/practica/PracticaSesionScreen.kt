@@ -117,7 +117,11 @@ fun PracticaSesionScreen(
                     }
                 }
                 LinearProgressIndicator(
-                    progress = (state.currentIndex + 1).toFloat() / state.questions.size,
+                    progress = {
+                        if (state.questions.isNotEmpty())
+                            (state.currentIndex + 1).toFloat() / state.questions.size
+                        else 0f
+                    },
                     color = primaryColor,
                     trackColor = primaryContainerColor,
                     modifier = Modifier.fillMaxWidth()
