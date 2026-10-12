@@ -94,7 +94,15 @@ fun AppNavHost() {
             )
             SimulacroScreen(
                 viewModel = simulacroViewModel,
-                onAbandon = { navController.popBackStack(AppNavGraph.HOME, inclusive = false) },
+                // Navegación absoluta al Home (no un pop relativo): aterriza
+                // en el inicio en cualquier estado de la pila, en vez de
+                // depender de que la entrada de Home siga debajo.
+                onAbandon = {
+                    navController.navigate(AppNavGraph.HOME) {
+                        popUpTo(AppNavGraph.HOME) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
                 onFinish = {
                     navController.navigate(AppNavGraph.RESULTADO)
                 }

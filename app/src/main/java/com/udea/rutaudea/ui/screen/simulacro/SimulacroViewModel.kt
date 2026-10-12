@@ -288,6 +288,19 @@ class SimulacroViewModel(
         }
     }
 
+    /**
+     * El usuario abandona el simulacro (botón «Salir» de la pausa): se
+     * detiene el cronómetro y se oculta el overlay para que ningún tick
+     * tardío marque el simulacro como finalizado ni navegue a Resultado
+     * mientras la entrada ya está saliendo de la pila.
+     */
+    fun onAbandonar() {
+        timerJob?.cancel()
+        timerJob = null
+        pausadoPorBackground = false
+        _uiState.value = _uiState.value.copy(showResumeOverlay = false)
+    }
+
     private fun saveAnswers(answers: MutableMap<Int, String>) {
         savedStateHandle[USER_ANSWERS_KEY] = answers
     }
