@@ -73,4 +73,25 @@ class HomeViewModelTest {
         assertEquals(2, vm.uiState.value.racha.actual)
         coVerify(exactly = 2) { repository.cargarVigente() }
     }
+
+    @Test
+    fun `alReanudar omite la primera llamada y recarga en las siguientes`() = runTest {
+        val repository = mockk<RachaRepository> {
+            coEvery { cargarVigente() } returnsMany listOf(
+                Racha(actual = 1, mejor = 1),
+                Racha(actual = 2, mejor = 2)
+            )
+        }
+
+        val vm = HomeViewModel(repository)
+        // init ya cargó una vez; la primera reanudación (entrada inicial)
+        // no debe recargar.
+        vm.alReanudar()
+        coVerify(exactly = 1) { repository.cargarVigente() }
+
+        // Al volver de otra pantalla sí recarga (aquí se ve la racha nueva).
+        vm.alReanudar()
+        assertEquals(2, vm.uiState.value.racha.actual)
+        coVerify(exactly = 2) { repository.cargarVigente() }
+    }
 }

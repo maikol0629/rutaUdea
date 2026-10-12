@@ -57,6 +57,14 @@ class ProgresoViewModel(
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    /**
+     * Indica si ya se consumió la carga inicial del [init]. Vive en el
+     * ViewModel (no en la UI con `remember`) porque al navegar fuera de la
+     * pantalla la composición se destruye y el `remember` se pierde: al
+     * volver se trataría como "primera vez" y nunca se refrescaría.
+     */
+    private var arranque = true
+
     init {
         cargar()
     }
@@ -80,6 +88,18 @@ class ProgresoViewModel(
             aplicarLocal()
             _uiState.update { it.copy(isRefreshing = false) }
         }
+    }
+
+    /**
+     * Refresco al volver a la pantalla. Omite la primera llamada porque el
+     * [init] ya cargó y sincronizó; en las siguientes refresca siempre.
+     */
+    fun alReanudar() {
+        if (arranque) {
+            arranque = false
+            return
+        }
+        refrescar()
     }
 
     /** Recalcula el estado a partir de la cache local. */

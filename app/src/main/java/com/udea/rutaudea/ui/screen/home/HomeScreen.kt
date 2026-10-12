@@ -16,10 +16,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -43,10 +39,10 @@ fun HomeScreen(
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
 
     // Refresca la racha al volver al Home (por ejemplo, tras completar un
-    // simulacro o una práctica), sin repetir la carga inicial del ViewModel.
-    var primeraReanudacion by remember { mutableStateOf(true) }
+    // simulacro o una práctica). El guard "primera vez" vive en el
+    // ViewModel porque el `remember` se pierde al salir de la composición.
     LifecycleResumeEffect(Unit) {
-        if (primeraReanudacion) primeraReanudacion = false else viewModel.cargar()
+        viewModel.alReanudar()
         onPauseOrDispose { }
     }
 

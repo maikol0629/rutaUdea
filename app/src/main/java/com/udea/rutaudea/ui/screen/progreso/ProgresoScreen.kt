@@ -24,10 +24,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -59,15 +55,11 @@ fun ProgresoScreen(
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
 
-    // Refresco silencioso al volver a la pantalla (no en la primera entrada,
-    // que ya la cubre el `init` del ViewModel).
-    var primeraReanudacion by remember { mutableStateOf(true) }
+    // Refresco silencioso al volver a la pantalla. El guard "primera vez"
+    // vive en el ViewModel porque el `remember` se pierde al salir de la
+    // composición.
     LifecycleResumeEffect(Unit) {
-        if (primeraReanudacion) {
-            primeraReanudacion = false
-        } else {
-            viewModel.refrescar()
-        }
+        viewModel.alReanudar()
         onPauseOrDispose { }
     }
 

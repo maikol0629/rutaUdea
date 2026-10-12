@@ -27,6 +27,14 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    /**
+     * Indica si ya se consumió la carga inicial del [init]. Vive en el
+     * ViewModel (no en la UI con `remember`) porque al navegar fuera del
+     * Home la composición se destruye y el `remember` se pierde: al volver
+     * se trataría como "primera vez" y nunca se recargaría la racha.
+     */
+    private var arranque = true
+
     init {
         cargar()
     }
@@ -37,5 +45,17 @@ class HomeViewModel(
             val racha = rachaRepository.cargarVigente()
             _uiState.value = UiState(cargando = false, racha = racha)
         }
+    }
+
+    /**
+     * Refresca la racha al volver al Home. Omite la primera llamada porque
+     * el [init] ya cargó; en las siguientes recarga siempre.
+     */
+    fun alReanudar() {
+        if (arranque) {
+            arranque = false
+            return
+        }
+        cargar()
     }
 }
