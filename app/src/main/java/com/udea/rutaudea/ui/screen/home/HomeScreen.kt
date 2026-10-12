@@ -16,16 +16,53 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.udea.rutaudea.domain.model.Racha
 import com.udea.rutaudea.ui.theme.RutaUdeaTheme
 
 @Composable
 fun HomeScreen(
+    viewModel: HomeViewModel,
+    onSimulacroClick: () -> Unit,
+    onPracticaClick: () -> Unit,
+    onProgresoClick: () -> Unit,
+    onInfoClick: () -> Unit,
+    onPerfilClick: () -> Unit
+) {
+    val state = viewModel.uiState.collectAsStateWithLifecycle().value
+
+    // Refresca la racha al volver al Home (por ejemplo, tras completar un
+    // simulacro o una práctica), sin repetir la carga inicial del ViewModel.
+    var primeraReanudacion by remember { mutableStateOf(true) }
+    LifecycleResumeEffect(Unit) {
+        if (primeraReanudacion) primeraReanudacion = false else viewModel.cargar()
+        onPauseOrDispose { }
+    }
+
+    HomeContenido(
+        racha = state.racha,
+        onSimulacroClick = onSimulacroClick,
+        onPracticaClick = onPracticaClick,
+        onProgresoClick = onProgresoClick,
+        onInfoClick = onInfoClick,
+        onPerfilClick = onPerfilClick
+    )
+}
+
+@Composable
+private fun HomeContenido(
+    racha: Racha,
     onSimulacroClick: () -> Unit,
     onPracticaClick: () -> Unit,
     onProgresoClick: () -> Unit,
@@ -59,6 +96,14 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+
+        // Racha de actividad
+        item {
+            RachaHomeCard(
+                racha = racha,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
         }
 
         // Main Action - Simulacro MVP
@@ -146,6 +191,59 @@ fun HomeScreen(
     }
 }
 
+@Composable
+private fun RachaHomeCard(racha: Racha, modifier: Modifier = Modifier) {
+    val activa = racha.actual > 0
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "🔥", fontSize = 34.sp)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Tu racha",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = if (activa) "${racha.actual} ${pluralDias(racha.actual)}" else "0 días",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "Mejor",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = "${racha.mejor}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+    }
+}
+
+private fun pluralDias(dias: Int): String = if (dias == 1) "día" else "días"
+
 private data class SectionItem(
     val title: String,
     val description: String,
@@ -158,7 +256,8 @@ private data class SectionItem(
 @Composable
 private fun HomeScreenPreview() {
     RutaUdeaTheme {
-        HomeScreen(
+        HomeContenido(
+            racha = Racha(actual = 4, mejor = 9),
             onSimulacroClick = {},
             onPracticaClick = {},
             onProgresoClick = {},

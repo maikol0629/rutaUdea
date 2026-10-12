@@ -7,10 +7,12 @@ import com.udea.rutaudea.data.repository.AuthRepository
 import com.udea.rutaudea.data.repository.PracticeRepository
 import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
+import com.udea.rutaudea.data.repository.RachaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.domain.services.PracticeSelector
 import com.udea.rutaudea.domain.services.QuestionSelector
+import com.udea.rutaudea.ui.screen.home.HomeViewModel
 import com.udea.rutaudea.ui.screen.info.InfoViewModel
 import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaFiltrosViewModel
@@ -22,6 +24,14 @@ import com.udea.rutaudea.ui.screen.simulacro.SimulacroViewModel
 import com.udea.rutaudea.ui.screen.splash.SplashViewModel
 
 object ViewModelFactories {
+
+    class HomeFactory(
+        private val rachaRepository: RachaRepository
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            HomeViewModel(rachaRepository) as T
+    }
 
     class SplashFactory(
         private val repository: QuestionRepository,
@@ -46,6 +56,7 @@ object ViewModelFactories {
     class ResultadoFactory(
         private val questions: List<Question>,
         private val simulationRepository: SimulationRepository,
+        private val rachaRepository: RachaRepository,
         private val userAnswers: Map<Int, String>,
         private val score: Int,
         private val total: Int,
@@ -53,7 +64,10 @@ object ViewModelFactories {
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            ResultadoViewModel(questions, simulationRepository, userAnswers, score, total, timeUsedMs) as T
+            ResultadoViewModel(
+                questions, simulationRepository, rachaRepository,
+                userAnswers, score, total, timeUsedMs
+            ) as T
     }
 
     class PerfilFactory(private val authRepository: AuthRepository) : ViewModelProvider.Factory {
@@ -85,6 +99,7 @@ object ViewModelFactories {
     class PracticaResultadoFactory(
         private val questions: List<Question>,
         private val practiceRepository: PracticeRepository,
+        private val rachaRepository: RachaRepository,
         private val userAnswers: Map<Int, String>,
         private val area: String,
         private val subtema: String?,
@@ -95,7 +110,7 @@ object ViewModelFactories {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             PracticaResultadoViewModel(
-                questions, practiceRepository, userAnswers,
+                questions, practiceRepository, rachaRepository, userAnswers,
                 area, subtema, score, total, timeUsedMs
             ) as T
     }

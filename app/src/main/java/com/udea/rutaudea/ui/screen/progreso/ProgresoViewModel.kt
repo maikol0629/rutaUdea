@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.domain.model.ItemHistorial
 import com.udea.rutaudea.domain.model.PracticaResumen
+import com.udea.rutaudea.domain.model.Racha
 import com.udea.rutaudea.domain.model.SimulacroResumen
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
 import com.udea.rutaudea.domain.services.AnalizadorProgreso
@@ -34,7 +35,8 @@ class ProgresoViewModel(
         val areasDeMejora: List<SubtemaEstadistica> = emptyList(),
         val fortalezas: List<SubtemaEstadistica> = emptyList(),
         val historial: List<ItemHistorial> = emptyList(),
-        val recomendaciones: List<SubtemaEstadistica> = emptyList()
+        val recomendaciones: List<SubtemaEstadistica> = emptyList(),
+        val racha: Racha = Racha()
     ) {
         val sinDatos: Boolean
             get() = simulacros.isEmpty() && practicas.isEmpty()
@@ -85,6 +87,7 @@ class ProgresoViewModel(
         val simulacros = repository.cargarSimulacros()
         val practicas = repository.cargarPracticas()
         val stats = repository.cargarEstadisticasPorSubtema(simulacros, practicas)
+        val racha = repository.cargarRacha()
 
         _uiState.update { current ->
             current.copy(
@@ -96,7 +99,8 @@ class ProgresoViewModel(
                 fortalezas = AnalizadorProgreso.fortalezas(stats),
                 historial = AnalizadorProgreso.historial(simulacros, practicas),
                 recomendaciones = AnalizadorProgreso.areasDeMejora(stats)
-                    .take(AnalizadorProgreso.RECOMENDACIONES)
+                    .take(AnalizadorProgreso.RECOMENDACIONES),
+                racha = racha
             )
         }
     }

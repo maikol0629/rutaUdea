@@ -2,6 +2,7 @@ package com.udea.rutaudea.ui.screen.resultado
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.udea.rutaudea.data.repository.RachaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 class ResultadoViewModel(
     private val questions: List<Question>,
     private val simulationRepository: SimulationRepository,
+    private val rachaRepository: RachaRepository,
     private val userAnswers: Map<Int, String>,
     score: Int,
     total: Int,
@@ -58,12 +60,14 @@ class ResultadoViewModel(
     }
 
     private suspend fun persistSimulation(questions: List<Question>) {
-        simulationRepository.saveSimulation(
+        val resultado = simulationRepository.saveSimulation(
             questions = questions,
             userAnswers = userAnswers,
             score = _score.value,
             total = _total.value,
             timeUsedMs = _timeUsedMs.value
         )
+        // La actividad completada cuenta para la racha diaria del usuario.
+        if (resultado.isSuccess) rachaRepository.registrarActividad()
     }
 }

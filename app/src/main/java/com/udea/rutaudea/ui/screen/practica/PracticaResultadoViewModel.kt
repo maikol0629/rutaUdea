@@ -3,6 +3,7 @@ package com.udea.rutaudea.ui.screen.practica
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.udea.rutaudea.data.repository.PracticeRepository
+import com.udea.rutaudea.data.repository.RachaRepository
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 class PracticaResultadoViewModel(
     private val questions: List<Question>,
     private val practiceRepository: PracticeRepository,
+    private val rachaRepository: RachaRepository,
     private val userAnswers: Map<Int, String>,
     private val area: String,
     private val subtema: String?,
@@ -92,7 +94,7 @@ class PracticaResultadoViewModel(
 
     private fun persistPracticeSession() {
         viewModelScope.launch {
-            practiceRepository.savePracticeSession(
+            val resultado = practiceRepository.savePracticeSession(
                 area = area,
                 subtema = subtema,
                 questions = questions,
@@ -101,6 +103,8 @@ class PracticaResultadoViewModel(
                 total = _total.value,
                 timeUsedMs = _timeUsedMs.value
             )
+            // La práctica completada cuenta para la racha diaria del usuario.
+            if (resultado.isSuccess) rachaRepository.registrarActividad()
         }
     }
 }
