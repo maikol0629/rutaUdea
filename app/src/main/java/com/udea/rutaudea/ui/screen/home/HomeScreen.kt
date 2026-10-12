@@ -1,23 +1,30 @@
 package com.udea.rutaudea.ui.screen.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -47,6 +54,7 @@ fun HomeScreen(
     }
 
     HomeContenido(
+        saludo = state.saludo,
         racha = state.racha,
         onSimulacroClick = onSimulacroClick,
         onPracticaClick = onPracticaClick,
@@ -58,6 +66,7 @@ fun HomeScreen(
 
 @Composable
 private fun HomeContenido(
+    saludo: String,
     racha: Racha,
     onSimulacroClick: () -> Unit,
     onPracticaClick: () -> Unit,
@@ -72,23 +81,31 @@ private fun HomeContenido(
         contentPadding = PaddingValues(vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
+        // Encabezado: saludo personalizado + marca + propuesta de valor.
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                if (saludo.isNotBlank()) {
+                    Text(
+                        text = "$saludo 👋",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
                 Text(
-                    text = "RutaUdeA",
-                    fontSize = 28.sp,
+                    text = "Ruta UdeA",
+                    style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Tu camino a la UdeA",
-                    fontSize = 16.sp,
+                    text = "Prepárate para el examen de admisión con simulacros " +
+                        "completos, práctica por tema y seguimiento de tu progreso.",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -102,60 +119,55 @@ private fun HomeContenido(
             )
         }
 
-        // Main Action - Simulacro MVP
+        // Acción principal: simulacro completo.
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Simulacro",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "120 min • 80 preguntas • 40 RL + 40 CL",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Text(
-                            text = "▶",
-                            fontSize = 32.sp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Text(
+                        text = "Examen real · 120 min",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    )
+                    Text(
+                        text = "Simulacro completo",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "80 preguntas · 40 de razonamiento lógico + 40 de competencia lectora",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    )
                     Button(
                         onClick = onSimulacroClick,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text("Iniciar Simulacro", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Iniciar simulacro", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
         }
 
-        // Quick access to other sections
+        // Acceso al resto de secciones.
         item {
             Text(
-                text = "Otras secciones",
-                fontSize = 16.sp,
+                text = "Explora la app",
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 24.dp)
@@ -163,10 +175,18 @@ private fun HomeContenido(
         }
 
         items(listOf(
-            SectionItem("Práctica", "Práctica filtrada por tema y dificultad", "📝") { onPracticaClick() },
-            SectionItem("Progreso", "Historial y evolución de tus simulacros", "📈") { onProgresoClick() },
-            SectionItem("Info", "Contenido educativo por componente", "📚") { onInfoClick() },
-            SectionItem("Perfil", "Tu cuenta y configuración", "👤") { onPerfilClick() }
+            SectionItem(TipoSeccion.PRACTICA, "Práctica", "Preguntas por área y subtema, con explicación inmediata", "📝") {
+                onPracticaClick()
+            },
+            SectionItem(TipoSeccion.PROGRESO, "Progreso", "Tu evolución, fortalezas y temas a reforzar", "📈") {
+                onProgresoClick()
+            },
+            SectionItem(TipoSeccion.INFO, "Info", "Estrategias y errores comunes por componente", "📚") {
+                onInfoClick()
+            },
+            SectionItem(TipoSeccion.PERFIL, "Perfil", "Tu cuenta y configuración", "👤") {
+                onPerfilClick()
+            }
         )) { item ->
             Card(
                 modifier = Modifier
@@ -178,13 +198,46 @@ private fun HomeContenido(
                 ListItem(
                     headlineContent = { Text(item.title, fontWeight = FontWeight.Medium) },
                     supportingContent = { Text(item.description, fontSize = 14.sp) },
-                    leadingContent = { Text(text = item.icon, fontSize = 24.sp) },
-                    trailingContent = { Text(text = "▶", fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    leadingContent = { IconoSeccion(item) },
+                    trailingContent = {
+                        Text(
+                            text = "▶",
+                            fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    colors = ListItemDefaults.colors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         }
     }
+}
+
+@Composable
+private fun IconoSeccion(item: SectionItem) {
+    Surface(
+        color = colorInsignia(item.tipo),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(48.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = item.icon, fontSize = 24.sp)
+        }
+    }
+}
+
+/** Color tonal de la insignia según la sección (resuelto en contexto @Composable). */
+@Composable
+private fun colorInsignia(tipo: TipoSeccion): Color = when (tipo) {
+    TipoSeccion.PRACTICA -> MaterialTheme.colorScheme.secondaryContainer
+    TipoSeccion.PROGRESO -> MaterialTheme.colorScheme.tertiaryContainer
+    TipoSeccion.INFO -> MaterialTheme.colorScheme.primaryContainer
+    TipoSeccion.PERFIL -> MaterialTheme.colorScheme.surfaceVariant
 }
 
 @Composable
@@ -240,7 +293,10 @@ private fun RachaHomeCard(racha: Racha, modifier: Modifier = Modifier) {
 
 private fun pluralDias(dias: Int): String = if (dias == 1) "día" else "días"
 
+private enum class TipoSeccion { PRACTICA, PROGRESO, INFO, PERFIL }
+
 private data class SectionItem(
+    val tipo: TipoSeccion,
     val title: String,
     val description: String,
     val icon: String,
@@ -253,6 +309,7 @@ private data class SectionItem(
 private fun HomeScreenPreview() {
     RutaUdeaTheme {
         HomeContenido(
+            saludo = "Buenas tardes, Maikol",
             racha = Racha(actual = 4, mejor = 9),
             onSimulacroClick = {},
             onPracticaClick = {},
