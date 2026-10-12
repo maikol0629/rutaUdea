@@ -14,6 +14,7 @@ import com.google.gson.reflect.TypeToken
 import com.udea.rutaudea.di.AppModule
 import com.udea.rutaudea.di.ViewModelFactories
 import com.udea.rutaudea.ui.screen.home.HomeScreen
+import com.udea.rutaudea.ui.screen.home.HomeViewModel
 import com.udea.rutaudea.ui.screen.info.InfoScreen
 import com.udea.rutaudea.ui.screen.info.InfoViewModel
 import com.udea.rutaudea.ui.screen.perfil.PerfilScreen
@@ -39,6 +40,7 @@ fun AppNavHost() {
     val repository = AppModule.provideQuestionRepository(app)
     val selector = AppModule.provideQuestionSelector()
     val simulationRepository = AppModule.provideSimulationRepository(app)
+    val rachaRepository = AppModule.provideRachaRepository(app)
 
     NavHost(navController, startDestination = AppNavGraph.SPLASH) {
         composable(AppNavGraph.SPLASH) {
@@ -59,7 +61,11 @@ fun AppNavHost() {
         }
 
         composable(AppNavGraph.HOME) {
+            val homeViewModel: HomeViewModel = viewModel(
+                factory = ViewModelFactories.HomeFactory(rachaRepository)
+            )
             HomeScreen(
+                viewModel = homeViewModel,
                 onSimulacroClick = { navController.navigate(AppNavGraph.SIMULACRO) },
                 onPracticaClick = { navController.navigate(AppNavGraph.PRACTICA) },
                 onProgresoClick = { navController.navigate(AppNavGraph.PROGRESO) },
@@ -112,6 +118,7 @@ fun AppNavHost() {
                 factory = ViewModelFactories.ResultadoFactory(
                     resultadoData.questions,
                     simulationRepository,
+                    rachaRepository,
                     resultadoData.userAnswers,
                     resultadoData.score,
                     resultadoData.total,
@@ -200,6 +207,7 @@ fun AppNavHost() {
                 factory = ViewModelFactories.PracticaResultadoFactory(
                     resultadoData.questions,
                     practiceRepository,
+                    rachaRepository,
                     resultadoData.userAnswers,
                     resultadoData.area,
                     resultadoData.subtema,

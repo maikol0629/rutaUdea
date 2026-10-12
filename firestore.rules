@@ -17,6 +17,19 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ---------- rachas ----------
+    // Racha de actividad de cada usuario. El id del documento es el uid,
+    // así que solo el dueño (o un admin) puede leerla y gestionarla.
+    match /rachas/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if request.auth != null && isOwner(userId)
+        && request.resource.data.actual is int
+        && request.resource.data.actual >= 0
+        && request.resource.data.mejor is int
+        && request.resource.data.mejor >= 0;
+      allow delete: if isAdmin();
+    }
+
     // ---------- questions (banco maestro) ----------
     // Lectura para usuarios autenticados; escritura solo admin.
     match /questions/{questionId} {

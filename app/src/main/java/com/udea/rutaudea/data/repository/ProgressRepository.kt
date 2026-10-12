@@ -12,6 +12,7 @@ import com.udea.rutaudea.data.local.entity.SimulationQuestionEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
 import com.udea.rutaudea.data.mapper.ProgressMapper
 import com.udea.rutaudea.domain.model.PracticaResumen
+import com.udea.rutaudea.domain.model.Racha
 import com.udea.rutaudea.domain.model.SimulacroResumen
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,8 @@ class ProgressRepository(
     private val firestore: FirebaseFirestore,
     private val progressDao: ProgressDao,
     private val simulationRepository: SimulationRepository,
-    private val practiceRepository: PracticeRepository
+    private val practiceRepository: PracticeRepository,
+    private val rachaRepository: RachaRepository
 ) {
 
     /** Últimos [limite] simulacros del usuario, del más reciente al más antiguo. */
@@ -56,6 +58,12 @@ class ProgressRepository(
             emptyList()
         }
     }
+
+    /**
+     * Racha de actividad vigente del usuario (offline-first: lee de Room).
+     * Se muestra en el dashboard junto al resto de métricas.
+     */
+    suspend fun cargarRacha(): Racha = rachaRepository.cargarVigente()
 
     /**
      * Acierto acumulado por subtema a partir del detalle por pregunta de
@@ -100,8 +108,9 @@ class ProgressRepository(
 
     /**
      * Sincroniza en ambos sentidos:
-     * 1. Sube a Firestore las sesiones locales pendientes.
-     * 2. Descarga de Firestore las sesiones más recientes y las cachea.
+     * 1. Sube a Firestore las sesiones locales pendientes y la racha.
+     * 2. Descarga de Firestore las sesiones más recientes y las cachea,
+     *    fusionando la racha de la nube con la local.
      *
      * Nunca lanza: si no hay red o falla Firestore, deja intacta la cache.
      * Devuelve `true` si la operación con la nube fue correcta.
@@ -112,6 +121,7 @@ class ProgressRepository(
         try {
             if (!simulationRepository.sincronizarPendientes(uid)) ok = false
             if (!practiceRepository.sincronizarPendientes(uid)) ok = false
+            if (!rachaRepository.sincronizar()) ok = false
 
             descargarSimulacros(uid)
             descargarPracticas(uid)

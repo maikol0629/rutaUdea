@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.domain.model.ItemHistorial
 import com.udea.rutaudea.domain.model.PracticaResumen
+import com.udea.rutaudea.domain.model.Racha
 import com.udea.rutaudea.domain.model.SimulacroResumen
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
 import com.udea.rutaudea.domain.services.AnalizadorProgreso
@@ -34,7 +35,8 @@ class ProgresoViewModel(
         val areasDeMejora: List<SubtemaEstadistica> = emptyList(),
         val fortalezas: List<SubtemaEstadistica> = emptyList(),
         val historial: List<ItemHistorial> = emptyList(),
-        val recomendaciones: List<SubtemaEstadistica> = emptyList()
+        val recomendaciones: List<SubtemaEstadistica> = emptyList(),
+        val racha: Racha = Racha()
     ) {
         val sinDatos: Boolean
             get() = simulacros.isEmpty() && practicas.isEmpty()
@@ -54,6 +56,14 @@ class ProgresoViewModel(
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    /**
+     * Indica si ya se consumió la carga inicial del [init]. Vive en el
+     * ViewModel (no en la UI con `remember`) porque al navegar fuera de la
+     * pantalla la composición se destruye y el `remember` se pierde: al
+     * volver se trataría como "primera vez" y nunca se refrescaría.
+     */
+    private var arranque = true
 
     init {
         cargar()
@@ -80,11 +90,24 @@ class ProgresoViewModel(
         }
     }
 
+    /**
+     * Refresco al volver a la pantalla. Omite la primera llamada porque el
+     * [init] ya cargó y sincronizó; en las siguientes refresca siempre.
+     */
+    fun alReanudar() {
+        if (arranque) {
+            arranque = false
+            return
+        }
+        refrescar()
+    }
+
     /** Recalcula el estado a partir de la cache local. */
     private suspend fun aplicarLocal() {
         val simulacros = repository.cargarSimulacros()
         val practicas = repository.cargarPracticas()
         val stats = repository.cargarEstadisticasPorSubtema(simulacros, practicas)
+        val racha = repository.cargarRacha()
 
         _uiState.update { current ->
             current.copy(
@@ -96,7 +119,8 @@ class ProgresoViewModel(
                 fortalezas = AnalizadorProgreso.fortalezas(stats),
                 historial = AnalizadorProgreso.historial(simulacros, practicas),
                 recomendaciones = AnalizadorProgreso.areasDeMejora(stats)
-                    .take(AnalizadorProgreso.RECOMENDACIONES)
+                    .take(AnalizadorProgreso.RECOMENDACIONES),
+                racha = racha
             )
         }
     }

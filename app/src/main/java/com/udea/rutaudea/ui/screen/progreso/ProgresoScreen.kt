@@ -24,10 +24,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -41,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.udea.rutaudea.domain.model.ItemHistorial
+import com.udea.rutaudea.domain.model.Racha
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
 import com.udea.rutaudea.domain.model.TipoActividad
 
@@ -58,15 +55,11 @@ fun ProgresoScreen(
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
 
-    // Refresco silencioso al volver a la pantalla (no en la primera entrada,
-    // que ya la cubre el `init` del ViewModel).
-    var primeraReanudacion by remember { mutableStateOf(true) }
+    // Refresco silencioso al volver a la pantalla. El guard "primera vez"
+    // vive en el ViewModel porque el `remember` se pierde al salir de la
+    // composición.
     LifecycleResumeEffect(Unit) {
-        if (primeraReanudacion) {
-            primeraReanudacion = false
-        } else {
-            viewModel.refrescar()
-        }
+        viewModel.alReanudar()
         onPauseOrDispose { }
     }
 
@@ -124,6 +117,14 @@ fun ProgresoScreen(
                     }
                 }
             }
+        }
+
+        // Racha de actividad del usuario
+        item {
+            RachaCard(
+                racha = state.racha,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
 
         // Evolución de simulacros
@@ -226,6 +227,57 @@ private fun Metrica(titulo: String, valor: String) {
         )
     }
 }
+
+@Composable
+private fun RachaCard(racha: Racha, modifier: Modifier = Modifier) {
+    val activa = racha.actual > 0
+    val color = if (activa) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "🔥", fontSize = 32.sp)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Racha de estudio",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = if (activa) "${racha.actual} ${plural(racha.actual)} seguidos" else "Sin racha activa",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
+                Text(
+                    text = if (activa) {
+                        "Mejor racha: ${racha.mejor} ${plural(racha.mejor)} · ¡haz una actividad hoy para mantenerla!"
+                    } else {
+                        "Completa un simulacro o una práctica hoy para iniciarla."
+                    },
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                )
+            }
+        }
+    }
+}
+
+private fun plural(dias: Int): String = if (dias == 1) "día" else "días"
 
 @Composable
 private fun Seccion(

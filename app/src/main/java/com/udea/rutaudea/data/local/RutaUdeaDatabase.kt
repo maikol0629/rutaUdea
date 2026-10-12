@@ -8,9 +8,11 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.udea.rutaudea.data.local.dao.ProgressDao
 import com.udea.rutaudea.data.local.dao.QuestionDao
+import com.udea.rutaudea.data.local.dao.RachaDao
 import com.udea.rutaudea.data.local.entity.PracticeQuestionEntity
 import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
 import com.udea.rutaudea.data.local.entity.QuestionEntity
+import com.udea.rutaudea.data.local.entity.RachaEntity
 import com.udea.rutaudea.data.local.entity.SimulationQuestionEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
 
@@ -28,9 +30,10 @@ import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
         SimulationSummaryEntity::class,
         PracticeSummaryEntity::class,
         SimulationQuestionEntity::class,
-        PracticeQuestionEntity::class
+        PracticeQuestionEntity::class,
+        RachaEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class RutaUdeaDatabase : RoomDatabase() {
@@ -38,6 +41,8 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
     abstract fun questionDao(): QuestionDao
 
     abstract fun progressDao(): ProgressDao
+
+    abstract fun rachaDao(): RachaDao
 
     companion object {
         @Volatile
@@ -144,6 +149,28 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v2 → v3: agrega la tabla de cache de la racha de actividad.
+         * No borra el banco de preguntas ni los datos existentes.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `rachas_cache` (
+                        `uid` TEXT NOT NULL,
+                        `actual` INTEGER NOT NULL,
+                        `mejor` INTEGER NOT NULL,
+                        `ultimo_dia` INTEGER,
+                        `ultima_actividad_ms` INTEGER NOT NULL,
+                        `synced` INTEGER NOT NULL,
+                        PRIMARY KEY(`uid`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun getInstance(context: Context): RutaUdeaDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -151,7 +178,7 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
                     RutaUdeaDatabase::class.java,
                     "rutaudea.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { INSTANCE = it }
             }
