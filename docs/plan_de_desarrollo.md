@@ -111,22 +111,27 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
   - Sesión con **retroalimentación inmediata** (plan §10): ✓/✗, respuesta dada vs correcta, explicación, subtema/dificultad y recomendación estática por subtema; respuesta bloqueada al revelarse; sin límite de tiempo; progreso persistido en `SavedStateHandle`.
   - Resultado: score, %, tiempo y repaso por pregunta; "Nueva práctica" conserva los filtros.
   - Persistencia: colección `practiceSessions` + subcolección `practiceQuestions` (escritura en batch) vía `PracticeRepository` — alimenta el futuro módulo de Progreso.
-- **Módulo de Progreso — ✅ implementado** (rama `feat/progreso`):
+- **Módulo de Progreso — ✅ implementado + offline-first** (ramas `feat/progreso` + `feat/progreso-offline-room`, en `main` vía PRs #5 y #8):
   - Dashboard (tab 📈): nº de simulacros/prácticas, promedio global y mejor puntaje.
   - **Evolución**: gráfica de línea con el % de cada simulacro en orden cronológico.
   - **Acierto por subtema**: agregado de los detalles por pregunta (`simulationQuestions` + `practiceQuestions`) de las sesiones recientes.
   - **Fortalezas, áreas de mejora y recomendaciones** según §12: solo subtemas con evidencia ≥3 respuestas («una pregunta no hace un tema débil»).
   - Historial unificado (simulacros + prácticas) con score, % y tiempo; empty state con CTAs.
-  - Arquitectura: `ProgressRepository` (Firestore, degrada a vacío sin conexión) + `AnalizadorProgreso` (dominio puro, testeado).
+  - **Arquitectura offline-first**: caches `simulations_cache`, `practice_sessions_cache`, `simulation_questions_cache`, `practice_questions_cache` en Room (v2, `ProgressDao`). Guardar es **local-first** y luego best-effort a Firestore; el dashboard **lee siempre de Room** y `ProgressRepository.sincronizar()` sube pendientes y descarga la nube. Índices compuestos Firestore (`uid ASC, fechaCreacion DESC`) con fallback sin `orderBy`; pull-to-refresh + recarga al reanudar. Bug corregido: el simulacro auto-finalizado por tiempo agotado ahora sí persiste.
+- **Pausa y persistencia de sesión — ✅ implementado** (rama `feat/pausa-persistencia-sesion`, en `main` vía PR #9): al cambiar de app, Simulacro y Práctica quedan en pausa con overlay de Salir/Resumir (`PauseOverlay` + `AppBackgroundEffect` con `ProcessLifecycleOwner`, la rotación no dispara pausa). El cronómetro del simulacro sigue corriendo en segundo plano; el reloj de práctica se congela y descuenta al resumir. Estado en `SavedStateHandle` (sobrevive rotación y muerte de proceso).
+- **Refactor UI compartida + rotación — ✅ implementado** (rama `rotacion-ui-warning`, en `main` vía PR #11): componentes comunes `BarraProgresoSesion`, `OpcionesPreguntaCard`, `ResumenScoreCard` (elimina duplicación Simulacro/Práctica/resultados); layouts scrollables y responsivos en horizontal (Home en un `LazyColumn`, resultados con raíz `LazyColumn`, Simulacro con `verticalScroll`); `@Preview` vertical/horizontal; fix de warnings (indicador ✓/✗ unificado, condición muerta en `QuestionJsonlLoader`).
+- **Racha diaria de actividad — ✅ implementado** (rama `feat/racha-usuario`, en `main` vía PR #12, ver §12): `AnalizadorRacha` (dominio puro: días consecutivos, idempotencia por día, vigencia con tolerancia de 1 día, fusión local-nube) + `RachaRepository` (Room `rachas_cache`, migración 2→3, sync best-effort a `rachas/{uid}`); tarjeta de racha en Home y Progreso con refresco al reanudar.
+- **Home renovado — 🔶 en construcción** (rama `feat/home-visual`, pendiente de PR): marca bitono + logosímbolo UdeA, saludo personalizado por momento del día (`Saludo`, dominio puro) con el primer nombre del usuario, hero de simulacro, tarjeta de racha con mensaje motivacional.
 - **Módulo Info (educativo) — ✅ implementado** (rama `feat/info`):
   - Contenido de los **29 componentes del examen** (15 RL + 14 CL): descripción, estrategia de resolución y errores comunes, empaquetado como asset (`assets/info/contenido_educativo.json`, offline-first; la colección `educationalContent` queda para el futuro panel admin).
   - Tab 📚 con filtro por área y acordeón expandible por componente.
   - `ComingSoonScreen` eliminado: las 5 pestañas de la app son funcionales.
-- **Tests unitarios**: 66 tests (mapper, loader, seeder, motor de selección, gate de autenticación, selector/sesión/filtros de práctica, analítica de progreso, módulo Info) — `./gradlew test` PASS.
+- **Tests unitarios**: 130 tests (mapper, loader, seeder, motor de selección, gate de autenticación, selector/sesión/filtros de práctica, analítica de progreso + mappers offline-first, pausa/persistencia, racha —analizador, mapper, repositorio—, saludo y HomeViewModel, módulo Info) — `./gradlew test` PASS.
 
 ### 🔶 Pendiente / En construcción
+- **Home renovado** (rama `feat/home-visual`): pendiente PR a `main`.
 - **Recuperación de contraseña** (`sendPasswordResetEmail`).
-- **Inactividad del cronómetro**: cierre por inactividad configurable y registro de abandono.
+- **Inactividad del cronómetro**: cierre por inactividad configurable y registro de abandono (la pausa al cambiar de app ya está implementada, ver §9).
 - **Análisis por componente (área) y dificultad**: el acierto por subtema ya está en Progreso; falta el desglose por componente y por dificultad (hoy: detalle por pregunta en resultados).
 - **Vista detalle** de un simulacro del historial de Progreso.
 - **Panel administrativo web** (CRUD de preguntas, carga CSV, estados).
@@ -138,13 +143,13 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
 
 ## 6. Banco de preguntas validado
 
-El banco inicial está compuesto por **200 preguntas validadas** (100 de razonamiento lógico y 100 de competencia lectora), preparadas a partir de las fuentes inventariadas.
+El banco inicial está compuesto por **200 registros** (100 de razonamiento lógico y 100 de competencia lectora), de los cuales **188 están aprobados** (88 RL + 100 CL; 12 RL deshabilitadas por figuras inexistentes), preparados a partir de las fuentes inventariadas.
 
 - Archivo fuente empaquetado en la app: `app/src/main/assets/questions/questions.jsonl`
 - Copia de respaldo en formato JSON: `docs/preguntas_validadas.json`
 - Estructura por pregunta: `id`, `area`, `subtema`, `competencia`, `dificultad`, `contexto`, `pregunta`, `opciones` (A–D), `respuesta_correcta`, `explicacion`, `fuente`, `tipo_fuente`, `es_original`, `verificada`, `duplicado`.
 
-> **Nota de calidad:** **32 preguntas RL** aún tienen `respuesta_correcta` pendiente (o enunciado incompleto) y quedan excluidas por los selectores — banco válido: 168 de 200. El objetivo es completar la validación para que el motor disponga de más margen por subtema.
+> **Nota de calidad:** **12 preguntas RL deshabilitadas** (referencian figuras/diagramas inexistentes; el DAO filtra `estado='aprobado'`) y **~20 preguntas RL aprobadas siguen sin `respuesta_correcta` o enunciado** (los selectores las excluyen con `esValida`; pool válido efectivo ≈ 68 RL + 100 CL). Banco aprobado: **88 RL + 100 CL = 188** (seeder v4, re-siembra automática). El objetivo es completar la validación para que el motor disponga de más margen por subtema.
 
 > **Normalización v2 (2026-10):** los subtemas de RL fueron unificados a los **componentes oficiales del examen** RL01–RL18 (antes conviven 27 etiquetas con duplicados: "Porcentajes" vs "RL02 Porcentajes", "Geometria" vs "RL13 Geometría", el comodín "Razonamiento logico"…). Las 15 preguntas del comodín fueron reclasificadas por contenido. CL ya usaba CL01–CL14 consistentemente. Cambios replicados en `questions.jsonl` y `docs/preguntas_validadas.json`; **falta replicar en el banco maestro de Firestore**.
 
@@ -152,7 +157,8 @@ El banco inicial está compuesto por **200 preguntas validadas** (100 de razonam
 
 ## 7. Modelo de datos
 
-### Tabla local (Room) — implementada
+### Tabla local (Room) — implementada (v3)
+La tabla `questions` (campos abajo) más las caches offline-first del progreso y la racha:
 | Campo | Tipo | Notas |
 | :--- | :--- | :--- |
 | `id` | String (PK) | Identificador único |
@@ -173,7 +179,14 @@ El banco inicial está compuesto por **200 preguntas validadas** (100 de razonam
 | `verificada` | Boolean | Si fue verificada |
 | `estado` | String | `aprobado` / `pendiente` / `deshabilitado` |
 
-### Colecciones Firestore (✅ reglas desplegadas; `users`, `simulations`/`simulationQuestions` y `practiceSessions`/`practiceQuestions` en uso; sincronización de `questions` implementada)
+### Tablas de cache offline-first (Room v2/v3) — implementadas
+| Tabla | Propósito |
+| :--- | :--- |
+| `simulations_cache` / `simulation_questions_cache` | Resúmenes y detalle por pregunta de simulacros (guardado local-first) |
+| `practice_sessions_cache` / `practice_questions_cache` | Sesiones de práctica y detalle por pregunta (guardado local-first) |
+| `rachas_cache` | Racha diaria por usuario (`actual`, `mejor`, `ultimoDia`) |
+
+### Colecciones Firestore (✅ reglas desplegadas; `users`, `simulations`/`simulationQuestions`, `practiceSessions`/`practiceQuestions` y `rachas` en uso; sincronización de `questions` implementada)
 | Colección | Propósito |
 | :--- | :--- |
 | `users` | `uid`, `nombre`, `correo`, `rol`, `fechaCreacion`, `estado` |
@@ -182,6 +195,7 @@ El banco inicial está compuesto por **200 preguntas validadas** (100 de razonam
 | `components` / `subtopics` | Componentes y subtemas |
 | `simulations` / `simulationQuestions` | Simulacros y respuestas con tiempos |
 | `practiceSessions` | Sesiones de práctica |
+| `rachas` | Racha diaria por usuario (`actual`, `mejor`, `ultimoDia`) |
 | `recommendations` | Recomendaciones personalizadas |
 | `educationalContent` | Contenido informativo |
 | `settings` | Reglas del simulacro, inactividad y distribución |
@@ -206,8 +220,8 @@ Cada simulacro tendrá **80 preguntas totales**: 40 de razonamiento lógico y 40
 
 ## 9. Cronómetro e inactividad
 - ✅ Cronómetro de **120 minutos** en cuenta regresiva; el estado persiste en `SavedStateHandle` y sobrevive recreación y segundo plano.
-- ✅ Al volver de segundo plano se muestra un overlay «Continuar / Abandonar» y el tiempo continúa.
-- ✅ Auto-finalización del simulacro al llegar a 0:00 (navega a Resultado).
+- ✅ Al volver de segundo plano se muestra un overlay de **pausa a pantalla completa** («Salir / Resumir») que bloquea toques y consume el back; el tiempo del simulacro continúa (realista) y el reloj de práctica se congela/descuenta. La detección usa `ProcessLifecycleOwner`, así la rotación no dispara la pausa.
+- ✅ Auto-finalización del simulacro al llegar a 0:00 (navega a Resultado) **con persistencia del resultado** (antes se perdía).
 - 🔶 Pendiente: marcas temporales absolutas persistentes (hoy el contador vive en el ViewModel/SAH del destino), registro de última actividad, cierre por inactividad configurable y registro de abandono.
 
 ---
@@ -232,7 +246,11 @@ La IA se incorporará como herramienta de apoyo al administrador, no como public
 ## 12. Analítica y recomendaciones
 **Indicadores:** acierto global, por componente, subtema y dificultad; respondidas/incorrectas/omitidas; tiempos; evolución entre simulacros; completados/abandonados; fortalezas y áreas de mejora.
 
-> ✅ **Implementado en el módulo de Progreso** (rama `feat/progreso`): acierto global y por subtema (con evidencia ≥3), evolución entre simulacros, fortalezas/áreas de mejora y recomendaciones basadas en evidencia. Pendiente: desglose por componente y dificultad, y tiempos por pregunta (se guardan como 0).
+> ✅ **Implementado en el módulo de Progreso** (ramas `feat/progreso` + `feat/progreso-offline-room`): acierto global y por subtema (con evidencia ≥3), evolución entre simulacros, fortalezas/áreas de mejora y recomendaciones basadas en evidencia, todo **offline-first** (Room local-first + sync Firestore). Pendiente: desglose por componente y dificultad, y tiempos por pregunta (se guardan como 0).
+
+Las recomendaciones priorizarán subtemas con bajo desempeño y suficiente evidencia, evitando recomendar un tema como «débil» por una sola pregunta. ✅ (regla de evidencia mínima implementada y testeada).
+
+**Racha diaria (gamificación inicial) — ✅ implementada** (rama `feat/racha-usuario`): días calendario consecutivos con ≥1 actividad completada; idempotente por día; vigencia con tolerancia de 1 día; récord histórico que nunca disminuye; fusión local-nube que conserva lo más favorable. Visible en Home y Progreso.
 
 Las recomendaciones priorizarán subtemas con bajo desempeño y suficiente evidencia, evitando recomendar un tema como «débil» por una sola pregunta. ✅ (regla de evidencia mínima implementada y testeada).
 
@@ -256,18 +274,18 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 | **P0** | Panel CRUD de preguntas | Administración | 🔶 |
 | **P0** | Motor de selección de 80 preguntas | Simulacro | ✅ |
 | **P0** | Pantallas del simulacro | Simulacro | ✅ |
-| **P0** | Cronómetro + persistencia + inactividad | Simulacro | ✅ / 🔶 (falta cierre por inactividad registrada) |
-| **P0** | Registro de respuestas y tiempos | Resultados | ✅ (respuestas; 🔶 tiempo por pregunta guardado como 0) |
+| **P0** | Cronómetro + persistencia + inactividad | Simulacro | ✅ (pausa con overlay + persistencia) / 🔶 (falta cierre por inactividad registrada) |
+| **P0** | Registro de respuestas y tiempos | Resultados | ✅ (respuestas, local-first Room + Firestore; 🔶 tiempo por pregunta guardado como 0) |
 | **P0** | Cálculo de resultados | Resultados | ✅ (score, %, detalle por pregunta) |
-| **P0** | Análisis por componente/subtema/dificultad | Analítica | 🔶 (por subtema ✅ en Progreso; falta componente y dificultad) |
+| **P0** | Análisis por componente/subtema/dificultad | Analítica | 🔶 (por subtema ✅ offline-first en Progreso; falta componente y dificultad) |
 | **P0** | Contenido informativo | Aprendizaje | ✅ (29 componentes: descripción, estrategia y errores comunes) |
 | **P1** | Práctica filtrada con feedback inmediato | Aprendizaje | ✅ (estratificación proporcional; recomendación estática hasta tener motor P1) |
-| **P1** | Historial y gráficas de progreso | Analítica | ✅ (dashboard, evolución, acierto por subtema, historial) |
+| **P1** | Historial y gráficas de progreso | Analítica | ✅ (dashboard offline-first, evolución, acierto por subtema, historial, racha) |
 | **P1** | Motor de recomendaciones | Personalización | 🔶 (V1 basada en evidencia incluida en Progreso; motor personalizado pendiente) |
 | **P1** | Asistencia IA para explicaciones | Administración | 🔶 |
 | **P1** | Pruebas con 15 estudiantes | Validación | 🔶 |
 | **P2** | Mejoras avanzadas de IA | Evolución | 🔶 |
-| **P2** | Gamificación | Evolución | 🔶 |
+| **P2** | Gamificación | Evolución | 🔶 (racha diaria ✅ como V1; pendiente resto) |
 
 ---
 
@@ -282,19 +300,19 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 7. ✅ Implementar autenticación móvil (login/registro en Perfil + gate obligatorio de sesión; pendiente recuperación de contraseña).
 8. ✅ Implementar navegación y pantallas base (Compose).
 9. ✅ Implementar motor de selección de simulacro.
-10. ✅ Implementar simulacro y persistencia (local + Firestore con sesión).
-11. ✅ Implementar cronómetro (120 min) — 🔶 pendiente inactividad/abandono.
+10. ✅ Implementar simulacro y persistencia (local-first Room + Firestore con sesión).
+11. ✅ Implementar cronómetro (120 min) con pausa al cambiar de app — 🔶 pendiente inactividad/abandono.
 12. ✅ Implementar cálculo y almacenamiento de resultados.
-13. 🔶 Implementar análisis detallado por componente/subtema/dificultad.
+13. 🔶 Implementar análisis detallado por componente/subtema/dificultad (subtema ✅ offline-first).
 14. ✅ Implementar información educativa (módulo Info con 29 componentes, asset offline-first).
-15. ✅ Implementar práctica con feedback (filtros, estratificación, sesión con feedback inmediato, resultado y persistencia).
-16. ✅ Implementar historial y recomendaciones (dashboard de Progreso con regla de evidencia ≥3).
+15. ✅ Implementar práctica con feedback (filtros, estratificación, sesión con feedback inmediato, resultado y persistencia local-first).
+16. ✅ Implementar historial y recomendaciones (dashboard de Progreso offline-first con regla de evidencia ≥3 + racha diaria).
 17. 🔶 Integrar asistencia de IA.
-18. 🔶 Ejecutar pruebas técnicas (66 unitarias ✅; faltan UI/integración).
+18. 🔶 Ejecutar pruebas técnicas (130 unitarias ✅; faltan UI/integración).
 19. 🔶 Ejecutar piloto con ~15 estudiantes.
 20. 🔶 Corregir, documentar y preparar entrega.
 
-> **Próximo hito sugerido:** PRs de `feat/practica` → `feat/progreso` → `feat/info` a `main` → **análisis por componente/dificultad** e **inactividad del cronómetro** (P0 restantes del simulacro).
+> **Próximo hito sugerido:** PR de `feat/home-visual` a `main` → **análisis por componente/dificultad** e **inactividad del cronómetro** (P0 restantes del simulacro).
 
 ---
 
@@ -339,7 +357,7 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 - Un administrador puede cargar y gestionar el banco de preguntas.
 - El sistema genera un simulacro válido de 80 preguntas (40 por componente).
 - La selección cubre los criterios de distribución definidos.
-- El cronómetro continúa aunque la aplicación pase a segundo plano.
+- El cronómetro continúa aunque la aplicación pase a segundo plano (el simulacro muestra overlay de pausa y el tiempo sigue corriendo).
 - La inactividad puede finalizar el simulacro según el parámetro configurado.
 - Las respuestas, tiempos y resultados quedan almacenados.
 - El usuario recibe un análisis detallado y recomendaciones asociadas a sus debilidades.
@@ -369,9 +387,9 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 1. 🔶 Confirmar mediante la fuente oficial la duración y estructura exacta a emular (hoy: 120 min / 80 preguntas).
 2. ✅ Matriz de distribución: **proporcional a la composición real del banco** (mayor residuo), con cuotas flexibles. Pendiente validar contra el formato oficial.
 3. ✅ Inventario implícito: el motor consulta el banco real y relaja cuotas/exclusiones si no alcanza.
-4. 🔶 Tiempo máximo de inactividad y penalización: pendiente (no implementado).
+4. 🔶 Tiempo máximo de inactividad y penalización: pendiente (pausa al cambiar de app implementada; falta cierre por inactividad registrada).
 5. ✅ Repetición entre simulacros: excluir preguntas de los **últimos 3 simulacros** del usuario, con relajación gradual.
-6. 🔶 Contenido informativo disponible por componente/subtema.
+6. ✅ Contenido informativo disponible por componente (módulo Info, 29 componentes).
 7. ✅ Permisos por rol ya definidos en `firestore.rules` (aspirante: dueño de sus datos; admin: gestión del banco y contenidos).
 
 ---
