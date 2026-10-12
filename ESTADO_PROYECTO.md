@@ -3,19 +3,24 @@
 ## Resumen General
 El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP + Firebase.
 
-**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); login/registro obligatorio, motor de 80 preguntas, práctica con feedback inmediato, dashboard de progreso con analítica, contenido educativo por componente. Banco normalizado a componentes oficiales. Build SUCCESS, tests PASS (66).
+**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO + MEJORAS POST-MVP** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); login/registro obligatorio, motor de 80 preguntas, práctica con feedback inmediato, dashboard de progreso offline-first con analítica, contenido educativo por componente, pausa con overlay al cambiar de app, racha diaria de actividad y Home renovado (marca, saludo personalizado, logosímbolo UdeA). Build SUCCESS, tests PASS (130).
 
 ## 🌿 Ramas
 | Rama | Estado | Contenido |
 |------|--------|-----------|
-| `main` | ✅ Actualizada (PR #3) | MVP + Firebase completo + motor de 80 preguntas + gate de autenticación |
+| `main` | ✅ Actualizada (PR #12) | MVP + Firebase + motor 80 preguntas + auth gate + práctica + progreso offline-first + pausa + refactor UI/rotación + racha |
 | `feat/firebase-config` | ✅ En origin | Firebase Auth + Firestore + sincronización (ya en main vía PR #2) |
 | `feat/motor-seleccion-preguntas` | ✅ En origin | Motor de selección 80 preguntas (ya en main vía PR #2) |
 | `feat/auth-gate` | ✅ En origin | Gate de autenticación (ya en main vía PR #3) |
-| `feat/practica` | ✅ En origin | Módulo de Práctica completo + normalización del banco + seeder versionado |
+| `feat/practica` | ✅ En main (PR #4) | Módulo de Práctica completo + normalización del banco + seeder versionado |
 | `feat/progreso` | ✅ En main (PR #5) | Módulo de Progreso: dashboard, evolución, acierto por subtema, recomendaciones, historial |
 | `feat/info` | ✅ En main (PR #6) | Módulo Info: contenido educativo de los 29 componentes (asset offline-first) |
-| `fix/ui-textos-notch-banco` | 🔨 Rama actual | Texto de apoyo visible en simulacro/resultado/práctica (scroll), fix notch edge-to-edge, limpieza banco v3 (frase deduplicada, 12 preguntas rotas deshabilitadas) |
+| `fix/ui-textos-notch-banco` | ✅ En main (PR #7) | Texto de apoyo visible en simulacro/resultado/práctica (scroll), fix notch edge-to-edge, limpieza banco v4 |
+| `feat/progreso-offline-room` | ✅ En main (PR #8) | Progreso offline-first (Room): caches locales, guardado local-first, sync Firebase, índices compuestos |
+| `feat/pausa-persistencia-sesion` | ✅ En main (PR #9) | Overlay de pausa al cambiar de app (Simulacro + Práctica), persistencia en SavedStateHandle |
+| `rotacion-ui-warning` | ✅ En main (PR #11) | Layouts scrollables/responsivos para rotación, componentes UI compartidos, fix warnings |
+| `feat/racha-usuario` | ✅ En main (PR #12) | Racha diaria de actividad por usuario (Room + sync Firebase), tarjeta en Home y Progreso |
+| `feat/home-visual` | 🔨 Rama actual | Home renovado: marca bitono + logosímbolo UdeA, saludo personalizado por momento del día, hero de simulacro, tarjeta de racha |
 
 ---
 
@@ -106,7 +111,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Consultas nuevas**: `QuestionDao.getDistinctSubtemasByArea()` y `countByFilters()` (+ métodos en `QuestionRepository`).
 - **Tests**: `PracticeSelectorTest` (7), `PracticaSesionViewModelTest` (7), `PracticaFiltrosViewModelTest` (5).
 
-### 5.5 Módulo de Progreso — IMPLEMENTADO + OFFLINE-FIRST (rama `feat/progreso-offline-room`)
+### 5.5 Módulo de Progreso — IMPLEMENTADO + OFFLINE-FIRST (en main vía PR #8)
 - **Dashboard** (tab 📈): métricas globales (nº simulacros, nº prácticas, promedio %, mejor puntaje).
 - **Evolución**: gráfica de línea (Canvas, sin dependencias externas) con el % de cada simulacro en orden cronológico; requiere ≥2 simulacros.
 - **Acierto por subtema**: agregado de `simulationQuestions` + `practiceQuestions` de las últimas 20 simulacros y 30 prácticas (solo preguntas respondidas); barras con % y evidencia (correctas/respondidas).
@@ -128,7 +133,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Limpieza**: `ComingSoonScreen` **eliminado** (ya no quedan placeholders — las 5 pestañas son funcionales).
 - **Tests**: `InfoViewModelTest` (7: parseo, inferencia de área por código, filtros, JSON inválido, estructura del asset real: 29/15/14 sin duplicados).
 
-### 5.8 Pausa y persistencia de sesión (rama `feat/pausa-persistencia-sesion`)
+### 5.8 Pausa y persistencia de sesión (en main vía PR #9)
 - **Objetivo**: al cambiar de app y volver, tanto Simulacro como Práctica quedan "en pausa" con un overlay de **Salir / Resumir**.
 - **Detección de background real**: `AppBackgroundEffect` observa `ProcessLifecycleOwner` (ON_STOP/ON_START), así la **rotación no** dispara la pausa (a diferencia del ciclo de vida de la Activity).
 - **Simulacro** (`feat`): el cronómetro de 120 min **sigue corriendo** en segundo plano (realista). El overlay es informativo y muestra el tiempo restante. `PauseOverlay` compartido reemplaza el overlay propio (que no cubría la pantalla). Botón atrás abre la pausa.
@@ -155,6 +160,25 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **`BANK_SEED_VERSION = 4`**: re-siembra automática en dispositivos instalados.
 - **UI**: `TextoApoyo` (componente común, sin recuadro anidado, 16sp, scroll acotado 260.dp) — el simulacro ya muestra los textos de apoyo de las preguntas CL, la práctica ya no desborda con textos largos, y el resultado permite releer el texto al repasar. Home actualizado: "Simulacro — 120 min • 80 preguntas • 40 RL + 40 CL".
 
+### 5.9 Racha diaria de actividad (en main vía PR #12, rama `feat/racha-usuario`)
+- **Reglas puras de dominio** (`AnalizadorRacha`, testeable, con `Reloj` inyectable): días calendario consecutivos con ≥1 actividad completada (simulacro o práctica de cualquier tamaño); idempotente por día; hueco >1 día reinicia en 1; día anterior se ignora; `mejor` histórico nunca disminuye. Racha «vigente»: viva si la última actividad fue hoy o ayer (tolerancia 1 día), si no se muestra 0 conservando el récord.
+- **Persistencia local-first** (Room `rachas_cache`, migración 2→3, `RachaDao` + `RachaMapper`) con `RachaRepository`: registra actividad al completar simulacros y prácticas, guarda en local y sincroniza best-effort a `rachas/{uid}` en Firestore (fusión local-nube que conserva lo más favorable).
+- **UI**: tarjeta de racha (actual + mejor) en Home (`HomeViewModel`) y en Progreso (`ProgressRepository.cargarRacha` incluida en el sync). El Home refresca la racha al volver de otra pantalla (`alReanudar()` en el ViewModel, no en `remember` de la UI — la composición se destruye al navegar).
+- **Reglas Firestore**: colección `rachas` (dueño + admin).
+- **Tests**: `AnalizadorRachaTest` (13), `RachaMapperTest` (4), `RachaRepositoryTest` (10), `HomeViewModelTest` (3), `ProgresoRachaTest` (2).
+
+### 5.10 Refactor UI compartida + rotación (en main vía PR #11, rama `rotacion-ui-warning`)
+- **Componentes extraídos a `ui/screen/common`** (el quality gate fallaba por código duplicado): `BarraProgresoSesion` (encabezado + progreso con slot para cronómetro/abandono), `OpcionesPreguntaCard` (opciones A/B/C/D con selección y feedback ✓/✗), `ResumenScoreCard` (cabecera de resultado: aciertos, anillo %, tiempo). Simulacro/Práctica y ambos Resultados los consumen sin cambios de comportamiento.
+- **Layouts scrollables y responsivos para rotación**: en horizontal el `Column` raíz no scrolleable dejaba listas internas inalcanzables → Home en un único `LazyColumn`; resultados con raíz `LazyColumn` (detalle por pregunta como items, sin `weight` que colapse); Simulacro con el mismo patrón que Práctica (`Column` con `verticalScroll`, enunciado y opciones en cards separadas); Splash adapta logo/paddings a la orientación.
+- **Calidad**: indicador de opción unificado (un solo `✓/✗`, fix warning Sonar de duplicación); indicadores de progreso migrados a la sobrecarga con lambda (no deprecada); `*Content` sin estado extraídos + `@Preview` vertical/horizontal en Home, Splash, Simulacro y ambos Resultados.
+- **Fix banco**: condición muerta en `QuestionJsonlLoader` (`this == null` sobre receptor no nulo).
+
+### 5.11 Home renovado (rama actual `feat/home-visual`, pendiente de PR)
+- **Marca**: título bitono «Ruta UdeA» + logosímbolo vertical UdeA (`drawable-nodpi/logosimbolo_vertical.png`, reducido a 256px).
+- **Saludo personalizado**: `Saludo` (dominio puro, testeado) según momento del día (Buenos días 5–11 / Buenas tardes 12–18 / Buenas noches) + primer nombre del usuario (vía `AuthRepository.restoreSession()` en `HomeViewModel`); momento y nombre con estilos distintos, prompt «¿Qué quieres practicar hoy?» + descripción de la propuesta de valor.
+- **Hero de simulacro** en `primaryContainer` con insignia, tarjeta de racha en primaria oscura con mensaje motivacional y récord, secciones con insignias tonales.
+- **Tests**: `SaludoTest`, `HomeViewModelTest` actualizado.
+
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
 - **Secondary**: Blue Accent (#2196F3)
@@ -171,8 +195,17 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `PracticaSesionViewModelTest` - 7 tests pasan (feedback, bloqueo, navegación, SAH, restauración)
 - ✅ `PracticaFiltrosViewModelTest` - 5 tests pasan (subtemas por área, disponibles, iniciar)
 - ✅ `AnalizadorProgresoTest` - 9 tests pasan (evidencia mínima, orden, evolución, historial)
+- ✅ `ProgressMapperTest` - tests pasan (entidad ↔ dominio de caches)
+- ✅ `ProgresoViewModelTest` - tests pasan (dashboard, sync, racha)
 - ✅ `InfoViewModelTest` - 7 tests pasan (parseo, filtro por área, estructura del asset)
 - ✅ `BancoIntegridadTest` - 5 tests pasan (200 preguntas, sin frase repetida, 12 deshabilitadas exactas, cobertura simulacro, scraping truncado)
+- ✅ `SimulacroViewModelTest` - tests pasan (motor + 5 de pausa/persistencia)
+- ✅ `AnalizadorRachaTest` - 13 tests pasan (días consecutivos, idempotencia, vigencia, fusión local-nube)
+- ✅ `RachaMapperTest` - 4 tests pasan
+- ✅ `RachaRepositoryTest` - 10 tests pasan (registro, local-first, sync best-effort)
+- ✅ `HomeViewModelTest` - 3 tests pasan (racha vigente + saludo con nombre)
+- ✅ `ProgresoRachaTest` - 2 tests pasan (racha en dashboard de progreso)
+- ✅ `SaludoTest` - tests pasan (momentos del día, primer nombre, sin nombre)
 
 ### 8. Motor de selección de preguntas (100% completo)
 - **`QuestionSelector`** (`domain/services/QuestionSelector.kt`) — clase pura de dominio, testeable:
@@ -192,7 +225,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
 - ✅ `./gradlew installDebug` - **Instala en dispositivo físico**
-- ✅ Tests unitarios: `./gradlew test` - **PASAN (66 tests)**
+- ✅ `./gradlew test` - **PASAN (130 tests)**
 
 ---
 
@@ -244,27 +277,33 @@ app/src/main/java/com/udea/rutaudea/
 │   ├── AppModule.kt                   # provideQuestion/Auth/Simulation repositories
 │   └── ViewModelFactories.kt          # Splash/Simulacro/Resultado/Perfil factories
 ├── data/
-│   ├── local/                         # Room - COMPLETO
+│   ├── local/                         # Room (v3) - COMPLETO (questions + caches de progreso + racha)
 │   ├── mapper/                        # ✅
 │   ├── repository/
 │   │   ├── QuestionRepository.kt      # ✅ Banco local + updateBankFromFirestore()
 │   │   ├── AuthRepository.kt          # ✅ Firebase Auth + colección users
-│   │   ├── SimulationRepository.kt    # ✅ Guardado de simulacros en Firestore
-│   │   └── PracticeRepository.kt      # ✅ Guardado de sesiones de práctica (batch)
-│   └── source/local/                  # ✅ JsonL loader + Seeder (maneja JsonNull)
+│   │   ├── SimulationRepository.kt    # ✅ Guardado local-first (Room + Firestore)
+│   │   ├── PracticeRepository.kt      # ✅ Guardado local-first (Room + Firestore batch)
+│   │   ├── ProgressRepository.kt      # ✅ Dashboard offline-first + sync + racha
+│   │   └── RachaRepository.kt         # ✅ Racha diaria local-first + sync best-effort
+│   └── source/local/                  # ✅ JsonL loader + Seeder versionado (v4)
 ├── domain/
 │   ├── model/Question.kt              # ✅ Modelo dominio
 │   ├── model/User.kt                  # ✅ Modelo usuario (uid, nombre, correo, rol)
 │   ├── services/QuestionSelector.kt   # ✅ Motor de selección 80 preguntas (testeado)
 │   └── services/PracticeSelector.kt   # ✅ Estratificación proporcional de práctica (testeado)
+│   │   ├── services/AnalizadorRacha.kt    # ✅ Reglas de racha diaria (testeado)
+│   │   └── services/Saludo.kt             # ✅ Saludo por momento del día (testeado)
+│   │   ├── model/Racha.kt                 # ✅ Racha (actual, mejor, último día)
 ├── ui/
 │   ├── navigation/
 │   │   ├── AppNavHost.kt              # ✅ NavHost principal (10 destinos)
+│   │   ├── screen/common/               # ✅ PauseOverlay, BarraProgresoSesion, OpcionesPreguntaCard, ResumenScoreCard
 │   │   └── AppNavGraph.kt             # ✅ Rutas
 │   ├── screen/
 │   │   ├── splash/                    # ✅ Splash + ViewModel (poll DB seed + gate auth)
-│   │   ├── home/                      # ✅ Home + 5 tabs
-│   │   ├── simulacro/                 # ✅ 80 preguntas, timer 120 min
+│   │   ├── home/                      # ✅ Home renovado + HomeViewModel (saludo, racha, marca UdeA)
+│   │   ├── simulacro/                 # ✅ 80 preguntas, timer 120 min, overlay de pausa
 │   │   ├── resultado/                 # ✅ Resultado + ViewModel (lee SavedStateHandle previo)
 │   │   ├── perfil/                    # ✅ Login/Registro/Perfil (Firebase Auth)
 │   │   ├── practica/                  # ✅ Filtros + Sesión feedback + Resultado
@@ -278,7 +317,12 @@ app/src/main/java/com/udea/rutaudea/
 
 | Prioridad | Tarea | Esfuerzo |
 |-----------|-------|----------|
-| **P0** | PRs a `main`: `feat/practica` (en origin) → luego `feat/progreso` → `feat/info` (⚠️ deploy de `firestore.rules` incluido) | 30 min |
+| **P0** | PR a `main`: `feat/home-visual` (Home renovado) | 15 min |
+| ~~**P0**~~ | ~~PRs a `main`: `feat/practica` → `feat/progreso` → `feat/info`~~ | ✅ HECHO (PRs #4, #5, #6) |
+| ~~**P0**~~ | ~~Progreso offline-first (Room local-first + sync)~~ | ✅ HECHO (PR #8) |
+| ~~**P0**~~ | ~~Pausa con overlay al cambiar de app~~ | ✅ HECHO (PR #9) |
+| ~~**P0**~~ | ~~Layouts responsivos para rotación + componentes UI compartidos~~ | ✅ HECHO (PR #11) |
+| ~~**P1**~~ | ~~Racha diaria (gamificación inicial)~~ | ✅ HECHO (PR #12) |
 | ~~**P0**~~ | ~~Gate de login al inicio~~ | ✅ HECHO (en main vía PR #3) |
 | ~~**P0**~~ | ~~Eliminar código basura sin uso~~ | ✅ HECHO (ComingSoonScreen eliminado en feat/info) |
 | **P1** | Análisis por componente y dificultad en Progreso (por subtema ya está) | 3 horas |
@@ -323,6 +367,10 @@ app/src/main/java/com/udea/rutaudea/
 15. Tab 📈 Progreso → dashboard: nº simulacros/prácticas, promedio, mejor; gráfica de evolución (≥2 simulacros); áreas de mejora y fortalezas por subtema (solo con ≥3 respuestas); recomendaciones; historial unificado
 16. Sin actividad → Progreso muestra empty state con botones a Simulacro/Práctica
 17. Tab 📚 Info → chips RL/CL; 29 componentes en acordeón; expandir muestra descripción + "Cómo resolverlo" + "Errores comunes"
+18. Cambiar de app durante el simulacro → al volver, overlay de pausa a pantalla completa (Salir/Resumir); el cronómetro de 120 min siguió corriendo. En práctica, el reloj se congeló y se descuenta al resumir
+19. Rotar el dispositivo en Home/Simulacro/Resultados → todo el contenido sigue alcanzable con scroll; sin solapamientos
+20. Completar un simulacro o práctica → Home y Progreso muestran la racha (1 día); completar otro día consecutivo → racha +1; mismo día → sin cambios
+21. Home → marca «Ruta UdeA» + logosímbolo, saludo según la hora («Buenas tardes, <nombre>»), hero de simulacro y tarjeta de racha
 
 ---
 
@@ -360,7 +408,10 @@ app/src/main/java/com/udea/rutaudea/
 | Card doble/padding excesivo en texto de apoyo | `TextoApoyoCard` anidaba una Card con fondo dentro de la Card de pregunta (doble padding ~32dp, fuente 14sp) → reemplazado por `TextoApoyo` plano: etiqueta + texto 16sp, sin recuadro |
 | Detalle de resultados con recuadros anidados | Unificados ambos resultados (simulacro y práctica) en el componente compartido `RepasoPreguntaCard` (`ui/screen/common/`): Card tintada por estado (correcta/incorrecta/omitida) con contenido plano — encabezado, enunciado, texto de apoyo compacto, corrección, 💡 y 📚 — sin ningún cuadrado interno que duplique márgenes |
 | Home decía "Simulacro MVP / 5 min / 6 preguntas" | Texto obsoleto del MVP → "Simulacro / 120 min • 80 preguntas • 40 RL + 40 CL" |
+| Simulacro auto-finalizado por tiempo no se guardaba | Se perdía el resultado al llegar a 0:00 → ahora persiste en Room + Firestore antes de navegar a Resultado |
+| Rotación dejaba contenido inalcanzable | `Column` raíz no scrolleable + listas internas sin espacio en horizontal → Home en un único `LazyColumn`, resultados con raíz `LazyColumn`, Simulacro con `verticalScroll` (PR #11) |
+| Home no refrescaba la racha al volver | Guard de primera vez en `remember` de la UI (se destruye al navegar) → movido al ViewModel con `alReanudar()` en Home y Progreso |
 
 ---
 
-*Última actualización: 2026-10-03 - Rama `fix/ui-textos-notch-banco`: texto de apoyo legible (sin recuadro anidado, parametrizable en altura/fuente), detalle de resultados plano con enunciado por pregunta, fix notch edge-to-edge, limpieza del banco v4 (frase plantilla eliminada ×92, scraping de profe_alex_52 truncado, 12 RL rotas deshabilitadas, seeder v4), Home con datos reales del simulacro. Verificado: `test` (72 PASS) + `assembleDebug` BUILD SUCCESSFUL.*
+*Última actualización: 2026-10-12 - Rama `feat/home-visual`: progreso offline-first en main (PR #8), pausa con overlay en main (PR #9), refactor UI compartida + rotación en main (PR #11), racha diaria en main (PR #12), Home renovado pendiente de PR (marca, saludo personalizado, logosímbolo UdeA). Verificado: `test` (130 PASS) + `assembleDebug` BUILD SUCCESSFUL.*

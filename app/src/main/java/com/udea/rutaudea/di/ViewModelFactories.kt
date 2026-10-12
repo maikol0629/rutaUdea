@@ -26,11 +26,12 @@ import com.udea.rutaudea.ui.screen.splash.SplashViewModel
 object ViewModelFactories {
 
     class HomeFactory(
-        private val rachaRepository: RachaRepository
+        private val rachaRepository: RachaRepository,
+        private val authRepository: AuthRepository
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            HomeViewModel(rachaRepository) as T
+            HomeViewModel(rachaRepository, authRepository) as T
     }
 
     class SplashFactory(

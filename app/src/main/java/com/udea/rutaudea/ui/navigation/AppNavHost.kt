@@ -62,7 +62,10 @@ fun AppNavHost() {
 
         composable(AppNavGraph.HOME) {
             val homeViewModel: HomeViewModel = viewModel(
-                factory = ViewModelFactories.HomeFactory(rachaRepository)
+                factory = ViewModelFactories.HomeFactory(
+                    rachaRepository,
+                    AppModule.provideAuthRepository(app)
+                )
             )
             HomeScreen(
                 viewModel = homeViewModel,
