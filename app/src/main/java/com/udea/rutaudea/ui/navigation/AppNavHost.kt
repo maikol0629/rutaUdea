@@ -14,6 +14,8 @@ import com.google.gson.reflect.TypeToken
 import com.udea.rutaudea.di.AppModule
 import com.udea.rutaudea.di.ViewModelFactories
 import com.udea.rutaudea.ui.screen.home.HomeScreen
+import com.udea.rutaudea.ui.screen.encuesta.EncuestaScreen
+import com.udea.rutaudea.ui.screen.encuesta.EncuestaViewModel
 import com.udea.rutaudea.ui.screen.home.HomeViewModel
 import com.udea.rutaudea.ui.screen.info.InfoScreen
 import com.udea.rutaudea.ui.screen.info.InfoViewModel
@@ -64,7 +66,8 @@ fun AppNavHost() {
             val homeViewModel: HomeViewModel = viewModel(
                 factory = ViewModelFactories.HomeFactory(
                     rachaRepository,
-                    AppModule.provideAuthRepository(app)
+                    AppModule.provideAuthRepository(app),
+                    AppModule.provideEncuestaRepository(app)
                 )
             )
             HomeScreen(
@@ -73,7 +76,8 @@ fun AppNavHost() {
                 onPracticaClick = { navController.navigate(AppNavGraph.PRACTICA) },
                 onProgresoClick = { navController.navigate(AppNavGraph.PROGRESO) },
                 onInfoClick = { navController.navigate(AppNavGraph.INFO) },
-                onPerfilClick = { navController.navigate(AppNavGraph.PERFIL) }
+                onPerfilClick = { navController.navigate(AppNavGraph.PERFIL) },
+                onEncuestaClick = { navController.navigate(AppNavGraph.ENCUESTA) }
             )
         }
 
@@ -277,7 +281,20 @@ fun AppNavHost() {
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onEncuestaClick = { navController.navigate(AppNavGraph.ENCUESTA) }
+            )
+        }
+
+        composable(AppNavGraph.ENCUESTA) {
+            val encuestaViewModel: EncuestaViewModel = viewModel(
+                factory = ViewModelFactories.EncuestaFactory(
+                    AppModule.provideEncuestaRepository(app)
+                )
+            )
+            EncuestaScreen(
+                viewModel = encuestaViewModel,
+                onVolver = { navController.popBackStack() }
             )
         }
     }

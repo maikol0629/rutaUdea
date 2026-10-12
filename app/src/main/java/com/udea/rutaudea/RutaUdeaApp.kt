@@ -23,6 +23,9 @@ class RutaUdeaApp : Application() {
     /** Cache local de la racha de actividad del usuario. */
     val rachaDao by lazy { database.rachaDao() }
 
+    /** Cache local del cuestionario de satisfacción (prueba piloto). */
+    val encuestaDao by lazy { database.encuestaDao() }
+
     override fun onCreate() {
         super.onCreate()
         // Siembra el banco de preguntas local en la primera ejecución.

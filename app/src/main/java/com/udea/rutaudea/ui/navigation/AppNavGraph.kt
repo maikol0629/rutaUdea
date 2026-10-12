@@ -11,6 +11,7 @@ object AppNavGraph {
     const val PROGRESO = "progreso"
     const val INFO = "info"
     const val PERFIL = "perfil"
+    const val ENCUESTA = "encuesta"
 
     /** Ruta con argumento `gate` (true = pantalla usada como gate de login). */
     const val PERFIL_ARGS = "perfil?gate={gate}"

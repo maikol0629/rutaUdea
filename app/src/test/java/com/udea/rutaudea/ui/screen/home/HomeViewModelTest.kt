@@ -1,7 +1,9 @@
 package com.udea.rutaudea.ui.screen.home
 
 import com.udea.rutaudea.data.repository.AuthRepository
+import com.udea.rutaudea.data.repository.EncuestaRepository
 import com.udea.rutaudea.data.repository.RachaRepository
+import com.udea.rutaudea.domain.model.EncuestaSatisfaccion
 import com.udea.rutaudea.domain.model.Racha
 import com.udea.rutaudea.domain.model.User
 import io.mockk.coEvery
@@ -41,6 +43,14 @@ class HomeViewModelTest {
         coEvery { cargarVigente() } returns racha
     }
 
+    private fun encuestaRepository(respondio: Boolean = false): EncuestaRepository = mockk {
+        coEvery { cargar() } returns if (respondio) {
+            EncuestaSatisfaccion(tipoInstitucion = "Colegio")
+        } else {
+            null
+        }
+    }
+
     private fun authRepository(nombre: String? = null): AuthRepository = mockk {
         coEvery { restoreSession() } returns nombre?.let { User(uid = "u1", nombre = it) }
     }
@@ -50,7 +60,7 @@ class HomeViewModelTest {
         val racha = Racha(actual = 4, mejor = 9, ultimoDia = 20_000L, ultimaActividadMs = 1L)
         val repository = rachaRepository(racha)
 
-        val vm = HomeViewModel(repository, authRepository("Maikol"))
+        val vm = HomeViewModel(repository, authRepository("Maikol"), encuestaRepository())
 
         assertFalse(vm.uiState.value.cargando)
         assertEquals(4, vm.uiState.value.racha.actual)
@@ -60,7 +70,7 @@ class HomeViewModelTest {
 
     @Test
     fun `sin actividad la racha queda en cero`() = runTest {
-        val vm = HomeViewModel(rachaRepository(), authRepository("Maikol"))
+        val vm = HomeViewModel(rachaRepository(), authRepository("Maikol"), encuestaRepository())
 
         assertEquals(0, vm.uiState.value.racha.actual)
         assertEquals(0, vm.uiState.value.racha.mejor)
@@ -68,14 +78,14 @@ class HomeViewModelTest {
 
     @Test
     fun `el saludo incluye el primer nombre del usuario`() = runTest {
-        val vm = HomeViewModel(rachaRepository(), authRepository("Maikol Henao"))
+        val vm = HomeViewModel(rachaRepository(), authRepository("Maikol Henao"), encuestaRepository())
 
         assertEquals("Maikol", vm.uiState.value.saludo.nombre)
     }
 
     @Test
     fun `sin sesion el saludo no incluye ningun nombre`() = runTest {
-        val vm = HomeViewModel(rachaRepository(), authRepository(null))
+        val vm = HomeViewModel(rachaRepository(), authRepository(null), encuestaRepository())
 
         val momento = vm.uiState.value.saludo.momento
         assertTrue(
@@ -92,7 +102,7 @@ class HomeViewModelTest {
             coEvery { cargarVigente() } returnsMany listOf(Racha(actual = 1, mejor = 1), Racha(actual = 2, mejor = 2))
         }
 
-        val vm = HomeViewModel(repository, authRepository("Maikol"))
+        val vm = HomeViewModel(repository, authRepository("Maikol"), encuestaRepository())
         vm.cargar()
 
         assertEquals(2, vm.uiState.value.racha.actual)
@@ -100,15 +110,14 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `alReanudar omite la primera llamada y recarga en las siguientes`() = runTest {
-        val repository = mockk<RachaRepository> {
+    fun `alReanudar omite la primera llamada y recarga en las siguientes`() = runTest {        val repository = mockk<RachaRepository> {
             coEvery { cargarVigente() } returnsMany listOf(
                 Racha(actual = 1, mejor = 1),
                 Racha(actual = 2, mejor = 2)
             )
         }
 
-        val vm = HomeViewModel(repository, authRepository("Maikol"))
+        val vm = HomeViewModel(repository, authRepository("Maikol"), encuestaRepository())
         // init ya cargó una vez; la primera reanudación (entrada inicial)
         // no debe recargar.
         vm.alReanudar()
@@ -118,5 +127,23 @@ class HomeViewModelTest {
         vm.alReanudar()
         assertEquals(2, vm.uiState.value.racha.actual)
         coVerify(exactly = 2) { repository.cargarVigente() }
+    }
+
+    @Test
+    fun `expone si la encuesta piloto ya fue respondida`() = runTest {
+        val vm = HomeViewModel(
+            rachaRepository(),
+            authRepository("Maikol"),
+            encuestaRepository(respondio = true)
+        )
+
+        assertTrue(vm.uiState.value.encuestaRespondida)
+    }
+
+    @Test
+    fun `sin respuesta la encuesta figura como pendiente`() = runTest {
+        val vm = HomeViewModel(rachaRepository(), authRepository("Maikol"), encuestaRepository())
+
+        assertFalse(vm.uiState.value.encuestaRespondida)
     }
 }
