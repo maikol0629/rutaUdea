@@ -26,7 +26,7 @@ class HomeViewModel(
     data class UiState(
         val cargando: Boolean = true,
         val racha: Racha = Racha(),
-        val saludo: String = ""
+        val saludo: Saludo.Encabezado = Saludo.Encabezado(momento = "", nombre = "")
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -53,7 +53,7 @@ class HomeViewModel(
             _uiState.value = UiState(
                 cargando = false,
                 racha = racha,
-                saludo = Saludo.encabezado(nombre, hora)
+                saludo = Saludo.partes(nombre, hora)
             )
         }
     }

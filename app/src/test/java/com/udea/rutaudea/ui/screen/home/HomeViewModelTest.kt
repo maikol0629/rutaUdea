@@ -70,20 +70,20 @@ class HomeViewModelTest {
     fun `el saludo incluye el primer nombre del usuario`() = runTest {
         val vm = HomeViewModel(rachaRepository(), authRepository("Maikol Henao"))
 
-        assertTrue(vm.uiState.value.saludo.contains("Maikol"))
-        assertFalse(vm.uiState.value.saludo.contains("Henao"))
+        assertEquals("Maikol", vm.uiState.value.saludo.nombre)
     }
 
     @Test
     fun `sin sesion el saludo no incluye ningun nombre`() = runTest {
         val vm = HomeViewModel(rachaRepository(), authRepository(null))
 
-        val saludo = vm.uiState.value.saludo
+        val momento = vm.uiState.value.saludo.momento
         assertTrue(
-            saludo.startsWith("Buenos días") ||
-                saludo.startsWith("Buenas tardes") ||
-                saludo.startsWith("Buenas noches")
+            momento == "Buenos días" ||
+                momento == "Buenas tardes" ||
+                momento == "Buenas noches"
         )
+        assertEquals("", vm.uiState.value.saludo.nombre)
     }
 
     @Test

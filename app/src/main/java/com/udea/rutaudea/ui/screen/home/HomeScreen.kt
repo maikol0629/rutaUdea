@@ -1,5 +1,6 @@
 package com.udea.rutaudea.ui.screen.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,10 +8,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,13 +28,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.udea.rutaudea.R
 import com.udea.rutaudea.domain.model.Racha
+import com.udea.rutaudea.domain.services.Saludo
 import com.udea.rutaudea.ui.theme.RutaUdeaTheme
 
 @Composable
@@ -66,7 +76,7 @@ fun HomeScreen(
 
 @Composable
 private fun HomeContenido(
-    saludo: String,
+    saludo: Saludo.Encabezado,
     racha: Racha,
     onSimulacroClick: () -> Unit,
     onPracticaClick: () -> Unit,
@@ -81,34 +91,12 @@ private fun HomeContenido(
         contentPadding = PaddingValues(vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Encabezado: saludo personalizado + marca + propuesta de valor.
+        // Encabezado: marca con logo, saludo personalizado y propuesta de valor.
         item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                if (saludo.isNotBlank()) {
-                    Text(
-                        text = "$saludo 👋",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Text(
-                    text = "Ruta UdeA",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Prepárate para el examen de admisión con simulacros " +
-                        "completos, práctica por tema y seguimiento de tu progreso.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            EncabezadoHome(
+                saludo = saludo,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
         }
 
         // Racha de actividad
@@ -134,17 +122,39 @@ private fun HomeContenido(
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "Examen real · 120 min",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                    )
-                    Text(
-                        text = "Simulacro completo",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Examen real · 120 min",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                            Text(
+                                text = "Simulacro completo",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = CircleShape
+                        ) {
+                            Box(
+                                modifier = Modifier.size(56.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = "🧪", fontSize = 28.sp)
+                            }
+                        }
+                    }
                     Text(
                         text = "80 preguntas · 40 de razonamiento lógico + 40 de competencia lectora",
                         style = MaterialTheme.typography.bodyMedium,
@@ -213,6 +223,89 @@ private fun HomeContenido(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun EncabezadoHome(saludo: Saludo.Encabezado, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // Barra de marca: título a un lado y logosímbolo al opuesto.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(
+                            style = SpanStyle(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold
+                            )
+                        ) {
+                            append("Ruta ")
+                        }
+                        withStyle(
+                            style = SpanStyle(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        ) {
+                            append("UdeA")
+                        }
+                    },
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = "Examen de admisión",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Image(
+                painter = painterResource(R.drawable.logosimbolo_vertical),
+                contentDescription = "Logosímbolo de la Universidad de Antioquia",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.height(64.dp)
+            )
+        }
+
+        // Saludo hero: momento del día y nombre en grande.
+        if (saludo.momento.isNotBlank()) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (saludo.nombre.isNotBlank()) {
+                    Text(
+                        text = "${saludo.momento},",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = saludo.nombre,
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                } else {
+                    Text(
+                        text = saludo.momento,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = "Simulacros completos, práctica por tema y seguimiento " +
+                "de tu progreso para llegar listo al examen.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -309,7 +402,7 @@ private data class SectionItem(
 private fun HomeScreenPreview() {
     RutaUdeaTheme {
         HomeContenido(
-            saludo = "Buenas tardes, Maikol",
+            saludo = Saludo.Encabezado(momento = "Buenas tardes", nombre = "Maikol"),
             racha = Racha(actual = 4, mejor = 9),
             onSimulacroClick = {},
             onPracticaClick = {},

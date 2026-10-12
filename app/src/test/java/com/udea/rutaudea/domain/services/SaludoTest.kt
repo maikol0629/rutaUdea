@@ -38,4 +38,20 @@ class SaludoTest {
         assertEquals("Buenas tardes", Saludo.encabezado("", 15))
         assertEquals("Buenas noches", Saludo.encabezado("   ", 22))
     }
+
+    @Test
+    fun `partes separa momento y primer nombre`() {
+        assertEquals(
+            Saludo.Encabezado(momento = "Buenas tardes", nombre = "Maikol"),
+            Saludo.partes("Maikol Henao", 15)
+        )
+    }
+
+    @Test
+    fun `partes sin nombre deja el nombre vacio`() {
+        assertEquals(
+            Saludo.Encabezado(momento = "Buenos días", nombre = ""),
+            Saludo.partes(null, 9)
+        )
+    }
 }
