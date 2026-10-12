@@ -82,7 +82,13 @@ fun AppNavHost() {
         }
 
         composable(AppNavGraph.SIMULACRO) {
-            val backStackEntry = navController.getBackStackEntry(AppNavGraph.SIMULACRO)
+            // Lectura única con remember (igual que RESULTADO y PRÁCTICA):
+            // durante la animación de salida la entrada ya está popeada y
+            // re-evaluar getBackStackEntry lanzaría IllegalArgumentException
+            // (cierre instantáneo al pulsar Salir en la pausa).
+            val backStackEntry = remember {
+                navController.getBackStackEntry(AppNavGraph.SIMULACRO)
+            }
             val savedStateHandle = backStackEntry.savedStateHandle
             val simulacroViewModel: SimulacroViewModel = viewModel(
                 factory = ViewModelFactories.SimulacroFactory(
