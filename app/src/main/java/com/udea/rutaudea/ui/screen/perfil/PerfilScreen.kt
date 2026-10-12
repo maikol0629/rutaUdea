@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -44,6 +45,14 @@ fun PerfilScreen(
     onEncuestaClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    // Recarga al volver a la pantalla (por ejemplo, tras responder la
+    // encuesta): la entrada del back stack se conserva y el init no se
+    // repite, así que el estado quedaría desactualizado.
+    LifecycleResumeEffect(Unit) {
+        viewModel.recargar()
+        onPauseOrDispose { }
+    }
 
     // Eventos de navegación del gate de autenticación.
     LaunchedEffect(Unit) {
@@ -71,6 +80,7 @@ fun PerfilScreen(
                 correo = state.user!!.correo,
                 rol = state.user!!.rol,
                 esGate = esGate,
+                encuestaRespondida = state.encuestaRespondida,
                 onLogout = { viewModel.logout() },
                 onBack = onBack,
                 onEncuestaClick = onEncuestaClick
@@ -214,6 +224,7 @@ private fun PerfilLogueado(
     correo: String,
     rol: String,
     esGate: Boolean,
+    encuestaRespondida: Boolean,
     onLogout: () -> Unit,
     onBack: () -> Unit,
     onEncuestaClick: () -> Unit
@@ -298,7 +309,7 @@ private fun PerfilLogueado(
                 )
             ) {
                 Text(
-                    text = "🎓",
+                    text = if (encuestaRespondida) "✅" else "🎓",
                     fontSize = 28.sp,
                     modifier = Modifier.padding(10.dp)
                 )
@@ -314,13 +325,14 @@ private fun PerfilLogueado(
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
                 )
                 Text(
-                    text = "Tu opinión cuenta",
+                    text = if (encuestaRespondida) "¡Gracias por tu opinión!" else "Tu opinión cuenta",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
                 Text(
-                    text = "Encuesta de satisfacción · 2 min",
+                    text = if (encuestaRespondida) "Toca para actualizar tus respuestas"
+                    else "Encuesta de satisfacción · 2 min",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                 )
@@ -332,7 +344,10 @@ private fun PerfilLogueado(
                 .fillMaxWidth()
                 .padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
         ) {
-            Text("Responder encuesta", fontWeight = FontWeight.SemiBold)
+            Text(
+                text = if (encuestaRespondida) "Actualizar respuestas" else "Responder encuesta",
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
     }

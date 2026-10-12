@@ -264,7 +264,10 @@ fun AppNavHost() {
             val esGate = entry.arguments?.getBoolean("gate") ?: false
             val authRepository = AppModule.provideAuthRepository(app)
             val perfilViewModel: PerfilViewModel = viewModel(
-                factory = ViewModelFactories.PerfilFactory(authRepository)
+                factory = ViewModelFactories.PerfilFactory(
+                    authRepository,
+                    AppModule.provideEncuestaRepository(app)
+                )
             )
             PerfilScreen(
                 viewModel = perfilViewModel,

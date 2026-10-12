@@ -89,6 +89,23 @@ private fun EncuestaContenido(
     onSeguirEditando: () -> Unit,
     onVolver: () -> Unit
 ) {
+    // Tras enviar, el agradecimiento ocupa la pantalla y queda centrado
+    // (vertical y horizontal), en vez de un item más de la lista.
+    if (enviada && !cargando) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            AgradecimientoCard(
+                sincronizada = sincronizada,
+                yaRespondio = yaRespondio,
+                onSeguirEditando = onSeguirEditando,
+                onVolver = onVolver,
+                modifier = Modifier.padding(24.dp)
+            )
+        }
+        return
+    }
     // Raíz scrolleable única (igual que el resto de la app): en horizontal
     // todo el contenido sigue alcanzable sin solapamientos.
     LazyColumn(
@@ -113,16 +130,6 @@ private fun EncuestaContenido(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-            }
-
-            enviada -> item {
-                AgradecimientoCard(
-                    sincronizada = sincronizada,
-                    yaRespondio = yaRespondio,
-                    onSeguirEditando = onSeguirEditando,
-                    onVolver = onVolver,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
             }
 
             else -> {

@@ -526,11 +526,17 @@ private fun EncuestaHomeCard(
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                 )
             }
-            if (!respondida) {
-                Button(onClick = onClick) {
-                    Text("Responder", fontWeight = FontWeight.SemiBold)
-                }
-            }
+        }
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
+        ) {
+            Text(
+                text = if (respondida) "Actualizar respuestas" else "Responder",
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

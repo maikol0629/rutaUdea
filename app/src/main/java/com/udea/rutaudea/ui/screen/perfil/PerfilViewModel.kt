@@ -3,6 +3,7 @@ package com.udea.rutaudea.ui.screen.perfil
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.udea.rutaudea.data.repository.AuthRepository
+import com.udea.rutaudea.data.repository.EncuestaRepository
 import com.udea.rutaudea.domain.model.User
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class PerfilViewModel(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val encuestaRepository: EncuestaRepository
 ) : ViewModel() {
 
     /** Eventos de navegación derivados de la autenticación. */
@@ -34,7 +36,9 @@ class PerfilViewModel(
         val correo: String = "",
         val password: String = "",
         val error: String? = null,
-        val isSubmitting: Boolean = false
+        val isSubmitting: Boolean = false,
+        /** `true` si el usuario ya respondió la encuesta piloto. */
+        val encuestaRespondida: Boolean = false
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -50,8 +54,27 @@ class PerfilViewModel(
     private fun restoreSession() {
         viewModelScope.launch {
             val user = authRepository.restoreSession()
-            _uiState.update { it.copy(isLoading = false, user = user) }
+            val respondida = if (user != null) {
+                try {
+                    encuestaRepository.cargar() != null
+                } catch (e: Exception) {
+                    false
+                }
+            } else {
+                false
+            }
+            _uiState.update {
+                it.copy(isLoading = false, user = user, encuestaRespondida = respondida)
+            }
         }
+    }
+
+    /**
+     * Recarga la sesión y el estado de la encuesta (por ejemplo, al volver
+     * de responderla).
+     */
+    fun recargar() {
+        restoreSession()
     }
 
     fun onNombreChange(nombre: String) =

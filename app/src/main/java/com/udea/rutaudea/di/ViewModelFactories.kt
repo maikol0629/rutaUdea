@@ -74,9 +74,13 @@ object ViewModelFactories {
             ) as T
     }
 
-    class PerfilFactory(private val authRepository: AuthRepository) : ViewModelProvider.Factory {
+    class PerfilFactory(
+        private val authRepository: AuthRepository,
+        private val encuestaRepository: EncuestaRepository
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = PerfilViewModel(authRepository) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            PerfilViewModel(authRepository, encuestaRepository) as T
     }
 
     class PracticaFiltrosFactory(
