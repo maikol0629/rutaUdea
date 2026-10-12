@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -145,7 +146,7 @@ private fun HomeContenido(
                         }
                         Surface(
                             color = MaterialTheme.colorScheme.primary,
-                            shape = CircleShape
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Box(
                                 modifier = Modifier.size(56.dp),
@@ -258,11 +259,11 @@ private fun EncabezadoHome(saludo: Saludo.Encabezado, modifier: Modifier = Modif
                             append("UdeA")
                         }
                     },
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.displaySmall
                 )
                 Text(
                     text = "Examen de admisión",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -270,42 +271,88 @@ private fun EncabezadoHome(saludo: Saludo.Encabezado, modifier: Modifier = Modif
                 painter = painterResource(R.drawable.logosimbolo_vertical),
                 contentDescription = "Logosímbolo de la Universidad de Antioquia",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.height(64.dp)
+                modifier = Modifier.height(80.dp)
             )
         }
 
-        // Saludo hero: momento del día y nombre en grande.
-        if (saludo.momento.isNotBlank()) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (saludo.nombre.isNotBlank()) {
-                    Text(
-                        text = "${saludo.momento},",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = saludo.nombre,
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                } else {
-                    Text(
-                        text = saludo.momento,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
+        // Saludo en una línea con avatar a la derecha.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = saludoLinea(saludo),
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 1,
+                modifier = Modifier.weight(1f)
+            )
+            AvatarInicial(nombre = saludo.nombre)
         }
 
+        Text(
+            text = "¿Qué quieres practicar hoy?",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
         Text(
             text = "Simulacros completos, práctica por tema y seguimiento " +
                 "de tu progreso para llegar listo al examen.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun saludoLinea(saludo: Saludo.Encabezado): AnnotatedString = buildAnnotatedString {
+    if (saludo.nombre.isBlank()) {
+        withStyle(
+            style = SpanStyle(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            )
+        ) {
+            append(saludo.momento.ifBlank { "Hola" })
+        }
+    } else {
+        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+            append("${saludo.momento}, ")
+        }
+        withStyle(
+            style = SpanStyle(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            )
+        ) {
+            append(saludo.nombre)
+        }
+    }
+}
+
+@Composable
+private fun AvatarInicial(nombre: String, modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = CircleShape,
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier.size(52.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (nombre.isNotBlank()) {
+                Text(
+                    text = nombre.first().uppercase(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            } else {
+                Text(text = "👤", fontSize = 24.sp)
+            }
+        }
     }
 }
 
@@ -340,48 +387,72 @@ private fun RachaHomeCard(racha: Racha, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = MaterialTheme.colorScheme.primary
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "🔥", fontSize = 34.sp)
+            Surface(
+                color = Color.White.copy(alpha = 0.15f),
+                shape = CircleShape
+            ) {
+                Box(
+                    modifier = Modifier.size(56.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "🔥", fontSize = 30.sp)
+                }
+            }
             Column(
                 modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Racha de estudio",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = if (activa) "${racha.actual} ${pluralDias(racha.actual)}" else "Sin racha",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Text(
+                    text = mensajeRacha(racha),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                )
+            }
+            Column(
+                horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "Tu racha",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                )
-                Text(
-                    text = if (activa) "${racha.actual} ${pluralDias(racha.actual)}" else "0 días",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "Mejor",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                    text = "Récord",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                 )
                 Text(
                     text = "${racha.mejor}",
-                    fontSize = 20.sp,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
     }
+}
+
+private fun mensajeRacha(racha: Racha): String = when {
+    racha.actual > 0 -> "¡Vas bien! Practica hoy para mantenerla viva."
+    racha.mejor > 0 -> "Retoma hoy y empieza una nueva racha."
+    else -> "Completa tu primera actividad para encenderla."
 }
 
 private fun pluralDias(dias: Int): String = if (dias == 1) "día" else "días"
