@@ -80,3 +80,5 @@ coverage/
 keystore.properties
 signing.properties
 local.properties
+# --- Firebase local ---
+.firebaserc

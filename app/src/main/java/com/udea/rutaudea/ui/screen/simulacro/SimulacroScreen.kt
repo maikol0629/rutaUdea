@@ -17,6 +17,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,6 +44,11 @@ fun SimulacroScreen(
 ) {
     val uiState: SimulacroState = viewModel.uiState.collectAsStateWithLifecycle().value
 
+    // Si el usuario abandona desde la pausa, la navegación a Resultado por
+    // tiempo agotado debe ignorarse: la entrada ya está saliendo de la pila
+    // y navegar contra ella cierra la app.
+    var salio by remember { mutableStateOf(false) }
+
     // Pausa al cambiar de app (solo background real, no rotación).
     AppBackgroundEffect(
         onBackground = { viewModel.onAppBackgrounded() },
@@ -53,7 +62,7 @@ fun SimulacroScreen(
 
     // Navigate to RESULTADO when simulation finishes
     LaunchedEffect(uiState) {
-        if (uiState.isFinished) {
+        if (uiState.isFinished && !salio) {
             onFinish?.invoke()
         }
     }
@@ -70,7 +79,11 @@ fun SimulacroScreen(
             PauseOverlay(
                 titulo = "Simulacro en pausa",
                 mensaje = "Tu tiempo sigue corriendo: ${formatTime(uiState.timeRemainingSeconds)} restantes.\n¿Qué deseas hacer?",
-                onSalir = onAbandon,
+                onSalir = {
+                    salio = true
+                    viewModel.onAbandonar()
+                    onAbandon()
+                },
                 onResumir = { viewModel.onResumeConfirmed() }
             )
         }

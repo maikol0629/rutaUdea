@@ -4,6 +4,7 @@ import android.app.Application
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.udea.rutaudea.data.repository.AuthRepository
+import com.udea.rutaudea.data.repository.EncuestaRepository
 import com.udea.rutaudea.data.repository.PracticeRepository
 import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
@@ -58,6 +59,14 @@ object AppModule {
             auth = FirebaseAuth.getInstance(),
             firestore = FirebaseFirestore.getInstance(),
             rachaDao = (app as RutaUdeaApp).rachaDao
+        )
+    }
+
+    fun provideEncuestaRepository(app: Application): EncuestaRepository {
+        return EncuestaRepository(
+            auth = FirebaseAuth.getInstance(),
+            firestore = FirebaseFirestore.getInstance(),
+            encuestaDao = (app as RutaUdeaApp).encuestaDao
         )
     }
 

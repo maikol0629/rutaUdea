@@ -3,7 +3,7 @@
 ## Resumen General
 El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP + Firebase.
 
-**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO + MEJORAS POST-MVP** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); login/registro obligatorio, motor de 80 preguntas, práctica con feedback inmediato, dashboard de progreso offline-first con analítica, contenido educativo por componente, pausa con overlay al cambiar de app, racha diaria de actividad y Home renovado (marca, saludo personalizado, logosímbolo UdeA). Build SUCCESS, tests PASS (130).
+**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO + MEJORAS POST-MVP** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); login/registro obligatorio, motor de 80 preguntas, práctica con feedback inmediato, dashboard de progreso offline-first con analítica, contenido educativo por componente, pausa con overlay al cambiar de app, racha diaria de actividad, Home renovado y cuestionario de satisfacción para la prueba piloto (Room local-first + sync Firestore). Build SUCCESS, tests PASS (152).
 
 ## 🌿 Ramas
 | Rama | Estado | Contenido |
@@ -20,7 +20,8 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | `feat/pausa-persistencia-sesion` | ✅ En main (PR #9) | Overlay de pausa al cambiar de app (Simulacro + Práctica), persistencia en SavedStateHandle |
 | `rotacion-ui-warning` | ✅ En main (PR #11) | Layouts scrollables/responsivos para rotación, componentes UI compartidos, fix warnings |
 | `feat/racha-usuario` | ✅ En main (PR #12) | Racha diaria de actividad por usuario (Room + sync Firebase), tarjeta en Home y Progreso |
-| `feat/home-visual` | 🔨 Rama actual | Home renovado: marca bitono + logosímbolo UdeA, saludo personalizado por momento del día, hero de simulacro, tarjeta de racha |
+| `feat/home-visual` | ✅ En origin | Home renovado: marca bitono + logosímbolo UdeA, saludo personalizado por momento del día, hero de simulacro, tarjeta de racha |
+| `feat/encuesta-satisfaccion` | 🔨 Rama actual | Cuestionario de satisfacción de la prueba piloto ( Room local-first + sync Firestore, accesos en Home y Perfil) |
 
 ---
 
@@ -179,6 +180,14 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Hero de simulacro** en `primaryContainer` con insignia, tarjeta de racha en primaria oscura con mensaje motivacional y récord, secciones con insignias tonales.
 - **Tests**: `SaludoTest`, `HomeViewModelTest` actualizado.
 
+### 5.12 Cuestionario de satisfacción piloto (rama actual `feat/encuesta-satisfaccion`)
+- **Cuestionario** (ruta `encuesta`, respuesta única por usuario): A. Datos — tipo de institución (Colegio/Universidad/Otra), nombre de la institución, grado (colegio) o semestre (universidad, desplegable condicional) y si ya presentó el examen real; B. Satisfacción por módulo (Simulacro/Práctica/Progreso/Info, Likert 1–5 con emojis); C. Calidad de las preguntas (claridad RL, claridad CL, dificultad adecuada); D. Global (facilidad de uso + NPS 0–10); E. Abiertas opcionales (lo que más gustó / qué mejorar).
+- **Accesos llamativos**: tarjeta «🎓 Tu opinión cuenta» al final del Home (con estado pendiente/completada) + sección «Prueba piloto» en el Perfil debajo de los datos del usuario.
+- **Persistencia local-first** (patrón racha): Room `encuestas_cache` (migración 3→4, `EncuestaDao` + `EncuestaMapper`) y `EncuestaRepository` (upsert local + subida best-effort a `encuestasSatisfaccion/{uid}`, un doc por usuario para el análisis; reintento de pendientes; precarga local→nube para actualizar respuestas).
+- **UI atractiva y horizontal**: encabezado con barra de avance (14 pasos), 4 secciones en cards con insignias tonales, Likert con caritas seleccionables, NPS 0–10 en `FlowRow`, desplegables M3, errores en card, agradecimiento con estado de sincronización (☁️/⏳). Raíz `LazyColumn` + `@Preview` vertical/horizontal.
+- **Reglas Firestore**: colección `encuestasSatisfaccion` (dueño escribe/lee, admin lee todo).
+- **Tests**: `EncuestaSatisfaccionTest` (7), `EncuestaRepositoryTest` (7), `EncuestaViewModelTest` (6), `HomeViewModelTest` +2 (estado de encuesta).
+
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
 - **Secondary**: Blue Accent (#2196F3)
@@ -206,6 +215,9 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `HomeViewModelTest` - 3 tests pasan (racha vigente + saludo con nombre)
 - ✅ `ProgresoRachaTest` - 2 tests pasan (racha en dashboard de progreso)
 - ✅ `SaludoTest` - tests pasan (momentos del día, primer nombre, sin nombre)
+- ✅ `EncuestaSatisfaccionTest` - 7 tests pasan (validez, grado/semestre condicional, abiertas opcionales, rangos)
+- ✅ `EncuestaRepositoryTest` - 7 tests pasan (local-first sin red, pendiente, validación, sin sesión, sync)
+- ✅ `EncuestaViewModelTest` - 6 tests pasan (precarga, validación, envío, sync pendiente, limpieza de errores)
 
 ### 8. Motor de selección de preguntas (100% completo)
 - **`QuestionSelector`** (`domain/services/QuestionSelector.kt`) — clase pura de dominio, testeable:
@@ -225,7 +237,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
 - ✅ `./gradlew installDebug` - **Instala en dispositivo físico**
-- ✅ `./gradlew test` - **PASAN (130 tests)**
+- ✅ `./gradlew test` - **PASAN (152 tests)**
 
 ---
 
@@ -286,6 +298,7 @@ app/src/main/java/com/udea/rutaudea/
 │   │   ├── PracticeRepository.kt      # ✅ Guardado local-first (Room + Firestore batch)
 │   │   ├── ProgressRepository.kt      # ✅ Dashboard offline-first + sync + racha
 │   │   └── RachaRepository.kt         # ✅ Racha diaria local-first + sync best-effort
+│   │   └── EncuestaRepository.kt      # ✅ Encuesta piloto local-first + sync best-effort
 │   └── source/local/                  # ✅ JsonL loader + Seeder versionado (v4)
 ├── domain/
 │   ├── model/Question.kt              # ✅ Modelo dominio
@@ -295,6 +308,7 @@ app/src/main/java/com/udea/rutaudea/
 │   │   ├── services/AnalizadorRacha.kt    # ✅ Reglas de racha diaria (testeado)
 │   │   └── services/Saludo.kt             # ✅ Saludo por momento del día (testeado)
 │   │   ├── model/Racha.kt                 # ✅ Racha (actual, mejor, último día)
+│   │   ├── model/EncuestaSatisfaccion.kt  # ✅ Cuestionario piloto + validación (testeado)
 ├── ui/
 │   ├── navigation/
 │   │   ├── AppNavHost.kt              # ✅ NavHost principal (10 destinos)
@@ -317,7 +331,7 @@ app/src/main/java/com/udea/rutaudea/
 
 | Prioridad | Tarea | Esfuerzo |
 |-----------|-------|----------|
-| **P0** | PR a `main`: `feat/home-visual` (Home renovado) | 15 min |
+| **P0** | PR a `main`: `feat/home-visual` (Home renovado) + `feat/encuesta-satisfaccion` (cuestionario piloto) | 30 min |
 | ~~**P0**~~ | ~~PRs a `main`: `feat/practica` → `feat/progreso` → `feat/info`~~ | ✅ HECHO (PRs #4, #5, #6) |
 | ~~**P0**~~ | ~~Progreso offline-first (Room local-first + sync)~~ | ✅ HECHO (PR #8) |
 | ~~**P0**~~ | ~~Pausa con overlay al cambiar de app~~ | ✅ HECHO (PR #9) |
@@ -371,6 +385,9 @@ app/src/main/java/com/udea/rutaudea/
 19. Rotar el dispositivo en Home/Simulacro/Resultados → todo el contenido sigue alcanzable con scroll; sin solapamientos
 20. Completar un simulacro o práctica → Home y Progreso muestran la racha (1 día); completar otro día consecutivo → racha +1; mismo día → sin cambios
 21. Home → marca «Ruta UdeA» + logosímbolo, saludo según la hora («Buenas tardes, <nombre>»), hero de simulacro y tarjeta de racha
+22. Final del Home → tarjeta «🎓 Tu opinión cuenta» → encuesta piloto (datos → módulos → preguntas → opinión, barra de avance, caritas Likert, NPS); enviar sin red → «pendiente de sincronizar»
+23. Tab 👤 Perfil → sección «Prueba piloto» debajo de los datos → misma encuesta; si ya respondió, precarga para actualizar
+24. Firestore → colección `encuestasSatisfaccion/{uid}` con un documento por usuario para el análisis
 
 ---
 
@@ -414,4 +431,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-10-12 - Rama `feat/home-visual`: progreso offline-first en main (PR #8), pausa con overlay en main (PR #9), refactor UI compartida + rotación en main (PR #11), racha diaria en main (PR #12), Home renovado pendiente de PR (marca, saludo personalizado, logosímbolo UdeA). Verificado: `test` (130 PASS) + `assembleDebug` BUILD SUCCESSFUL.*
+*Última actualización: 2026-10-12 - Rama `feat/encuesta-satisfaccion`: cuestionario de satisfacción para la prueba piloto (datos + Likert por módulo + claridad RL/CL + NPS, accesos en Home y Perfil, Room local-first + sync a `encuestasSatisfaccion/{uid}`, UI con avance y soporte horizontal). Verificado: `test` + `assembleDebug` BUILD SUCCESSFUL (152 tests PASS).*

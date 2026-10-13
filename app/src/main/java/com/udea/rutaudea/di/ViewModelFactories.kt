@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.udea.rutaudea.data.repository.AuthRepository
+import com.udea.rutaudea.data.repository.EncuestaRepository
 import com.udea.rutaudea.data.repository.PracticeRepository
 import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
@@ -12,6 +13,7 @@ import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.domain.services.PracticeSelector
 import com.udea.rutaudea.domain.services.QuestionSelector
+import com.udea.rutaudea.ui.screen.encuesta.EncuestaViewModel
 import com.udea.rutaudea.ui.screen.home.HomeViewModel
 import com.udea.rutaudea.ui.screen.info.InfoViewModel
 import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
@@ -27,11 +29,12 @@ object ViewModelFactories {
 
     class HomeFactory(
         private val rachaRepository: RachaRepository,
-        private val authRepository: AuthRepository
+        private val authRepository: AuthRepository,
+        private val encuestaRepository: EncuestaRepository
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            HomeViewModel(rachaRepository, authRepository) as T
+            HomeViewModel(rachaRepository, authRepository, encuestaRepository) as T
     }
 
     class SplashFactory(
@@ -71,9 +74,13 @@ object ViewModelFactories {
             ) as T
     }
 
-    class PerfilFactory(private val authRepository: AuthRepository) : ViewModelProvider.Factory {
+    class PerfilFactory(
+        private val authRepository: AuthRepository,
+        private val encuestaRepository: EncuestaRepository
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = PerfilViewModel(authRepository) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            PerfilViewModel(authRepository, encuestaRepository) as T
     }
 
     class PracticaFiltrosFactory(
@@ -128,5 +135,13 @@ object ViewModelFactories {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             InfoViewModel(app) as T
+    }
+
+    class EncuestaFactory(
+        private val repository: EncuestaRepository
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            EncuestaViewModel(repository) as T
     }
 }

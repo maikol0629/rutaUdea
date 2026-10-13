@@ -6,9 +6,11 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.udea.rutaudea.data.local.dao.EncuestaDao
 import com.udea.rutaudea.data.local.dao.ProgressDao
 import com.udea.rutaudea.data.local.dao.QuestionDao
 import com.udea.rutaudea.data.local.dao.RachaDao
+import com.udea.rutaudea.data.local.entity.EncuestaEntity
 import com.udea.rutaudea.data.local.entity.PracticeQuestionEntity
 import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
 import com.udea.rutaudea.data.local.entity.QuestionEntity
@@ -31,9 +33,10 @@ import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
         PracticeSummaryEntity::class,
         SimulationQuestionEntity::class,
         PracticeQuestionEntity::class,
-        RachaEntity::class
+        RachaEntity::class,
+        EncuestaEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class RutaUdeaDatabase : RoomDatabase() {
@@ -43,6 +46,8 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
     abstract fun progressDao(): ProgressDao
 
     abstract fun rachaDao(): RachaDao
+
+    abstract fun encuestaDao(): EncuestaDao
 
     companion object {
         @Volatile
@@ -171,6 +176,41 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v3 → v4: agrega la tabla de cache del cuestionario de satisfacción
+         * de la prueba piloto. No borra ningún dato existente.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `encuestas_cache` (
+                        `uid` TEXT NOT NULL,
+                        `fecha_ms` INTEGER NOT NULL,
+                        `tipo_institucion` TEXT NOT NULL,
+                        `nombre_institucion` TEXT NOT NULL,
+                        `grado` TEXT NOT NULL,
+                        `semestre` TEXT NOT NULL,
+                        `presento_examen` INTEGER,
+                        `likert_simulacro` INTEGER NOT NULL,
+                        `likert_practica` INTEGER NOT NULL,
+                        `likert_progreso` INTEGER NOT NULL,
+                        `likert_info` INTEGER NOT NULL,
+                        `claridad_rl` INTEGER NOT NULL,
+                        `claridad_cl` INTEGER NOT NULL,
+                        `dificultad_adecuada` INTEGER NOT NULL,
+                        `facilidad_uso` INTEGER NOT NULL,
+                        `nps` INTEGER NOT NULL,
+                        `gusto_mas` TEXT NOT NULL,
+                        `mejorar` TEXT NOT NULL,
+                        `synced` INTEGER NOT NULL,
+                        PRIMARY KEY(`uid`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun getInstance(context: Context): RutaUdeaDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -178,7 +218,7 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
                     RutaUdeaDatabase::class.java,
                     "rutaudea.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }

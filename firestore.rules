@@ -30,6 +30,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ---------- encuestasSatisfaccion (prueba piloto) ----------
+    // Una respuesta por usuario (el id del documento es el uid): el dueño
+    // la crea/actualiza y el admin lee todas para el análisis.
+    match /encuestasSatisfaccion/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if request.auth != null && isOwner(userId);
+      allow delete: if isAdmin();
+    }
+
     // ---------- questions (banco maestro) ----------
     // Lectura para usuarios autenticados; escritura solo admin.
     match /questions/{questionId} {

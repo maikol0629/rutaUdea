@@ -122,11 +122,12 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
 - **Refactor UI compartida + rotación — ✅ implementado** (rama `rotacion-ui-warning`, en `main` vía PR #11): componentes comunes `BarraProgresoSesion`, `OpcionesPreguntaCard`, `ResumenScoreCard` (elimina duplicación Simulacro/Práctica/resultados); layouts scrollables y responsivos en horizontal (Home en un `LazyColumn`, resultados con raíz `LazyColumn`, Simulacro con `verticalScroll`); `@Preview` vertical/horizontal; fix de warnings (indicador ✓/✗ unificado, condición muerta en `QuestionJsonlLoader`).
 - **Racha diaria de actividad — ✅ implementado** (rama `feat/racha-usuario`, en `main` vía PR #12, ver §12): `AnalizadorRacha` (dominio puro: días consecutivos, idempotencia por día, vigencia con tolerancia de 1 día, fusión local-nube) + `RachaRepository` (Room `rachas_cache`, migración 2→3, sync best-effort a `rachas/{uid}`); tarjeta de racha en Home y Progreso con refresco al reanudar.
 - **Home renovado — 🔶 en construcción** (rama `feat/home-visual`, pendiente de PR): marca bitono + logosímbolo UdeA, saludo personalizado por momento del día (`Saludo`, dominio puro) con el primer nombre del usuario, hero de simulacro, tarjeta de racha con mensaje motivacional.
+- **Cuestionario de satisfacción piloto — 🔶 en construcción** (rama `feat/encuesta-satisfaccion`, pendiente de PR): respuesta única por usuario (datos con grado/semestre condicional, Likert por módulo, claridad RL/CL, NPS 0–10, abiertas opcionales); accesos en el final del Home y en el Perfil; guardado local-first en Room (`encuestas_cache`, migración 3→4) + sync best-effort a `encuestasSatisfaccion/{uid}`; UI con barra de avance y soporte horizontal.
 - **Módulo Info (educativo) — ✅ implementado** (rama `feat/info`):
   - Contenido de los **29 componentes del examen** (15 RL + 14 CL): descripción, estrategia de resolución y errores comunes, empaquetado como asset (`assets/info/contenido_educativo.json`, offline-first; la colección `educationalContent` queda para el futuro panel admin).
   - Tab 📚 con filtro por área y acordeón expandible por componente.
   - `ComingSoonScreen` eliminado: las 5 pestañas de la app son funcionales.
-- **Tests unitarios**: 130 tests (mapper, loader, seeder, motor de selección, gate de autenticación, selector/sesión/filtros de práctica, analítica de progreso + mappers offline-first, pausa/persistencia, racha —analizador, mapper, repositorio—, saludo y HomeViewModel, módulo Info) — `./gradlew test` PASS.
+- **Tests unitarios**: 152 tests (mapper, loader, seeder, motor de selección, gate de autenticación, selector/sesión/filtros de práctica, analítica de progreso + mappers offline-first, pausa/persistencia, racha —analizador, mapper, repositorio—, saludo y HomeViewModel, encuesta —modelo, repositorio, ViewModel—, módulo Info) — `./gradlew test` PASS.
 
 ### 🔶 Pendiente / En construcción
 - **Home renovado** (rama `feat/home-visual`): pendiente PR a `main`.
@@ -185,6 +186,7 @@ La tabla `questions` (campos abajo) más las caches offline-first del progreso y
 | `simulations_cache` / `simulation_questions_cache` | Resúmenes y detalle por pregunta de simulacros (guardado local-first) |
 | `practice_sessions_cache` / `practice_questions_cache` | Sesiones de práctica y detalle por pregunta (guardado local-first) |
 | `rachas_cache` | Racha diaria por usuario (`actual`, `mejor`, `ultimoDia`) |
+| `encuestas_cache` | Respuesta del cuestionario piloto (una fila por usuario, `synced`) |
 
 ### Colecciones Firestore (✅ reglas desplegadas; `users`, `simulations`/`simulationQuestions`, `practiceSessions`/`practiceQuestions` y `rachas` en uso; sincronización de `questions` implementada)
 | Colección | Propósito |
@@ -196,6 +198,7 @@ La tabla `questions` (campos abajo) más las caches offline-first del progreso y
 | `simulations` / `simulationQuestions` | Simulacros y respuestas con tiempos |
 | `practiceSessions` | Sesiones de práctica |
 | `rachas` | Racha diaria por usuario (`actual`, `mejor`, `ultimoDia`) |
+| `encuestasSatisfaccion` | Respuestas del cuestionario piloto (un doc por usuario) |
 | `recommendations` | Recomendaciones personalizadas |
 | `educationalContent` | Contenido informativo |
 | `settings` | Reglas del simulacro, inactividad y distribución |
@@ -283,7 +286,7 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 | **P1** | Historial y gráficas de progreso | Analítica | ✅ (dashboard offline-first, evolución, acierto por subtema, historial, racha) |
 | **P1** | Motor de recomendaciones | Personalización | 🔶 (V1 basada en evidencia incluida en Progreso; motor personalizado pendiente) |
 | **P1** | Asistencia IA para explicaciones | Administración | 🔶 |
-| **P1** | Pruebas con 15 estudiantes | Validación | 🔶 |
+| **P1** | Pruebas con 15 estudiantes | Validación | 🔶 (cuestionario de satisfacción ✅ en rama `feat/encuesta-satisfaccion`) |
 | **P2** | Mejoras avanzadas de IA | Evolución | 🔶 |
 | **P2** | Gamificación | Evolución | 🔶 (racha diaria ✅ como V1; pendiente resto) |
 
@@ -308,11 +311,11 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 15. ✅ Implementar práctica con feedback (filtros, estratificación, sesión con feedback inmediato, resultado y persistencia local-first).
 16. ✅ Implementar historial y recomendaciones (dashboard de Progreso offline-first con regla de evidencia ≥3 + racha diaria).
 17. 🔶 Integrar asistencia de IA.
-18. 🔶 Ejecutar pruebas técnicas (130 unitarias ✅; faltan UI/integración).
+18. 🔶 Ejecutar pruebas técnicas (152 unitarias ✅; faltan UI/integración).
 19. 🔶 Ejecutar piloto con ~15 estudiantes.
 20. 🔶 Corregir, documentar y preparar entrega.
 
-> **Próximo hito sugerido:** PR de `feat/home-visual` a `main` → **análisis por componente/dificultad** e **inactividad del cronómetro** (P0 restantes del simulacro).
+> **Próximo hito sugerido:** PRs de `feat/home-visual` + `feat/encuesta-satisfaccion` a `main` → piloto con ~15 estudiantes (con cuestionario de satisfacción) → **análisis por componente/dificultad** e **inactividad del cronómetro** (P0 restantes del simulacro).
 
 ---
 

@@ -110,6 +110,23 @@ class SimulacroViewModelTest {
     }
 
     @Test
+    fun `al abandonar se oculta la pausa sin finalizar el simulacro`() = runTest {
+        val vm = viewModel(
+            listOf(pregunta("q1"), pregunta("q2")),
+            sahConSeleccion(listOf("q1", "q2"))
+        )
+
+        vm.onAppBackgrounded()
+        vm.onAppResumed()
+        assertTrue(vm.uiState.value.showResumeOverlay)
+
+        vm.onAbandonar()
+
+        assertFalse(vm.uiState.value.showResumeOverlay)
+        assertFalse(vm.uiState.value.isFinished)
+    }
+
+    @Test
     fun `un simulacro finalizado no muestra la pausa`() = runTest {
         val vm = viewModel(
             listOf(pregunta("q1"), pregunta("q2")),

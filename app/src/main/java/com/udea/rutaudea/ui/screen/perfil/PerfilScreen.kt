@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -40,9 +41,18 @@ fun PerfilScreen(
     esGate: Boolean = false,
     onAuthSuccess: () -> Unit = {},
     onLogoutNavigate: () -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onEncuestaClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    // Recarga al volver a la pantalla (por ejemplo, tras responder la
+    // encuesta): la entrada del back stack se conserva y el init no se
+    // repite, así que el estado quedaría desactualizado.
+    LifecycleResumeEffect(Unit) {
+        viewModel.recargar()
+        onPauseOrDispose { }
+    }
 
     // Eventos de navegación del gate de autenticación.
     LaunchedEffect(Unit) {
@@ -70,8 +80,10 @@ fun PerfilScreen(
                 correo = state.user!!.correo,
                 rol = state.user!!.rol,
                 esGate = esGate,
+                encuestaRespondida = state.encuestaRespondida,
                 onLogout = { viewModel.logout() },
-                onBack = onBack
+                onBack = onBack,
+                onEncuestaClick = onEncuestaClick
             )
 
             else -> PerfilFormulario(
@@ -212,13 +224,19 @@ private fun PerfilLogueado(
     correo: String,
     rol: String,
     esGate: Boolean,
+    encuestaRespondida: Boolean,
     onLogout: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEncuestaClick: () -> Unit
 ) {
-    Card(
+    Column(
         modifier = Modifier.padding(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Card(
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
         Column(
             modifier = Modifier.padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -268,5 +286,69 @@ private fun PerfilLogueado(
                 }
             }
         }
+    }
+
+    // Encuesta piloto: llamativa para que la diligencien.
+    Card(
+        onClick = onEncuestaClick,
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary
+                )
+            ) {
+                Text(
+                    text = if (encuestaRespondida) "✅" else "🎓",
+                    fontSize = 28.sp,
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "PRUEBA PILOTO",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = if (encuestaRespondida) "¡Gracias por tu opinión!" else "Tu opinión cuenta",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Text(
+                    text = if (encuestaRespondida) "Toca para actualizar tus respuestas"
+                    else "Encuesta de satisfacción · 2 min",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                )
+            }
+        }
+        Button(
+            onClick = onEncuestaClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
+        ) {
+            Text(
+                text = if (encuestaRespondida) "Actualizar respuestas" else "Responder encuesta",
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
     }
 }

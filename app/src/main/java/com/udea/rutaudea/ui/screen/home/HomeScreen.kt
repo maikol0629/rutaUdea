@@ -52,7 +52,8 @@ fun HomeScreen(
     onPracticaClick: () -> Unit,
     onProgresoClick: () -> Unit,
     onInfoClick: () -> Unit,
-    onPerfilClick: () -> Unit
+    onPerfilClick: () -> Unit,
+    onEncuestaClick: () -> Unit
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
 
@@ -67,11 +68,13 @@ fun HomeScreen(
     HomeContenido(
         saludo = state.saludo,
         racha = state.racha,
+        encuestaRespondida = state.encuestaRespondida,
         onSimulacroClick = onSimulacroClick,
         onPracticaClick = onPracticaClick,
         onProgresoClick = onProgresoClick,
         onInfoClick = onInfoClick,
-        onPerfilClick = onPerfilClick
+        onPerfilClick = onPerfilClick,
+        onEncuestaClick = onEncuestaClick
     )
 }
 
@@ -79,11 +82,13 @@ fun HomeScreen(
 private fun HomeContenido(
     saludo: Saludo.Encabezado,
     racha: Racha,
+    encuestaRespondida: Boolean,
     onSimulacroClick: () -> Unit,
     onPracticaClick: () -> Unit,
     onProgresoClick: () -> Unit,
     onInfoClick: () -> Unit,
-    onPerfilClick: () -> Unit
+    onPerfilClick: () -> Unit,
+    onEncuestaClick: () -> Unit
 ) {
     // Un único contenedor scrolleable: en horizontal (poca altura) el header y
     // la card de Simulacro ya no empujan a las demás secciones fuera de pantalla.
@@ -223,6 +228,15 @@ private fun HomeContenido(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        }
+
+        // Encuesta piloto: al final del Home, llamativa para que la diligencien.
+        item {
+            EncuestaHomeCard(
+                respondida = encuestaRespondida,
+                onClick = onEncuestaClick,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
         }
     }
 }
@@ -457,6 +471,76 @@ private fun mensajeRacha(racha: Racha): String = when {
 
 private fun pluralDias(dias: Int): String = if (dias == 1) "día" else "días"
 
+@Composable
+private fun EncuestaHomeCard(
+    respondida: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.tertiary,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(56.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = if (respondida) "✅" else "🎓", fontSize = 30.sp)
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "PRUEBA PILOTO",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = if (respondida) "¡Gracias por tu opinión!" else "Tu opinión cuenta",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Text(
+                    text = if (respondida) "Toca para actualizar tus respuestas"
+                    else "Responde la encuesta de satisfacción · 2 min",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                )
+            }
+        }
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
+        ) {
+            Text(
+                text = if (respondida) "Actualizar respuestas" else "Responder",
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
 private enum class TipoSeccion { PRACTICA, PROGRESO, INFO, PERFIL }
 
 private data class SectionItem(
@@ -475,11 +559,13 @@ private fun HomeScreenPreview() {
         HomeContenido(
             saludo = Saludo.Encabezado(momento = "Buenas tardes", nombre = "Maikol"),
             racha = Racha(actual = 4, mejor = 9),
+            encuestaRespondida = false,
             onSimulacroClick = {},
             onPracticaClick = {},
             onProgresoClick = {},
             onInfoClick = {},
-            onPerfilClick = {}
+            onPerfilClick = {},
+            onEncuestaClick = {}
         )
     }
 }
