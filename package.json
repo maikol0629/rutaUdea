@@ -1,0 +1,22 @@
+{
+  "name": "rutaudea",
+  "version": "1.0.0",
+  "description": "Aplicación móvil de preparación para el examen de admisión de la Universidad de Antioquia.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maikol0629/rutaUdea.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/maikol0629/rutaUdea/issues"
+  },
+  "homepage": "https://github.com/maikol0629/rutaUdea#readme"
+}
