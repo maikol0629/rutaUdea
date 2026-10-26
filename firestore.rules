@@ -7,11 +7,16 @@ service cloud.firestore {
 
     // ---------- users ----------
     // Cada usuario lee su propio perfil; el admin puede leer todos.
-    // Solo el admin puede cambiar roles y estados de otros usuarios.
+    // El usuario solo puede crear su propio perfil con rol aspirante y el
+    // correo de su token; no puede cambiar rol, estado, correo ni fecha de
+    // creación. El admin puede cambiar roles y estados de otros usuarios.
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId)
-        && request.resource.data.rol == 'aspirante';
+        && request.resource.data.rol == 'aspirante'
+        && request.resource.data.correo == request.auth.token.email
+        && (!('estado' in request.resource.data)
+          || request.resource.data.estado == 'activo');
       allow update: if (isOwner(userId) && onlyOwnFields())
         || isAdmin();
       allow delete: if isAdmin();
@@ -138,9 +143,22 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 'admin';
     }
 
+    // Campos que el dueño del perfil puede modificar por su cuenta. Quedan
+    // fuera `correo`, `rol`, `estado`, `fechaCreacion` y `proveedor`.
     function onlyOwnFields() {
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['nombre', 'estado']);
+        .hasOnly([
+          'nombre',
+          'apellido',
+          'telefono',
+          'ciudad',
+          'institucion',
+          'tipoInstitucion',
+          'gradoSemestre',
+          'fechaExamen',
+          'fotoUrl',
+          'onboardingCompletado'
+        ]);
     }
   }
 }

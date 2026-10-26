@@ -16,6 +16,7 @@ import com.udea.rutaudea.domain.services.QuestionSelector
 import com.udea.rutaudea.ui.screen.encuesta.EncuestaViewModel
 import com.udea.rutaudea.ui.screen.home.HomeViewModel
 import com.udea.rutaudea.ui.screen.info.InfoViewModel
+import com.udea.rutaudea.ui.screen.onboarding.OnboardingViewModel
 import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaFiltrosViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaResultadoViewModel
@@ -81,6 +82,14 @@ object ViewModelFactories {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             PerfilViewModel(authRepository, encuestaRepository) as T
+    }
+
+    class OnboardingFactory(
+        private val authRepository: AuthRepository
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            OnboardingViewModel(authRepository) as T
     }
 
     class PracticaFiltrosFactory(
