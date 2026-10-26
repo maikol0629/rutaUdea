@@ -98,15 +98,18 @@ está listo para poblarla cuando arranque el panel administrativo.
   - Con sesión y perfil completo → **Home**.
   - El logout devuelve al login como raíz.
 - **Registro manual** email+contraseña: nombre, apellido, correo, contraseña con
-  confirmación y aceptación de términos.
+  confirmación y aceptación de términos. Los campos de contraseña permiten
+  **mostrarla u ocultarla** para verificar lo escrito.
 - **Google Sign-In** con **Credential Manager** (`GetGoogleIdOption` +
   `androidx.credentials`): la primera vez Firebase crea la cuenta
   automáticamente y la app crea `users/{uid}` con `onboardingCompletado=false`.
   Si el correo ya existe con email/contraseña se muestra un mensaje claro
-  (no se vinculan cuentas automáticamente).
+  (no se vinculan cuentas automáticamente). En el login es la opción más
+  visible: botón destacado con el logotipo de Google.
 - **Onboarding obligatorio** (`ui/screen/onboarding/`): nombre, apellido, tipo
   de institución, institución y grado/semestre. Teléfono, ciudad y fecha del
-  examen son opcionales. Al elegir **“Otra”** no se piden grado ni semestre.
+  examen son opcionales. Al elegir **“Otra”** la institución también es
+  opcional y no se piden grado ni semestre.
 - **Perfil** (`ui/screen/perfil/`): datos del usuario, edición, encuesta piloto
   y cierre de sesión. También permite **recuperar la contraseña** por correo.
 - **`AuthRepository`**: `register()`, `login()`, `signInWithGoogle()`,

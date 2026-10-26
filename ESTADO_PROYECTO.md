@@ -3,7 +3,7 @@
 ## Resumen General
 El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP + Firebase.
 
-**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO + MEJORAS POST-MVP** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); autenticación manual + Google Sign-In, onboarding obligatorio, motor de 80 preguntas, práctica con feedback inmediato, dashboard de progreso offline-first con analítica, contenido educativo por componente, pausa con overlay al cambiar de app, racha diaria de actividad, Home renovado y cuestionario de satisfacción para la prueba piloto (Room local-first + sync Firestore). Build SUCCESS, tests PASS (192).
+**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO + MEJORAS POST-MVP** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); autenticación manual + Google Sign-In, onboarding obligatorio, motor de 80 preguntas, práctica con feedback inmediato, dashboard de progreso offline-first con analítica, contenido educativo por componente, pausa con overlay al cambiar de app, racha diaria de actividad, Home renovado y cuestionario de satisfacción para la prueba piloto (Room local-first + sync Firestore). Build SUCCESS, tests PASS (194).
 
 ## 🌿 Ramas
 | Rama | Estado | Contenido |
@@ -89,10 +89,11 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
   - La primera vez Firebase Auth crea la cuenta automáticamente; la app crea `users/{uid}` con `onboardingCompletado=false`.
   - Si el correo ya existe con email/contraseña se muestra un mensaje de colisión (no se vinculan cuentas automáticamente).
   - Requiere el Web Client ID que el plugin genera en `default_web_client_id`.
-- **Onboarding obligatorio** (`ui/screen/onboarding/`): nombre, apellido, tipo de institución, institución y grado/semestre. Teléfono, ciudad y fecha del examen son opcionales. Con **“Otra”** se ocultan y limpian grado/semestre. La misma pantalla sirve para **editar el perfil**.
+- **Onboarding obligatorio** (`ui/screen/onboarding/`): nombre, apellido, tipo de institución, institución y grado/semestre. Teléfono, ciudad y fecha del examen son opcionales. Con **“Otra”** la institución también es opcional y se ocultan y limpian grado/semestre. La misma pantalla sirve para **editar el perfil**.
 - **`PerfilScreen`**:
-  - Login/registro manual con nombre, apellido, correo, contraseña, confirmación y aceptación de términos.
-  - Botón **Continuar con Google**, recuperación de contraseña por correo y vista de perfil con datos completos, edición y cierre de sesión.
+  - Login/registro manual con nombre, apellido, correo, contraseña, confirmación y aceptación de términos. Los campos de contraseña permiten **mostrarla u ocultarla**.
+  - **Diseño renovado** con encabezado de marca, selector Iniciar sesión / Crear cuenta y beneficios del registro.
+  - Botón **Continuar con Google** destacado con el logotipo de Google (opción principal), recuperación de contraseña por correo y vista de perfil con datos completos, edición y cierre de sesión.
 - **Gate de autenticación**: la app exige sesión y onboarding:
   - `SplashViewModel.initialize()` espera el seed del banco y decide entre **Login**, **Onboarding** y **Home**.
   - Sin sesión → login como raíz (sin acceso a Home).
@@ -104,7 +105,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **`UserMapper`** centraliza la conversión documento ↔ dominio; los usuarios antiguos sin `onboardingCompletado` se consideran completos.
 - **`DatosPerfil`** contiene la validación pura (sin Android) del onboarding.
 - **Reglas Firestore**: el dueño solo puede actualizar campos de perfil; no puede cambiar `rol`, `estado`, `correo` ni `fechaCreacion`. La creación exige `rol=aspirante` y `correo == request.auth.token.email`.
-- **Tests**: `DatosPerfilTest` (13), `ValidadorCorreoTest` (2), `UserMapperTest` (4), `PerfilViewModelTest` (13), `OnboardingViewModelTest` (6) y `SplashViewModelTest` (5).
+- **Tests**: `DatosPerfilTest` (14), `ValidadorCorreoTest` (2), `UserMapperTest` (4), `PerfilViewModelTest` (13), `OnboardingViewModelTest` (7) y `SplashViewModelTest` (5).
 - **Pendiente**: vinculación manual de una cuenta Google desde el perfil y tests de instrumentación del flujo.
 
 ### 5.2 Sincronización y persistencia (Firestore) — IMPLEMENTADO
@@ -213,11 +214,11 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `DatabaseSeederTest` - 4 tests pasan (política de siembra versionada)
 - ✅ `QuestionSelectorTest` - 11 tests pasan (motor de selección)
 - ✅ `SplashViewModelTest` - 5 tests pasan (destinos login/onboarding/home + fallback del seed)
-- ✅ `DatosPerfilTest` - 13 tests pasan (campos obligatorios, “Otra” sin grado/semestre, teléfono, mapeo)
+- ✅ `DatosPerfilTest` - 14 tests pasan (campos obligatorios, “Otra” sin institución/grado/semestre, teléfono, mapeo)
 - ✅ `ValidadorCorreoTest` - 2 tests pasan (formatos válidos e inválidos)
 - ✅ `UserMapperTest` - 4 tests pasan (documento ↔ dominio, usuarios antiguos, campos inmutables)
 - ✅ `PerfilViewModelTest` - 13 tests pasan (registro, login, Google, recuperación, eventos)
-- ✅ `OnboardingViewModelTest` - 6 tests pasan (precarga, “Otra”, validación, guardado, error, logout)
+- ✅ `OnboardingViewModelTest` - 7 tests pasan (precarga, “Otra”, validación, guardado, error, logout)
 - ✅ `PracticeSelectorTest` - 7 tests pasan (estratificación proporcional, mayor residuo)
 - ✅ `PracticaSesionViewModelTest` - 7 tests pasan (feedback, bloqueo, navegación, SAH, restauración)
 - ✅ `PracticaFiltrosViewModelTest` - 5 tests pasan (subtemas por área, disponibles, iniciar)
@@ -255,7 +256,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
 - ✅ `./gradlew installDebug` - **Instala en dispositivo físico**
-- ✅ `./gradlew test` - **PASAN (192 tests)**
+- ✅ `./gradlew test` - **PASAN (194 tests)**
 
 ---
 
@@ -449,4 +450,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-10-25 - Rama `feat/auth-google-onboarding`: registro manual + Google Sign-In con Credential Manager + onboarding obligatorio (con opción “Otra” sin grado/semestre) + edición de perfil + recuperación de contraseña + reglas Firestore endurecidas. Verificado: `testDebugUnitTest` + `assembleDebug` BUILD SUCCESSFUL (192 tests PASS) y `firebase deploy --only firestore:rules` OK.*
+*Última actualización: 2026-10-25 - Rama `feat/auth-google-onboarding`: login rediseñado (contraseña visible/oculta + botón de Google destacado), registro manual, Google Sign-In con Credential Manager, onboarding obligatorio (con opción “Otra” sin institución, grado ni semestre), edición de perfil, recuperación de contraseña y reglas Firestore endurecidas. Verificado: `testDebugUnitTest` + `assembleDebug` BUILD SUCCESSFUL (194 tests PASS) y `firebase deploy --only firestore:rules` OK.*

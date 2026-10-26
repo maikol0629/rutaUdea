@@ -102,8 +102,8 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
 - **Autenticación, Google Sign-In y onboarding — ✅ implementado** (rama `feat/auth-google-onboarding`):
   - `google-services.json` integrado; Auth email/contraseña con `AuthRepository` (`register` con nombre/apellido, `login`, `signInWithGoogle`, `completeProfile`, `sendPasswordReset`, `restoreSession`, `logout`).
   - **Google Sign-In** con Credential Manager (`GetGoogleIdOption`): Firebase crea la cuenta automáticamente y la app crea `users/{uid}` con onboarding pendiente. Si el correo ya existe con contraseña se muestra una colisión clara (sin vinculación automática).
-  - **Onboarding obligatorio**: nombre, apellido, tipo de institución, institución y grado/semestre; teléfono, ciudad y fecha del examen opcionales. Con **“Otra”** no se piden grado ni semestre. La misma pantalla permite editar el perfil.
-  - **Pantalla de Perfil**: login/registro manual, Google, recuperación de contraseña, datos completos, edición y cierre de sesión.
+  - **Onboarding obligatorio**: nombre, apellido, tipo de institución, institución y grado/semestre; teléfono, ciudad y fecha del examen opcionales. Con **“Otra”** la institución también es opcional y no se piden grado ni semestre. La misma pantalla permite editar el perfil.
+  - **Pantalla de Perfil**: login/registro manual con contraseña visible/oculta, Google como opción destacada, recuperación de contraseña, datos completos, edición y cierre de sesión.
   - **Gate**: el splash verifica la sesión tras el seed y decide **Login** (sin sesión), **Onboarding** (perfil incompleto) o **Home** (perfil completo); el logout devuelve al login como raíz.
   - **Modelo `User`** ampliado (apellido, teléfono, ciudad, institución, tipo, grado/semestre, fecha del examen, proveedor, `onboardingCompletado`) + `UserMapper` + `DatosPerfil` con validación pura.
   - **Reglas Firestore**: el usuario solo actualiza campos de perfil; no puede cambiar `rol`, `estado`, `correo` ni `fechaCreacion`. Creación con `rol=aspirante` y correo del token.
@@ -131,7 +131,7 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
   - Contenido de los **29 componentes del examen** (15 RL + 14 CL): descripción, estrategia de resolución y errores comunes, empaquetado como asset (`assets/info/contenido_educativo.json`, offline-first; la colección `educationalContent` queda para el futuro panel admin).
   - Tab 📚 con filtro por área y acordeón expandible por componente.
   - `ComingSoonScreen` eliminado: las 5 pestañas de la app son funcionales.
-- **Tests unitarios**: 192 tests (mapper, loader, seeder, motor de selección, gate de autenticación, onboarding/Google, perfil, selector/sesión/filtros de práctica, analítica de progreso + mappers offline-first, pausa/persistencia, racha —analizador, mapper, repositorio—, saludo y HomeViewModel, encuesta —modelo, repositorio, ViewModel—, módulo Info) — `./gradlew test` PASS.
+- **Tests unitarios**: 194 tests (mapper, loader, seeder, motor de selección, gate de autenticación, onboarding/Google, perfil, selector/sesión/filtros de práctica, analítica de progreso + mappers offline-first, pausa/persistencia, racha —analizador, mapper, repositorio—, saludo y HomeViewModel, encuesta —modelo, repositorio, ViewModel—, módulo Info) — `./gradlew test` PASS.
 
 ### 🔶 Pendiente / En construcción
 - **Home renovado** (rama `feat/home-visual`): pendiente PR a `main`.

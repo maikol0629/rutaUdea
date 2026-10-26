@@ -69,6 +69,14 @@ class DatosPerfilTest {
     }
 
     @Test
+    fun `otra no exige nombre de institucion`() {
+        val perfil = perfilValido(tipo = DatosPerfil.TIPO_OTRA, grado = "")
+            .copy(institucion = "")
+
+        assertTrue(perfil.esValido())
+    }
+
+    @Test
     fun `el telefono es opcional pero si se escribe debe ser valido`() {
         assertTrue(perfilValido().copy(telefono = "").esValido())
         assertTrue(perfilValido().copy(telefono = "300 123 4567").esValido())

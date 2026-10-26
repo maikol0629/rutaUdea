@@ -1,7 +1,14 @@
 package com.udea.rutaudea.ui.screen.perfil
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,9 +16,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -19,6 +38,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -28,18 +50,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.udea.rutaudea.R
 import com.udea.rutaudea.domain.model.User
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -119,21 +153,22 @@ fun PerfilScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        when {
-            state.isLoading -> {
-                Spacer(modifier = Modifier.height(48.dp))
+    when {
+        state.isLoading -> {
+            FondoAuth {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
+        }
 
-            state.user != null -> PerfilLogueado(
+        state.user != null -> Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            PerfilLogueado(
                 user = state.user!!,
                 esGate = esGate,
                 encuestaRespondida = state.encuestaRespondida,
@@ -143,23 +178,23 @@ fun PerfilScreen(
                 onEditarPerfil = onEditarPerfil,
                 onCompletarPerfil = onCompletarPerfil
             )
-
-            else -> PerfilFormulario(
-                state = state,
-                esGate = esGate,
-                onNombreChange = viewModel::onNombreChange,
-                onApellidoChange = viewModel::onApellidoChange,
-                onCorreoChange = viewModel::onCorreoChange,
-                onPasswordChange = viewModel::onPasswordChange,
-                onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
-                onAceptaTerminosChange = viewModel::onAceptaTerminosChange,
-                onToggleModo = viewModel::toggleModo,
-                onSubmit = viewModel::submit,
-                onRecuperar = viewModel::abrirRecuperacion,
-                onGoogleClick = onGoogleClick,
-                onBack = onBack
-            )
         }
+
+        else -> AuthScreen(
+            state = state,
+            esGate = esGate,
+            onNombreChange = viewModel::onNombreChange,
+            onApellidoChange = viewModel::onApellidoChange,
+            onCorreoChange = viewModel::onCorreoChange,
+            onPasswordChange = viewModel::onPasswordChange,
+            onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
+            onAceptaTerminosChange = viewModel::onAceptaTerminosChange,
+            onToggleModo = viewModel::toggleModo,
+            onSubmit = viewModel::submit,
+            onRecuperar = viewModel::abrirRecuperacion,
+            onGoogleClick = onGoogleClick,
+            onBack = onBack
+        )
     }
 
     if (state.mostrarRecuperacion) {
@@ -172,8 +207,35 @@ fun PerfilScreen(
     }
 }
 
+/**
+ * Fondo con degradado de marca usado por el gate de autenticación.
+ */
 @Composable
-private fun PerfilFormulario(
+private fun FondoAuth(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.background
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
+    }
+}
+
+/**
+ * Pantalla de login / registro rediseñada: encabezado de marca, selector de
+ * modo, botón de Google destacado, campos con iconos y visibilidad de
+ * contraseña.
+ */
+@Composable
+private fun AuthScreen(
     state: PerfilViewModel.UiState,
     esGate: Boolean,
     onNombreChange: (String) -> Unit,
@@ -188,179 +250,563 @@ private fun PerfilFormulario(
     onGoogleClick: () -> Unit,
     onBack: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var confirmVisible by rememberSaveable { mutableStateOf(false) }
+    val habilitado = !state.isSubmitting && !state.googleCargando
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.background
+                    )
+                )
+            )
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "👤", fontSize = 48.sp)
-            Text(
-                text = if (state.esRegistro) "Crear cuenta" else "Iniciar sesión",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                modifier = Modifier.widthIn(max = 460.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                EncabezadoAuth()
 
-            if (esGate) {
-                Text(
-                    text = "Inicia sesión o crea una cuenta para continuar",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
+                Spacer(modifier = Modifier.height(20.dp))
 
-            if (state.esRegistro) {
-                OutlinedTextField(
-                    value = state.nombre,
-                    onValueChange = onNombreChange,
-                    label = { Text("Nombre") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = state.apellido,
-                    onValueChange = onApellidoChange,
-                    label = { Text("Apellido") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(22.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        SelectorModo(
+                            esRegistro = state.esRegistro,
+                            onToggleModo = onToggleModo
+                        )
 
-            OutlinedTextField(
-                value = state.correo,
-                onValueChange = onCorreoChange,
-                label = { Text("Correo electrónico") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
-            )
+                        Text(
+                            text = if (state.esRegistro) {
+                                "Crea tu cuenta gratis"
+                            } else {
+                                "¡Hola de nuevo!"
+                            },
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (state.esRegistro) {
+                                "Guarda tu progreso y prepárate con simulacros reales."
+                            } else {
+                                "Retoma tu preparación justo donde la dejaste."
+                            },
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-            OutlinedTextField(
-                value = state.password,
-                onValueChange = onPasswordChange,
-                label = { Text("Contraseña") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth()
-            )
+                        if (state.esRegistro) {
+                            BeneficiosRegistro()
+                        }
 
-            if (state.esRegistro) {
-                OutlinedTextField(
-                    value = state.confirmPassword,
-                    onValueChange = onConfirmPasswordChange,
-                    label = { Text("Confirmar contraseña") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                        BotonGoogle(
+                            cargando = state.googleCargando,
+                            habilitado = habilitado,
+                            onClick = onGoogleClick
+                        )
+
+                        DivisorTexto("o continúa con tu correo")
+
+                        if (state.esRegistro) {
+                            OutlinedTextField(
+                                value = state.nombre,
+                                onValueChange = onNombreChange,
+                                label = { Text("Nombre") },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.Person, contentDescription = null)
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = state.apellido,
+                                onValueChange = onApellidoChange,
+                                label = { Text("Apellido") },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.Person, contentDescription = null)
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        OutlinedTextField(
+                            value = state.correo,
+                            onValueChange = onCorreoChange,
+                            label = { Text("Correo electrónico") },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Email, contentDescription = null)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        CampoPassword(
+                            value = state.password,
+                            onValueChange = onPasswordChange,
+                            label = "Contraseña",
+                            visible = passwordVisible,
+                            onToggleVisible = { passwordVisible = !passwordVisible },
+                            imeAction = if (state.esRegistro) ImeAction.Next else ImeAction.Done
+                        )
+
+                        if (state.esRegistro) {
+                            CampoPassword(
+                                value = state.confirmPassword,
+                                onValueChange = onConfirmPasswordChange,
+                                label = "Confirmar contraseña",
+                                visible = confirmVisible,
+                                onToggleVisible = { confirmVisible = !confirmVisible },
+                                imeAction = ImeAction.Done
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        onAceptaTerminosChange(!state.aceptaTerminos)
+                                    }
+                                    .padding(vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = state.aceptaTerminos,
+                                    onCheckedChange = onAceptaTerminosChange
+                                )
+                                Text(
+                                    text = "Acepto los términos y la política de privacidad",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(onClick = onRecuperar) {
+                                    Text("¿Olvidaste tu contraseña?", fontSize = 13.sp)
+                                }
+                            }
+                        }
+
+                        MensajesAuth(state)
+
+                        Button(
+                            onClick = onSubmit,
+                            enabled = habilitado,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                        ) {
+                            if (state.isSubmitting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = if (state.esRegistro) {
+                                        "Crear mi cuenta"
+                                    } else {
+                                        "Entrar"
+                                    },
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        if (state.esRegistro) {
+                            Text(
+                                text = "Al registrarte aceptas nuestros términos y la " +
+                                    "política de privacidad.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        if (!esGate) {
+                            OutlinedButton(
+                                onClick = onBack,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Volver al inicio", fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Checkbox(
-                        checked = state.aceptaTerminos,
-                        onCheckedChange = onAceptaTerminosChange
-                    )
                     Text(
-                        text = "Acepto los términos y la política de privacidad",
+                        text = if (state.esRegistro) {
+                            "¿Ya tienes cuenta?"
+                        } else {
+                            "¿Es tu primera vez aquí?"
+                        },
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    TextButton(onClick = onToggleModo) {
+                        Text(
+                            text = if (state.esRegistro) {
+                                "Inicia sesión"
+                            } else {
+                                "Crea tu cuenta gratis"
+                            },
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-            } else {
-                TextButton(onClick = onRecuperar) {
-                    Text("¿Olvidaste tu contraseña?", fontSize = 14.sp)
-                }
             }
+        }
+    }
+}
 
-            state.error?.let { error ->
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+@Composable
+private fun EncabezadoAuth() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_splash_logo),
+            contentDescription = "Logo RutaUdeA",
+            modifier = Modifier
+                .size(84.dp)
+                .clip(RoundedCornerShape(22.dp))
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        Text(
+            text = "RutaUdeA",
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = "Tu ruta hacia la UdeA, paso a paso",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
 
-            state.mensaje?.let { mensaje ->
-                Text(
-                    text = mensaje,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+@Composable
+private fun SelectorModo(
+    esRegistro: Boolean,
+    onToggleModo: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(4.dp)
+    ) {
+        SelectorModoItem(
+            texto = "Iniciar sesión",
+            seleccionado = !esRegistro,
+            modifier = Modifier.weight(1f)
+        ) {
+            if (esRegistro) onToggleModo()
+        }
+        SelectorModoItem(
+            texto = "Crear cuenta",
+            seleccionado = esRegistro,
+            modifier = Modifier.weight(1f)
+        ) {
+            if (!esRegistro) onToggleModo()
+        }
+    }
+}
 
-            Button(
-                onClick = onSubmit,
-                enabled = !state.isSubmitting && !state.googleCargando,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (state.isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
+@Composable
+private fun SelectorModoItem(
+    texto: String,
+    seleccionado: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(11.dp))
+            .background(
+                if (seleccionado) {
+                    MaterialTheme.colorScheme.primary
                 } else {
-                    Text(
-                        text = if (state.esRegistro) "Registrarme" else "Entrar",
-                        fontWeight = FontWeight.Medium
-                    )
+                    Color.Transparent
                 }
-            }
-
-            Text(
-                text = "o",
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            .clickable(role = Role.Tab, onClick = onClick)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = texto,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (seleccionado) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
+        )
+    }
+}
 
-            OutlinedButton(
-                onClick = onGoogleClick,
-                enabled = !state.isSubmitting && !state.googleCargando,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (state.googleCargando) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 2.dp
+/**
+ * Botón de Google destacado: superficie blanca elevada con el logotipo "G"
+ * para que sea la opción más visible y rápida de usar.
+ */
+@Composable
+private fun BotonGoogle(
+    cargando: Boolean,
+    habilitado: Boolean,
+    onClick: () -> Unit
+) {
+    val forma = RoundedCornerShape(16.dp)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .shadow(3.dp, forma)
+                .clip(forma)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, forma)
+                .clickable(enabled = habilitado, role = Role.Button, onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            if (cargando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_google_logo),
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
                     )
-                } else {
-                    Text("Continuar con Google", fontWeight = FontWeight.Medium)
+                    Text(
+                        text = "Continuar con Google",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "La forma más rápida: sin contraseñas",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
 
-            TextButton(onClick = onToggleModo) {
-                Text(
-                    text = if (state.esRegistro)
-                        "¿Ya tienes cuenta? Inicia sesión"
-                    else
-                        "¿No tienes cuenta? Regístrate",
-                    fontSize = 14.sp
+@Composable
+private fun DivisorTexto(texto: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HorizontalDivider(modifier = Modifier.weight(1f))
+        Text(
+            text = texto,
+            modifier = Modifier.padding(horizontal = 10.dp),
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        HorizontalDivider(modifier = Modifier.weight(1f))
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BeneficiosRegistro() {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Beneficio("Simulacros reales")
+        Beneficio("Práctica con feedback")
+        Beneficio("Tu progreso")
+    }
+}
+
+@Composable
+private fun Beneficio(texto: String) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = texto,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    }
+}
+
+@Composable
+private fun CampoPassword(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    visible: Boolean,
+    onToggleVisible: () -> Unit,
+    imeAction: ImeAction
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        leadingIcon = {
+            Icon(Icons.Outlined.Lock, contentDescription = null)
+        },
+        trailingIcon = {
+            IconButton(onClick = onToggleVisible) {
+                Icon(
+                    imageVector = if (visible) {
+                        Icons.Outlined.VisibilityOff
+                    } else {
+                        Icons.Outlined.Visibility
+                    },
+                    contentDescription = if (visible) {
+                        "Ocultar contraseña"
+                    } else {
+                        "Mostrar contraseña"
+                    }
                 )
             }
+        },
+        singleLine = true,
+        visualTransformation = if (visible) {
+            VisualTransformation.None
+        } else {
+            PasswordVisualTransformation()
+        },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            imeAction = imeAction
+        ),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
 
-            if (!esGate) {
-                OutlinedButton(onClick = onBack) {
-                    Text("Volver al inicio", fontWeight = FontWeight.Medium)
-                }
-            }
+@Composable
+private fun MensajesAuth(state: PerfilViewModel.UiState) {
+    state.error?.let { error ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.errorContainer)
+                .padding(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.WarningAmber,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = error,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+
+    state.mensaje?.let { mensaje ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .padding(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.CheckCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = mensaje,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
         }
     }
 }

@@ -161,7 +161,20 @@ fun OnboardingScreen(
                 OutlinedTextField(
                     value = datos.institucion,
                     onValueChange = viewModel::onInstitucionChange,
-                    label = { Text("Nombre de la institución") },
+                    label = {
+                        Text(
+                            if (datos.tipoInstitucion == DatosPerfil.TIPO_OTRA) {
+                                "Nombre de la institución (opcional)"
+                            } else {
+                                "Nombre de la institución"
+                            }
+                        )
+                    },
+                    supportingText = if (datos.tipoInstitucion == DatosPerfil.TIPO_OTRA) {
+                        { Text("Puedes dejarlo vacío si no aplica") }
+                    } else {
+                        null
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )

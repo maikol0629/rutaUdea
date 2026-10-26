@@ -89,6 +89,31 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `otra permite guardar sin institucion`() = runTest {
+        val auth = authRepository(user())
+        coEvery { auth.completeProfile(any()) } returns Result.success(
+            user(onboardingCompletado = true)
+        )
+        val viewModel = crearViewModel(auth)
+
+        viewModel.onTipoInstitucionChange(DatosPerfil.TIPO_OTRA)
+        viewModel.onInstitucionChange("")
+
+        val evento = esperarEvento(viewModel)
+        viewModel.guardar()
+        advanceUntilIdle()
+
+        assertEquals(OnboardingViewModel.Evento.Guardado, evento.await())
+        coVerify(exactly = 1) {
+            auth.completeProfile(
+                match {
+                    it.tipoInstitucion == DatosPerfil.TIPO_OTRA && it.institucion.isEmpty()
+                }
+            )
+        }
+    }
+
+    @Test
     fun `guarda un perfil valido y emite el evento`() = runTest {
         val auth = authRepository(user())
         coEvery { auth.completeProfile(any()) } returns Result.success(

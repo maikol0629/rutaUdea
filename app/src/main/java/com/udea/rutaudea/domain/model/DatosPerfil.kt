@@ -5,8 +5,9 @@ package com.udea.rutaudea.domain.model
  * editar desde su perfil.
  *
  * La validación es pura (sin dependencias de Android) para poder probarla
- * en tests unitarios. Cuando [tipoInstitucion] es [TIPO_OTRA] no se exige
- * grado ni semestre y el campo se limpia al guardar.
+ * en tests unitarios. Cuando [tipoInstitucion] es [TIPO_OTRA] la institución
+ * es opcional y no se exige grado ni semestre; el grado/semestre se limpia
+ * al guardar.
  */
 data class DatosPerfil(
     val nombre: String = "",
@@ -31,7 +32,10 @@ data class DatosPerfil(
         if (nombre.trim().length < 2) add(ERROR_NOMBRE)
         if (apellido.trim().length < 2) add(ERROR_APELLIDO)
         if (tipoInstitucion !in TIPOS_INSTITUCION) add(ERROR_TIPO_INSTITUCION)
-        if (institucion.trim().length < 2) add(ERROR_INSTITUCION)
+        // Con "Otra" el nombre de la institución es opcional.
+        if (tipoInstitucion != TIPO_OTRA && institucion.trim().length < 2) {
+            add(ERROR_INSTITUCION)
+        }
         if (exigeGradoSemestre && gradoSemestre.isBlank()) add(ERROR_GRADO)
         if (telefono.isNotBlank() && !TELEFONO_REGEX.matches(telefono.trim())) {
             add(ERROR_TELEFONO)
