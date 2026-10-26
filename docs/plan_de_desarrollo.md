@@ -99,10 +99,14 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
 - **Cronómetro de 120 minutos** con cuenta regresiva, persistencia en `SavedStateHandle` y overlay de continuar/abandonar al volver de segundo plano.
 - **Registro de respuestas y resultados** (`SimulationRepository`): simulacro completado guardado en Firestore (`simulations` + subcolección `simulationQuestions` con respuesta usuario/correcta por pregunta); sin sesión se omite el guardado en la nube.
 - **Resultado**: puntaje, porcentaje, tiempo empleado y detalle expandible por pregunta (correcta/incorrecta + explicación).
-- **Autenticación — ✅ implementado con gate obligatorio** (rama `feat/auth-gate`):
-  - `google-services.json` integrado; Auth email/contraseña con `AuthRepository` (`register`, `login`, `restoreSession`, `logout`, creación de perfil en `users` con rol aspirante).
-  - Pantalla de **Perfil** con login/registro funcional (toggle), perfil del usuario y cierre de sesión.
-  - **Gate**: el splash verifica la sesión tras el seed; sin sesión se entra al **login como raíz** (sin acceso a Home), con sesión se entra directo a Home; el logout devuelve al login como raíz.
+- **Autenticación, Google Sign-In y onboarding — ✅ implementado** (rama `feat/auth-google-onboarding`):
+  - `google-services.json` integrado; Auth email/contraseña con `AuthRepository` (`register` con nombre/apellido, `login`, `signInWithGoogle`, `completeProfile`, `sendPasswordReset`, `restoreSession`, `logout`).
+  - **Google Sign-In** con Credential Manager (`GetGoogleIdOption`): Firebase crea la cuenta automáticamente y la app crea `users/{uid}` con onboarding pendiente. Si el correo ya existe con contraseña se muestra una colisión clara (sin vinculación automática).
+  - **Onboarding obligatorio**: nombre, apellido, tipo de institución, institución y grado/semestre; teléfono, ciudad y fecha del examen opcionales. Con **“Otra”** la institución también es opcional y no se piden grado ni semestre. La misma pantalla permite editar el perfil.
+  - **Pantalla de Perfil**: login/registro manual con contraseña visible/oculta, Google como opción destacada, recuperación de contraseña, datos completos, edición y cierre de sesión.
+  - **Gate**: el splash verifica la sesión tras el seed y decide **Login** (sin sesión), **Onboarding** (perfil incompleto) o **Home** (perfil completo); el logout devuelve al login como raíz.
+  - **Modelo `User`** ampliado (apellido, teléfono, ciudad, institución, tipo, grado/semestre, fecha del examen, proveedor, `onboardingCompletado`) + `UserMapper` + `DatosPerfil` con validación pura.
+  - **Reglas Firestore**: el usuario solo actualiza campos de perfil; no puede cambiar `rol`, `estado`, `correo` ni `fechaCreacion`. Creación con `rol=aspirante` y correo del token.
 - **Firebase — ✅ implementado** (rama `feat/firebase-config`, ya en `main`):
   - **Reglas de seguridad Firestore** (`firestore.rules`) completas: users, questions, contexts, components, subtopics, simulations/simulationQuestions, educationalContent, settings, con roles aspirante/admin.
   - **Sincronización del banco**: `QuestionRepository.updateBankFromFirestore()` descarga preguntas aprobadas y reemplaza el banco local.
@@ -127,7 +131,7 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
   - Contenido de los **29 componentes del examen** (15 RL + 14 CL): descripción, estrategia de resolución y errores comunes, empaquetado como asset (`assets/info/contenido_educativo.json`, offline-first; la colección `educationalContent` queda para el futuro panel admin).
   - Tab 📚 con filtro por área y acordeón expandible por componente.
   - `ComingSoonScreen` eliminado: las 5 pestañas de la app son funcionales.
-- **Tests unitarios**: 152 tests (mapper, loader, seeder, motor de selección, gate de autenticación, selector/sesión/filtros de práctica, analítica de progreso + mappers offline-first, pausa/persistencia, racha —analizador, mapper, repositorio—, saludo y HomeViewModel, encuesta —modelo, repositorio, ViewModel—, módulo Info) — `./gradlew test` PASS.
+- **Tests unitarios**: 194 tests (mapper, loader, seeder, motor de selección, gate de autenticación, onboarding/Google, perfil, selector/sesión/filtros de práctica, analítica de progreso + mappers offline-first, pausa/persistencia, racha —analizador, mapper, repositorio—, saludo y HomeViewModel, encuesta —modelo, repositorio, ViewModel—, módulo Info) — `./gradlew test` PASS.
 
 ### 🔶 Pendiente / En construcción
 - **Home renovado** (rama `feat/home-visual`): pendiente PR a `main`.
@@ -191,7 +195,7 @@ La tabla `questions` (campos abajo) más las caches offline-first del progreso y
 ### Colecciones Firestore (✅ reglas desplegadas; `users`, `simulations`/`simulationQuestions`, `practiceSessions`/`practiceQuestions` y `rachas` en uso; sincronización de `questions` implementada)
 | Colección | Propósito |
 | :--- | :--- |
-| `users` | `uid`, `nombre`, `correo`, `rol`, `fechaCreacion`, `estado` |
+| `users` | `uid`, `nombre`, `apellido`, `correo`, `rol`, `fechaCreacion`, `estado`, `telefono`, `ciudad`, `institucion`, `tipoInstitucion`, `gradoSemestre`, `fechaExamen`, `fotoUrl`, `proveedor`, `onboardingCompletado` |
 | `questions` | Banco maestro con `estado` y `metadatos` |
 | `contexts` | Contextos compartidos |
 | `components` / `subtopics` | Componentes y subtemas |
@@ -271,7 +275,7 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 | **P0** | Configuración del proyecto Android y Firebase | Base técnica | ✅ |
 | **P0** | Modelo Room + banco de preguntas | Datos | ✅ |
 | **P0** | Repositorio y carga inicial (JSONL) | Datos | ✅ |
-| **P0** | Autenticación y roles | Acceso | ✅ (login/registro + gate obligatorio; 🔶 recuperación de contraseña) |
+| **P0** | Autenticación y roles | Acceso | ✅ (registro manual + Google + onboarding obligatorio + recuperación de contraseña) |
 | **P0** | Modelo Firestore | Datos | ✅ (reglas desplegadas en `firestore.rules`) |
 | **P0** | Importador y validador CSV/JSON | Contenido | 🔶 (sincronización de banco implementada; importador admin pendiente) |
 | **P0** | Panel CRUD de preguntas | Administración | 🔶 |
@@ -300,7 +304,7 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 4. ✅ Configurar Firebase (Auth + Firestore) y seguridad.
 5. 🔶 Construir importación/validación del CSV/JSON (panel admin).
 6. 🔶 Crear panel administrativo básico.
-7. ✅ Implementar autenticación móvil (login/registro en Perfil + gate obligatorio de sesión; pendiente recuperación de contraseña).
+7. ✅ Implementar autenticación móvil (registro manual + Google Sign-In + onboarding obligatorio + recuperación de contraseña en Perfil; gate de sesión).
 8. ✅ Implementar navegación y pantallas base (Compose).
 9. ✅ Implementar motor de selección de simulacro.
 10. ✅ Implementar simulacro y persistencia (local-first Room + Firestore con sesión).

@@ -19,6 +19,8 @@ import com.udea.rutaudea.ui.screen.encuesta.EncuestaViewModel
 import com.udea.rutaudea.ui.screen.home.HomeViewModel
 import com.udea.rutaudea.ui.screen.info.InfoScreen
 import com.udea.rutaudea.ui.screen.info.InfoViewModel
+import com.udea.rutaudea.ui.screen.onboarding.OnboardingScreen
+import com.udea.rutaudea.ui.screen.onboarding.OnboardingViewModel
 import com.udea.rutaudea.ui.screen.perfil.PerfilScreen
 import com.udea.rutaudea.ui.screen.perfil.PerfilViewModel
 import com.udea.rutaudea.ui.screen.practica.PracticaFiltrosScreen
@@ -33,6 +35,7 @@ import com.udea.rutaudea.ui.screen.resultado.ResultadoScreen
 import com.udea.rutaudea.ui.screen.resultado.ResultadoViewModel
 import com.udea.rutaudea.ui.screen.simulacro.SimulacroScreen
 import com.udea.rutaudea.ui.screen.simulacro.SimulacroViewModel
+import com.udea.rutaudea.ui.screen.splash.SplashDestino
 import com.udea.rutaudea.ui.screen.splash.SplashScreen
 
 @Composable
@@ -47,16 +50,14 @@ fun AppNavHost() {
     NavHost(navController, startDestination = AppNavGraph.SPLASH) {
         composable(AppNavGraph.SPLASH) {
             SplashScreen(
-                onReady = { sesionActiva ->
-                    // Gate de autenticación: con sesión → Home; sin sesión → login.
-                    if (sesionActiva) {
-                        navController.navigate(AppNavGraph.HOME) {
-                            popUpTo(AppNavGraph.SPLASH) { inclusive = true }
-                        }
-                    } else {
-                        navController.navigate(AppNavGraph.perfilRoute(gate = true)) {
-                            popUpTo(AppNavGraph.SPLASH) { inclusive = true }
-                        }
+                onReady = { destino ->
+                    val ruta = when (destino) {
+                        SplashDestino.HOME -> AppNavGraph.HOME
+                        SplashDestino.LOGIN -> AppNavGraph.perfilRoute(gate = true)
+                        SplashDestino.ONBOARDING -> AppNavGraph.onboardingRoute()
+                    }
+                    navController.navigate(ruta) {
+                        popUpTo(AppNavGraph.SPLASH) { inclusive = true }
                     }
                 }
             )
@@ -286,9 +287,13 @@ fun AppNavHost() {
             PerfilScreen(
                 viewModel = perfilViewModel,
                 esGate = esGate,
-                onAuthSuccess = {
-                    // Login completado desde el gate: Home se vuelve la raíz.
-                    navController.navigate(AppNavGraph.HOME) {
+                onAuthSuccess = { requiereOnboarding ->
+                    val ruta = if (requiereOnboarding) {
+                        AppNavGraph.onboardingRoute()
+                    } else {
+                        AppNavGraph.HOME
+                    }
+                    navController.navigate(ruta) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
@@ -299,7 +304,48 @@ fun AppNavHost() {
                     }
                 },
                 onBack = { navController.popBackStack() },
-                onEncuestaClick = { navController.navigate(AppNavGraph.ENCUESTA) }
+                onEncuestaClick = { navController.navigate(AppNavGraph.ENCUESTA) },
+                onEditarPerfil = {
+                    navController.navigate(AppNavGraph.onboardingRoute(editar = true))
+                },
+                onCompletarPerfil = {
+                    navController.navigate(AppNavGraph.onboardingRoute(editar = false)) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = AppNavGraph.ONBOARDING_ARGS,
+            arguments = listOf(navArgument("editar") {
+                type = NavType.BoolType
+                defaultValue = false
+            })
+        ) { entry ->
+            val esEdicion = entry.arguments?.getBoolean("editar") ?: false
+            val authRepository = AppModule.provideAuthRepository(app)
+            val onboardingViewModel: OnboardingViewModel = viewModel(
+                factory = ViewModelFactories.OnboardingFactory(authRepository)
+            )
+            OnboardingScreen(
+                viewModel = onboardingViewModel,
+                esEdicion = esEdicion,
+                onGuardado = {
+                    if (esEdicion) {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate(AppNavGraph.HOME) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                },
+                onLogout = {
+                    navController.navigate(AppNavGraph.perfilRoute(gate = true)) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
 

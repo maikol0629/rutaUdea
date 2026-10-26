@@ -33,7 +33,7 @@ import com.udea.rutaudea.ui.theme.RutaUdeaTheme
 
 @Composable
 fun SplashScreen(
-    onReady: (sesionActiva: Boolean) -> Unit
+    onReady: (SplashDestino) -> Unit
 ) {
     val app = LocalContext.current.applicationContext as android.app.Application
     val repository = AppModule.provideQuestionRepository(app)
@@ -43,8 +43,8 @@ fun SplashScreen(
     )
 
     LaunchedEffect(Unit) {
-        viewModel.initializeAsync { sesionActiva ->
-            onReady(sesionActiva)
+        viewModel.initializeAsync { destino ->
+            onReady(destino)
         }
     }
 
@@ -103,7 +103,7 @@ private fun SplashContent() {
                     modifier = Modifier.padding(top = 8.dp)
                 )
                 Text(
-                    text = "Cargando banco de preguntas…",
+                    text = "Preparando tu ruta…",
                     fontSize = 14.sp,
                     color = ForestGreen.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center

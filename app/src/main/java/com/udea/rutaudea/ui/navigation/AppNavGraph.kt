@@ -13,9 +13,16 @@ object AppNavGraph {
     const val PERFIL = "perfil"
     const val ENCUESTA = "encuesta"
 
+    /** Onboarding obligatorio (y edición de perfil con `editar=true`). */
+    const val ONBOARDING = "onboarding"
+    const val ONBOARDING_ARGS = "onboarding?editar={editar}"
+
     /** Ruta con argumento `gate` (true = pantalla usada como gate de login). */
     const val PERFIL_ARGS = "perfil?gate={gate}"
 
     /** Ruta navegable del tab Perfil / gate de login. */
     fun perfilRoute(gate: Boolean = false): String = "perfil?gate=$gate"
+
+    /** Ruta del onboarding o de la edición de perfil. */
+    fun onboardingRoute(editar: Boolean = false): String = "onboarding?editar=$editar"
 }

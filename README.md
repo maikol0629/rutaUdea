@@ -22,6 +22,7 @@ app/src/main/java/com/udea/rutaudea/
 ├── data/
 │   ├── local/                     # Room: RutaUdeaDatabase, QuestionEntity, QuestionDao
 │   ├── mapper/QuestionMapper.kt   # Conversión entidad <-> dominio
+│   ├── mapper/UserMapper.kt       # Conversión documento users <-> dominio
 │   ├── repository/
 │   │   ├── QuestionRepository.kt  # Banco local + sincronización desde Firestore
 │   │   ├── AuthRepository.kt      # Firebase Auth + perfil (colección users)
@@ -31,7 +32,8 @@ app/src/main/java/com/udea/rutaudea/
 │   └── source/local/              # JsonL loader + Seeder
 ├── domain/
 │   ├── model/Question.kt          # Modelo de dominio de preguntas
-│   ├── model/User.kt              # Modelo de usuario (uid, nombre, correo, rol)
+│   ├── model/User.kt              # Usuario + perfil (nombre, institución, onboarding)
+│   ├── model/DatosPerfil.kt       # Validación pura del onboarding/edición de perfil
 │   ├── model/Progreso.kt          # Modelos del módulo de Progreso
 │   ├── services/QuestionSelector.kt # Motor de selección de 80 preguntas
 │   ├── services/PracticeSelector.kt # Estratificación proporcional por dificultad
@@ -43,7 +45,8 @@ app/src/main/java/com/udea/rutaudea/
 │   │   ├── home/                  # Home con 5 tabs
 │   │   ├── simulacro/             # Simulacro 80 preguntas, timer 120 min
 │   │   ├── resultado/             # Score, análisis y detalle por pregunta
-│   │   ├── perfil/                # Login / Registro / Perfil (Firebase Auth)
+│   │   ├── perfil/                # Login / Registro / Perfil / Google Sign-In
+│   │   ├── onboarding/            # Onboarding obligatorio y edición de perfil
 │   │   ├── practica/              # Filtros → sesión con feedback → resultado
 │   │   ├── progreso/              # Dashboard: evolución, subtemas, recomendaciones, historial
 │   │   └── info/                  # Contenido educativo por componente (acordeón)
@@ -87,14 +90,38 @@ está listo para poblarla cuando arranque el panel administrativo.
 | `replaceBank(questions)` | Carga inicial / sincronización |
 | `updateBankFromFirestore()` | Sincronizar banco maestro aprobado |
 
-## Autenticación (Firebase) — con gate obligatorio
+## Autenticación y onboarding (Firebase) — obligatorios
 
-- **Gate**: el splash verifica la sesión; sin sesión se entra al login como raíz (sin acceso a Home).
-- **Login/Registro** email+contraseña en `ui/screen/perfil/`
-- **`AuthRepository`**: `register()`, `login()`, `restoreSession()`, `logout()`
-- **Colección `users`**: perfil (nombre, correo, rol, fechaCreacion, estado)
-- **Roles** en reglas Firestore: `aspirante` (dueño) / `admin` (escritura)
-- Con sesión: los simulacros se guardan en Firestore; el logout devuelve al login.
+- **Gate**: el splash verifica la sesión y el estado del onboarding.
+  - Sin sesión → **Login** como raíz (sin acceso a Home).
+  - Con sesión y onboarding pendiente → **Onboarding**.
+  - Con sesión y perfil completo → **Home**.
+  - El logout devuelve al login como raíz.
+- **Registro manual** email+contraseña: nombre, apellido, correo, contraseña con
+  confirmación y aceptación de términos. Los campos de contraseña permiten
+  **mostrarla u ocultarla** para verificar lo escrito.
+- **Google Sign-In** con **Credential Manager** (`GetGoogleIdOption` +
+  `androidx.credentials`): la primera vez Firebase crea la cuenta
+  automáticamente y la app crea `users/{uid}` con `onboardingCompletado=false`.
+  Si el correo ya existe con email/contraseña se muestra un mensaje claro
+  (no se vinculan cuentas automáticamente). En el login es la opción más
+  visible: botón destacado con el logotipo de Google.
+- **Onboarding obligatorio** (`ui/screen/onboarding/`): nombre, apellido, tipo
+  de institución, institución y grado/semestre. Teléfono, ciudad y fecha del
+  examen son opcionales. Al elegir **“Otra”** la institución también es
+  opcional y no se piden grado ni semestre.
+- **Perfil** (`ui/screen/perfil/`): datos del usuario, edición, encuesta piloto
+  y cierre de sesión. También permite **recuperar la contraseña** por correo.
+- **`AuthRepository`**: `register()`, `login()`, `signInWithGoogle()`,
+  `completeProfile()`, `sendPasswordReset()`, `restoreSession()`, `logout()`.
+- **Colección `users`**: perfil completo (nombre, apellido, correo, rol,
+  teléfono, ciudad, institución, tipo, grado/semestre, fecha del examen,
+  proveedor, `onboardingCompletado`, `fechaCreacion`, `estado`).
+- **Roles** en reglas Firestore: `aspirante` (dueño) / `admin` (escritura).
+  El usuario no puede cambiar su propio `rol`, `estado`, `correo` ni
+  `fechaCreacion`.
+- Con sesión, los simulacros y la encuesta se guardan en Firestore; el logout
+  devuelve al login.
 
 ---
 
@@ -115,6 +142,7 @@ está listo para poblarla cuando arranque el panel administrativo.
 ## Próximos pasos
 
 1. Análisis por componente y dificultad en Progreso.
-2. Inactividad del cronómetro + recuperación de contraseña.
+2. Inactividad del cronómetro + vinculación manual de cuentas Google desde el perfil.
 3. Panel administrativo web (CRUD del banco, carga CSV, roles admin).
 4. Migrar inyección manual a **Hilt**.
+5. Tests de instrumentación del flujo de autenticación/onboarding.
