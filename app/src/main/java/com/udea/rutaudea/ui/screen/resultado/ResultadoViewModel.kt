@@ -49,7 +49,9 @@ class ResultadoViewModel(
                     correctAnswer = question.respuestaCorrecta,
                     explanation = question.explicacion ?: "",
                     enunciado = question.pregunta,
-                    textoApoyo = textoApoyoDe(question)
+                    textoApoyo = textoApoyoDe(question),
+                    imagenesContexto = question.imagenesDeContexto(),
+                    imagenesPregunta = question.imagenesDePregunta()
                 )
             }
 

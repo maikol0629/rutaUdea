@@ -1,23 +1,24 @@
 package com.udea.rutaudea.data.repository
 
-import com.google.firebase.firestore.FirebaseFirestore
 import com.udea.rutaudea.data.local.dao.QuestionDao
+import com.udea.rutaudea.data.local.entity.QuestionEntity
 import com.udea.rutaudea.data.mapper.QuestionMapper
+import com.udea.rutaudea.data.sync.BankSyncManager
+import com.udea.rutaudea.data.sync.ResultadoSync
 import com.udea.rutaudea.domain.model.Question
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.tasks.await
 
 /**
  * Punto único de acceso a las preguntas.
  *
  * La fuente principal de consulta es la base local (Room) para
- * garantizar rapidez y funcionamiento offline. La actualización
- * del banco se realiza a través de [updateBankFromFirestore].
+ * garantizar rapidez y funcionamiento offline. La actualización del banco
+ * la hace [BankSyncManager] contra `questions_v2` (D-02).
  */
 class QuestionRepository(
     private val questionDao: QuestionDao,
-    private val firestore: FirebaseFirestore? = null
+    private val bankSync: BankSyncManager? = null
 ) {
 
     // ----- LECTURA LOCAL (práctica y simulacro) -----
@@ -52,6 +53,8 @@ class QuestionRepository(
 
     suspend fun countQuestions(): Int = questionDao.countQuestions()
 
+    suspend fun countAll(): Int = questionDao.countAll()
+
     suspend fun countByArea(area: String): Int = questionDao.countByArea(area)
 
     suspend fun getDistinctAreas(): List<String> = questionDao.getDistinctAreas()
@@ -68,12 +71,18 @@ class QuestionRepository(
     suspend fun countByFilters(area: String? = null, subtema: String? = null): Int =
         questionDao.countByFilters(area, subtema)
 
+    /** Versión del banco instalada (asset o última sincronización). */
+    fun versionBanco(): String? = bankSync?.versionLocal()
+
     // ----- SEED (carga inicial) -----
 
-    /** Reemplaza el banco local por completo (usado al cargar el JSONL o al sincronizar). */
+    /** Reemplaza el banco local por completo (usado al cargar el JSONL v2). */
+    suspend fun replaceBankEntities(entities: List<QuestionEntity>) {
+        questionDao.replaceAll(entities)
+    }
+
     suspend fun replaceBank(questions: List<Question>) {
-        questionDao.deleteAll()
-        questionDao.insertAll(questions.map(QuestionMapper::domainToEntity))
+        questionDao.replaceAll(questions.map(QuestionMapper::domainToEntity))
     }
 
     suspend fun upsertAll(questions: List<Question>) {
@@ -83,61 +92,23 @@ class QuestionRepository(
     // ----- SINCRONIZACIÓN CON FIRESTORE -----
 
     /**
-     * Descarga el banco maestro desde Firestore (colección `questions`,
-     * documentos con estado = "aprobado") y reemplaza el banco local Room.
+     * Fuerza una sincronización con `questions_v2` y devuelve el total
+     * actualizado. Los fallos no borran el banco local.
      */
     suspend fun updateBankFromFirestore(): Result<Int> {
-        val fs = firestore
-            ?: return Result.failure(Exception("Firestore no está configurado"))
-        return try {
-            val snapshot = fs.collection(COLECCION_QUESTIONS)
-                .whereEqualTo(CAMPO_ESTADO, ESTADO_APROBADO)
-                .get()
-                .await()
-            val questions = snapshot.documents.mapNotNull { doc -> documentToQuestion(doc) }
-            if (questions.isEmpty()) {
-                Result.failure(Exception("El banco de Firestore está vacío o sin preguntas aprobadas"))
-            } else {
-                replaceBank(questions)
-                Result.success(questions.size)
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
+        val sync = bankSync
+            ?: return Result.failure(Exception("La sincronización no está configurada"))
+        return when (val resultado = sync.sincronizar(forzar = true)) {
+            is ResultadoSync.Actualizado -> Result.success(resultado.total)
+            is ResultadoSync.SinCambios -> Result.success(resultado.total)
+            is ResultadoSync.SinManifiesto ->
+                Result.failure(Exception("El panel aún no publicó un banco activo"))
+            is ResultadoSync.SinConfiguracion ->
+                Result.failure(Exception("Firestore no está configurado"))
+            is ResultadoSync.Rechazado ->
+                Result.failure(Exception("Lote rechazado: ${resultado.motivos.joinToString()}"))
+            is ResultadoSync.Error ->
+                Result.failure(Exception(resultado.mensaje))
         }
-    }
-
-    private fun documentToQuestion(doc: com.google.firebase.firestore.DocumentSnapshot): Question? {
-        val id = doc.id
-        val area = doc.getString("area") ?: return null
-        val subtema = doc.getString("subtema") ?: return null
-        val dificultad = doc.getString("dificultad") ?: return null
-        val pregunta = doc.getString("pregunta") ?: return null
-        val opciones = (doc.get("opciones") as? List<*>)?.map { it.toString() }
-        val respuestaCorrecta = doc.getString("respuesta_correcta") ?: return null
-        if (opciones.isNullOrEmpty() || respuestaCorrecta !in listOf("A", "B", "C", "D")) {
-            return null
-        }
-        return Question(
-            id = id,
-            area = area,
-            componente = doc.getString("componente"),
-            subtema = subtema,
-            competencia = doc.getString("competencia"),
-            tipoTexto = doc.getString("tipo_texto"),
-            dificultad = dificultad,
-            textoBase = doc.getString("texto_base"),
-            contexto = doc.getString("contexto"),
-            pregunta = pregunta,
-            opciones = opciones,
-            respuestaCorrecta = respuestaCorrecta,
-            explicacion = doc.getString("explicacion"),
-            esOriginal = doc.getBoolean("es_original") ?: false
-        )
-    }
-
-    companion object {
-        const val COLECCION_QUESTIONS = "questions"
-        const val CAMPO_ESTADO = "estado"
-        const val ESTADO_APROBADO = "aprobado"
     }
 }

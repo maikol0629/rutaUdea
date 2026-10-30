@@ -82,14 +82,10 @@ fun AppNavHost() {
             )
         }
 
-        composable(AppNavGraph.SIMULACRO) {
-            // Lectura única con remember (igual que RESULTADO y PRÁCTICA):
-            // durante la animación de salida la entrada ya está popeada y
-            // re-evaluar getBackStackEntry lanzaría IllegalArgumentException
-            // (cierre instantáneo al pulsar Salir en la pausa).
-            val backStackEntry = remember {
-                navController.getBackStackEntry(AppNavGraph.SIMULACRO)
-            }
+        composable(AppNavGraph.SIMULACRO) { backStackEntry ->
+            // La entrada de esta misma ruta la entrega NavHost: no hace falta
+            // getBackStackEntry (que además falla durante la animación de
+            // salida, cuando la entrada ya fue popeada).
             val savedStateHandle = backStackEntry.savedStateHandle
             val simulacroViewModel: SimulacroViewModel = viewModel(
                 factory = ViewModelFactories.SimulacroFactory(
@@ -120,7 +116,7 @@ fun AppNavHost() {
             // Get data from Simulacro's SavedStateHandle via previous back stack entry.
             // Read it ONCE with remember: during the exit animation (after SIMULACRO was
             // popped from the back stack) getBackStackEntry() would throw and crash the app.
-            val resultadoData = remember {
+            val resultadoData = remember(backStackEntry) {
                 val simulacroSavedStateHandle =
                     navController.getBackStackEntry(AppNavGraph.SIMULACRO).savedStateHandle
                 ResultadoData(
@@ -172,9 +168,9 @@ fun AppNavHost() {
             )
         }
 
-        composable(AppNavGraph.PRACTICA_SESION) {
+        composable(AppNavGraph.PRACTICA_SESION) { backStackEntry ->
             // Lectura única de la selección hecha en Filtros (SAH de esa entrada).
-            val sesionData = remember {
+            val sesionData = remember(backStackEntry) {
                 val filtrosSah = navController.getBackStackEntry(AppNavGraph.PRACTICA).savedStateHandle
                 PracticaSesionData(
                     questions = parseQuestions(
@@ -190,7 +186,7 @@ fun AppNavHost() {
                     sesionData.questions,
                     sesionData.area,
                     sesionData.subtema,
-                    it.savedStateHandle
+                    backStackEntry.savedStateHandle
                 )
             )
             PracticaSesionScreen(
@@ -204,10 +200,10 @@ fun AppNavHost() {
             )
         }
 
-        composable(AppNavGraph.PRACTICA_RESULTADO) {
+        composable(AppNavGraph.PRACTICA_RESULTADO) { backStackEntry ->
             // Lectura única de los resultados (SAH de la sesión) con remember:
             // durante la animación de salida getBackStackEntry() podría fallar.
-            val resultadoData = remember {
+            val resultadoData = remember(backStackEntry) {
                 val sesionSah = navController.getBackStackEntry(AppNavGraph.PRACTICA_SESION).savedStateHandle
                 PracticaResultadoData(
                     score = sesionSah.get<Int>(PracticaSesionViewModel.SCORE_KEY) ?: 0,

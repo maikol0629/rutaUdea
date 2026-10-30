@@ -58,25 +58,35 @@ app/src/main/java/com/udea/rutaudea/
 
 La consulta de preguntas se realiza contra la **base local Room** para
 garantizar rapidez, filtrado y funcionamiento offline. Firebase se usa para
-autenticación, sincronización del banco maestro (`questions`) y persistencia
-de resultados de simulacros (`simulations` / `simulationQuestions`).
+autenticación, sincronización del banco canónico (`questions_v2` +
+`bank_manifest`, D-02) y persistencia de resultados de simulacros
+(`simulations` / `simulationQuestions`).
 
 ## Banco de preguntas
 
 El dataset (JSONL) se empaqueta en:
 `app/src/main/assets/questions/questions.jsonl`
 
-Contiene **200 preguntas** (100 Razonamiento Lógico + 100 Competencia Lectora),
-clasificadas por los **componentes oficiales del examen UdeA** (RL01–RL18 y
-CL01–CL14). Se cargan en Room en la primera ejecución.
+Es el banco canónico v2 (`udea-2026-10-v1`, schema 2): **400 preguntas**
+(200 RL + 200 CL), **55 contextos** y **93 imágenes** publicadas. Estados:
+269 `aprobado`, 127 `aprobado_con_imagen`, 3 `pendiente` y 1
+`deshabilitado`; solo los dos primeros se sirven a la app. Se carga en Room
+en la primera ejecución.
 
 **Actualizaciones del banco:** el contenido viaja en la APK (offline-first).
 El `DatabaseSeeder` es **versionado**: al cambiar el JSONL, incrementa
-`BANK_SEED_VERSION` y las instalaciones existentes se re-siembran solas.
+`BANK_SEED_VERSION` (`v6` en Fase 7) y las instalaciones existentes se
+re-siembran solas.
 
-**Banco maestro en la nube (opcional/futuro):** la colección `questions` de
-Firestore no se usa en ningún flujo activo; `scripts/upload_bank_to_firestore.js`
-está listo para poblarla cuando arranque el panel administrativo.
+**Sincronización híbrida (D-02):** en segundo plano, `BankSyncManager` lee
+`bank_manifest/active`, compara versión/hash/conteo y, si cambió, descarga
+`questions_v2`, valida el lote y reemplaza Room de forma atómica. Sin
+manifiesto la app sigue usando el asset sin mostrar errores; un lote inválido
+conserva la versión anterior. `BankSyncWorker` (WorkManager) programa la
+ejecución con red disponible y Coil pre-cachea las imágenes.
+
+El banco legacy `questions` queda congelado para rollback y la app ya no lo
+consulta.
 
 ## Consultas disponibles (`QuestionRepository`)
 
@@ -88,7 +98,8 @@ está listo para poblarla cuando arranque el panel administrativo.
 | `observeQuestions()` | Flujo reactivo |
 | `countByArea(area)` | Validar disponibilidad para simulacro |
 | `replaceBank(questions)` | Carga inicial / sincronización |
-| `updateBankFromFirestore()` | Sincronizar banco maestro aprobado |
+| `countAll()` | Total del banco (para validar el lote descargado) |
+| `updateBankFromFirestore()` | Sincronizar `questions_v2` según `bank_manifest` (D-02) |
 
 ## Autenticación y onboarding (Firebase) — obligatorios
 
@@ -141,8 +152,12 @@ está listo para poblarla cuando arranque el panel administrativo.
 
 ## Próximos pasos
 
-1. Análisis por componente y dificultad en Progreso.
-2. Inactividad del cronómetro + vinculación manual de cuentas Google desde el perfil.
-3. Panel administrativo web (CRUD del banco, carga CSV, roles admin).
-4. Migrar inyección manual a **Hilt**.
-5. Tests de instrumentación del flujo de autenticación/onboarding.
+1. Prueba en dispositivo/emulador del banco v2 (imágenes, contexto largo,
+   opciones en imagen, offline y rotación); pasa a Fase 8 por falta de
+   KVM/ADB en la máquina de desarrollo.
+2. Primera publicación real de `bank_manifest/active` desde el panel y
+   verificación de la sincronización en staging.
+3. Análisis por componente y dificultad en Progreso.
+4. Inactividad del cronómetro + vinculación manual de cuentas Google desde el perfil.
+5. Migrar inyección manual a **Hilt**.
+6. Tests de instrumentación del flujo de autenticación/onboarding.

@@ -7,7 +7,9 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "deploy:staging": "firebase hosting:channel:deploy staging"
   },
   "repository": {
     "type": "git",
@@ -18,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/maikol0629/rutaUdea/issues"
   },
-  "homepage": "https://github.com/maikol0629/rutaUdea#readme"
+  "homepage": "https://github.com/maikol0629/rutaUdea#readme",
+  "devDependencies": {
+    "firebase-tools": "^15.34.1"
+  }
 }

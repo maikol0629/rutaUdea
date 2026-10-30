@@ -1,84 +1,93 @@
-# Compiled class file
-*.class
+# =============================================================================
+# RutaUdeA — qué NO se versiona
+#
+# Regla general: los secretos y los artefactos regenerables se ignoran; el
+# código, la configuración del proyecto, el wrapper de Gradle y los scripts
+# de migración sí se versionan.
+# =============================================================================
 
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
-
-# Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
-.kotlin/
-
-# --- Android / Gradle ---
-*.iml
-.gradle/
-local.properties
-.idea/
+# ---------- Sistema operativo / editores ----------
 .DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+.vscode/
+
+# ---------- Secretos: NUNCA al repositorio ----------
+# Firma de Android (keystore y contraseñas)
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties
+signing.properties
+secrets.properties
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Firebase: google-services.json contiene claves del proyecto.
+google-services.json
+GoogleService-Info.plist
+# Credenciales de cuenta de servicio (panel y scripts de carga)
+serviceAccountKey*.json
+*-firebase-adminsdk-*.json
+
+# ---------- Android / Gradle ----------
+.gradle/
+.kotlin/
+local.properties
+*.hprof
 build/
 captures/
 .externalNativeBuild/
 .cxx/
+
+# Artefactos de compilación (APK/AAB firmados incluidos)
 *.apk
 *.aab
-*.keystore
-
-# --- Firebase ---
-# google-services.json contiene claves del proyecto; no debe subirse al repo.
-google-services.json
-
-# --- mise / tooling ---
-mise.toml
-.mise/
-
-# --- VS Code / IDEs ---
-.vscode/
-*.swp
-*.swo
-
-# --- Kotlin / KSP ---
-.kotlin/
-*.ksp/
-
-# --- Gradle cache / wrapper ---
-gradle/
-gradlew
-gradlew.bat
-
-# --- Build outputs ---
-*.apk
-*.aab
-*.keystore
-!gradle/wrapper/gradle-wrapper.jar
+*.ap_
+*.dex
 app/debug/
 app/release/
 
-# --- Coverage / reports ---
-*.ec
-build/reports/
-coverage/
+# El wrapper SÍ se versiona: gradlew, gradlew.bat, gradle/wrapper/*
 
-# --- Release / signing ---
-*.jks
-keystore.properties
-signing.properties
-local.properties
-# --- Firebase local ---
+# ---------- Node (Firebase CLI y scripts de migración) ----------
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- Firebase CLI: estado local, no configuración ----------
+.firebase/
 .firebaserc
+*.log
+
+# ---------- Python (scripts de migración del banco) ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ---------- Salidas generadas (se regeneran con scripts/) ----------
+# hosting_assets se reconstruye con scripts/build_asset_fase5.py
+hosting_assets/
+# Área de trabajo temporal
+tmp/
+
+# ---------- Clases Java y volcados de JVM ----------
+*.class
+hs_err_pid*
+replay_pid*
+
+# ---------- Cobertura / reportes ----------
+*.ec
+coverage/
+build/reports/

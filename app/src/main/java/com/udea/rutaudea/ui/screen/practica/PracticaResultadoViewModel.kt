@@ -1,5 +1,7 @@
 package com.udea.rutaudea.ui.screen.practica
 
+import com.udea.rutaudea.domain.model.ImagenPregunta
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.udea.rutaudea.data.repository.PracticeRepository
@@ -38,7 +40,9 @@ class PracticaResultadoViewModel(
         val enunciado: String,
         val textoApoyo: String?,
         val explicacion: String,
-        val recomendacion: String
+        val recomendacion: String,
+        val imagenesContexto: List<ImagenPregunta> = emptyList(),
+        val imagenesPregunta: List<ImagenPregunta> = emptyList()
     )
 
     private val _results = MutableStateFlow<List<PracticaResult>>(emptyList())
@@ -79,7 +83,9 @@ class PracticaResultadoViewModel(
                 enunciado = question.pregunta,
                 textoApoyo = textoApoyoDe(question),
                 explicacion = question.explicacion.orEmpty(),
-                recomendacion = recomendacionPara(question.subtema, esCorrecta, userAnswer != null)
+                recomendacion = recomendacionPara(question.subtema, esCorrecta, userAnswer != null),
+                imagenesContexto = question.imagenesDeContexto(),
+                imagenesPregunta = question.imagenesDePregunta()
             )
         }
         _results.value = results

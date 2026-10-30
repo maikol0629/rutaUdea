@@ -44,12 +44,37 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // ---------- questions (banco maestro) ----------
+    // ---------- questions (banco maestro legacy) ----------
     // Lectura para usuarios autenticados; escritura solo admin.
+    // Desde la Fase 7 la app lee `questions_v2`; esta colección queda
+    // congelada para rollback (D-02 §5 y D-12).
     match /questions/{questionId} {
       allow read: if request.auth != null;
       allow create, update: if isAdmin();
       allow delete: if isAdmin();
+    }
+
+    // ---------- questions_v2 (banco canónico, contrato v2) ----------
+    // La app sincroniza solo estados publicables. Escritura exclusiva
+    // del admin (el ETL usa una service account fuera del cliente).
+    match /questions_v2/{questionId} {
+      allow read: if request.auth != null;
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ---------- contexts_v2 (contextos compartidos, D-05) ----------
+    match /contexts_v2/{contextId} {
+      allow read: if request.auth != null;
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ---------- bank_manifest (publicación del banco, D-02) ----------
+    // Solo el panel publica `active`; la app solo lee.
+    match /bank_manifest/{documentId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     // ---------- contexts ----------

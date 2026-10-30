@@ -36,7 +36,7 @@ import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
         RachaEntity::class,
         EncuestaEntity::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 abstract class RutaUdeaDatabase : RoomDatabase() {
@@ -211,6 +211,44 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v4 → v5 (Fase 2): agrega `imagen_url` a la tabla `questions`.
+         * Las filas existentes quedan con NULL (= pregunta solo-texto).
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `imagen_url` TEXT")
+            }
+        }
+
+        /**
+         * v5 → v6 (Fase 7): campos del contrato v2 que antes se perdían.
+         *
+         * - `imagenes`/`opciones_en_imagen`/`requiere_imagen`: D-05 y D-06.
+         * - `banco_version`: D-02 y D-07.
+         * - metadatos de revisión: panel y trazabilidad.
+         *
+         * Los valores por defecto mantienen las filas existentes como
+         * solo-texto y sin versión; el seeder las reemplaza al subir
+         * `BANK_SEED_VERSION`.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `imagenes` TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `opciones_en_imagen` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `requiere_imagen` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `banco_version` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `tarea` TEXT")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `numero` INTEGER")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `confianza_modelo` TEXT")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `revisado_por` TEXT")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `fecha_revision` TEXT")
+                db.execSQL("ALTER TABLE `questions` ADD COLUMN `notas` TEXT")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_questions_estado` ON `questions` (`estado`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_questions_banco_version` ON `questions` (`banco_version`)")
+            }
+        }
+
         fun getInstance(context: Context): RutaUdeaDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -218,7 +256,13 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
                     RutaUdeaDatabase::class.java,
                     "rutaudea.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6
+                    )
                     .build()
                     .also { INSTANCE = it }
             }

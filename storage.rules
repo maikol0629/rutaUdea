@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Reglas de Storage — RutaUdeA (Fase 3).
+// Figuras del banco en `figuras/{FIG-XXX}.png`: lectura pública (la app las
+// muestra sin autenticación), escritura solo para admin (subidas desde el
+// script con cuenta de servicio, nunca desde el cliente).
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /figuras/{fileName} {
+      allow read: if true;
+      allow write: if false; // solo Admin SDK (cuenta de servicio)
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

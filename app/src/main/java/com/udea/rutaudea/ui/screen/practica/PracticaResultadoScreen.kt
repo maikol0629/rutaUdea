@@ -138,7 +138,9 @@ private fun PracticaResultItem(result: PracticaResultadoViewModel.PracticaResult
             "Tu respuesta: ${result.respuestaUsuario} · Correcta: ${result.respuestaCorrecta}"
         else null,
         explicacion = result.explicacion,
-        recomendacion = result.recomendacion
+        recomendacion = result.recomendacion,
+        imagenesContexto = result.imagenesContexto,
+        imagenesPregunta = result.imagenesPregunta
     )
 }
 

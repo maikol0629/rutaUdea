@@ -3,7 +3,6 @@ package com.udea.rutaudea.data.source.local
 import android.content.Context
 import com.google.gson.Gson
 import com.udea.rutaudea.data.local.dao.QuestionDao
-import com.udea.rutaudea.data.mapper.QuestionMapper
 import com.udea.rutaudea.data.repository.QuestionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,8 +14,11 @@ import kotlinx.coroutines.launch
  * Además de la primera ejecución (tabla vacía), re-siembra cuando la
  * versión del banco empaquetado sube ([BANK_SEED_VERSION]): así los
  * dispositivos con la app ya instalada reciben las correcciones del
- * banco (p. ej. la normalización de subtemas) sin reinstalar ni
- * borrar datos.
+ * banco sin reinstalar ni borrar datos.
+ *
+ * Desde la Fase 7 el asset es el mismo JSONL del ETL v2
+ * (`questions_v2.jsonl`), por lo que Room guarda estado, imágenes,
+ * contexto y versión del banco sin perder campos.
  */
 class DatabaseSeeder(
     private val context: Context,
@@ -25,7 +27,6 @@ class DatabaseSeeder(
 
     private val repository = QuestionRepository(questionDao)
     private val loader = QuestionJsonlLoader(context, Gson())
-    private val mapper = QuestionMapper
 
     /** Ruta del JSONL empaquetado en assets. */
     private val assetPath = "questions/questions.jsonl"
@@ -37,8 +38,7 @@ class DatabaseSeeder(
         if (!debeSembrar(questionDao.countQuestions(), versionInstalada)) return
 
         val entities = loader.loadFromAsset(assetPath)
-        val questions = mapper.listToDomain(entities)
-        repository.replaceBank(questions)
+        repository.replaceBankEntities(entities)
 
         prefs.edit().putInt(KEY_VERSION, BANK_SEED_VERSION).apply()
     }
@@ -56,7 +56,7 @@ class DatabaseSeeder(
         /**
          * Versión del banco empaquetado. **Incrémentala** cada vez que
          * cambies `app/src/main/assets/questions/questions.jsonl` para
-         * que los dispositivos existentes se re-siemhren.
+         * que los dispositivos existentes se re-siembren.
          *
          * v1: banco original (subtemas genéricos mezclados).
          * v2: normalización a componentes oficiales RL01–RL18 / CL01–CL14.
@@ -65,12 +65,20 @@ class DatabaseSeeder(
          *     con figuras inexistentes deshabilitadas.
          * v4: frase plantilla eliminada por completo de los textos CL-ORG
          *     (era relleno sin aporte de contenido).
+         * v5: banco fusionado Fase 1-4 (530 filas: 183 aprobado / 335
+         *     pendiente / 12 deshabilitado). 26 filas base sin respuesta
+         *     pasan a pendiente y entran 21 preguntas nuevas verificadas.
+         * v6: **Fase 7** — asset v2 del ETL (`udea-2026-10-v1`, schema 2):
+         *     400 preguntas (269 aprobado / 127 aprobado_con_imagen /
+         *     3 pendiente / 1 deshabilitado), 55 contextos, 93 imágenes
+         *     publicadas. Se conservan estado, imágenes con rol, contexto,
+         *     metadata de revisión y `bank_version`.
          */
-        const val BANK_SEED_VERSION = 4
+        const val BANK_SEED_VERSION = 6
 
         /**
          * Política de siembra (pura y testeable):
-         * - siembra si la tabla está vacía (primera ejecución), o
+         * - siembra si no hay preguntas aprobadas (primera ejecución), o
          * - re-siembra si el banco instalado es de una versión anterior.
          */
         fun debeSembrar(preguntasEnBd: Int, versionInstalada: Int): Boolean =

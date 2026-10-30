@@ -1,9 +1,44 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
+}
+
+// ---------------------------------------------------------------------------
+// Firma del release (Fase 7).
+//
+// Las credenciales NO viven en el repo: `keystore.properties` está en
+// .gitignore. Si el archivo no existe o está incompleto, el build de release
+// sigue funcionando pero produce un APK sin firmar (con aviso en consola).
+//
+// Formato de keystore.properties:
+//   storeFile=/home/michael/keystore/rutaudea-release.jks
+//   storePassword=...
+//   keyAlias=rutaudea
+//   keyPassword=...
+// ---------------------------------------------------------------------------
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.isFile) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+val releaseStorePath = keystoreProperties.getProperty("storeFile")?.takeIf { it.isNotBlank() }
+val releaseSigningListo = keystorePropertiesFile.isFile &&
+    releaseStorePath != null &&
+    !keystoreProperties.getProperty("storePassword").isNullOrBlank() &&
+    !keystoreProperties.getProperty("keyAlias").isNullOrBlank() &&
+    !keystoreProperties.getProperty("keyPassword").isNullOrBlank() &&
+    rootProject.file(releaseStorePath).isFile
+
+if (!releaseSigningListo) {
+    logger.lifecycle(
+        "[firma] keystore.properties ausente o incompleto: el APK de release saldrá SIN FIRMAR."
+    )
 }
 
 android {
@@ -14,8 +49,8 @@ android {
         applicationId = "com.udea.rutaudea"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -23,9 +58,23 @@ android {
         }
     }
 
+    signingConfigs {
+        if (releaseSigningListo) {
+            create("release") {
+                storeFile = rootProject.file(releaseStorePath!!)
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (releaseSigningListo) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -41,6 +90,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -91,6 +141,12 @@ dependencies {
 
     // JSON parsing
     implementation(libs.gson)
+
+    // Imágenes remotas (figuras del banco en Firebase Hosting)
+    implementation(libs.coil.compose)
+
+    // Sincronización periódica del banco (D-02)
+    implementation(libs.androidx.work.runtime)
 
     // Testing
     testImplementation(libs.junit)

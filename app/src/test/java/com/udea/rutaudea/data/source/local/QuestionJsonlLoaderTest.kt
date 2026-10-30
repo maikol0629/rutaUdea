@@ -43,7 +43,7 @@ class QuestionJsonlLoaderTest {
         assertEquals("-50", e.opcionD)
         assertEquals("D", e.respuestaCorrecta)
         assertEquals("50 pares suman -1", e.explicacion)
-        assertEquals("aprobado", e.estado)
+        assertEquals("pendiente", e.estado)
         assertFalse(e.esOriginal)
         assertTrue(e.verificada)
     }
@@ -108,7 +108,7 @@ class QuestionJsonlLoaderTest {
         assertEquals("baja", e.dificultad)
         assertEquals("Test?", e.pregunta)
         assertEquals("A", e.respuestaCorrecta)
-        assertEquals("aprobado", e.estado)
+        assertEquals("pendiente", e.estado)
         assertFalse(e.esOriginal)
         assertFalse(e.verificada)
         assertNull(e.competencia)
@@ -119,5 +119,107 @@ class QuestionJsonlLoaderTest {
         assertNull(e.explicacion)
         assertNull(e.fuente)
         assertNull(e.tipoFuente)
+    }
+
+    @Test
+    fun parseJsonl_imagenUrlSeMapeaYNuloPorDefecto() {
+        val jsonl = """
+            {"id": "img-1", "area": "razonamiento_logico", "subtema": "RL01", "dificultad": "media", "pregunta": "p", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A", "imagen_url": "https://storage/fig.png"}
+            {"id": "txt-1", "area": "razonamiento_logico", "subtema": "RL01", "dificultad": "media", "pregunta": "p", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A"}
+        """.trimIndent()
+
+        val entities = loader.parseJsonl(jsonl)
+
+        assertEquals("https://storage/fig.png", entities[0].imagenUrl)
+        assertNull(entities[1].imagenUrl)
+    }
+
+    // ----- Contrato v2 (Fase 7) -----
+
+    @Test
+    fun parseJsonl_contratoV2MapeaImagenesContextoYMetadata() {
+        val jsonl = """
+            {"id": "T2-P01", "bank_version": "udea-2026-10-v1", "schema_version": 2, "area": "razonamiento_logico", "componente": "Razonamiento Lógico", "subtema": "RL15 Gráficas y tablas", "dificultad": "media", "tipo": "grupo", "tarea": "T2", "numero": 1, "contexto_ids": ["T2-C01"], "contexto": "Tabla de eliminatoria", "pregunta": "¿Cuántos partidos?", "opciones": {"A": "3", "B": "4", "C": "5", "D": "6"}, "respuesta_correcta": "D", "explicacion": "C(4,2)=6", "imagen_url": "https://host/T2-C01.png", "imagenes": [{"url": "https://host/T2-C01.png", "rol": "contexto", "orden": 1, "alt": "Tabla", "path_origen": "imagenes/T2/T2-C01.png"}], "requiere_imagen": true, "opciones_en_imagen": false, "estado": "aprobado_con_imagen", "verificada": true, "fuente": "pdf", "tipo_fuente": "original", "confianza_modelo": "alta", "revisado_por": "Michael", "fecha_revision": "2026-10-22", "notas": "ok"}
+        """.trimIndent()
+
+        val e = loader.parseJsonl(jsonl).single()
+
+        assertEquals("udea-2026-10-v1", e.bancoVersion)
+        assertEquals("T2-C01", e.contextoId)
+        assertEquals("aprobado_con_imagen", e.estado)
+        assertTrue(e.requiereImagen)
+        assertFalse(e.opcionesEnImagen)
+        assertEquals("Michael", e.revisadoPor)
+        assertEquals("2026-10-22", e.fechaRevision)
+        assertEquals("alta", e.confianzaModelo)
+        assertEquals("T2", e.tarea)
+        assertEquals(1, e.numero)
+        assertEquals("D", e.respuestaCorrecta)
+        assertTrue(e.imagenesJson.contains("\"rol\":\"contexto\""))
+    }
+
+    @Test
+    fun parseJsonl_opcionesComoListaEsCompatible() {
+        val jsonl = """
+            {"id": "list-1", "area": "razonamiento_logico", "subtema": "RL01", "dificultad": "baja", "pregunta": "p", "opciones": ["1", "2", "3", "4"], "respuesta_correcta": "B", "estado": "aprobado", "verificada": true}
+        """.trimIndent()
+
+        val e = loader.parseJsonl(jsonl).single()
+        assertEquals("1", e.opcionA)
+        assertEquals("4", e.opcionD)
+    }
+
+    @Test
+    fun parseJsonl_aprobadaSinVerificarSeDescarta() {
+        val jsonl = """
+            {"id": "bad-1", "area": "razonamiento_logico", "subtema": "RL01", "dificultad": "baja", "pregunta": "p", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A", "estado": "aprobado", "verificada": false}
+        """.trimIndent()
+
+        val reporte = loader.parseJsonlConReporte(jsonl)
+        assertTrue(reporte.entidades.isEmpty())
+        assertEquals(1, reporte.descartadas.size)
+        assertEquals("aprobada_sin_verificar", reporte.descartadas.single().motivo)
+    }
+
+    @Test
+    fun parseJsonl_aprobadaConImagenSinUrlSeDescarta() {
+        val jsonl = """
+            {"id": "bad-2", "area": "razonamiento_logico", "subtema": "RL01", "dificultad": "baja", "pregunta": "p", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A", "estado": "aprobado_con_imagen", "verificada": true, "imagenes": [{"rol": "pregunta", "orden": 1}]}
+        """.trimIndent()
+
+        val reporte = loader.parseJsonlConReporte(jsonl)
+        assertTrue(reporte.entidades.isEmpty())
+        assertEquals("aprobada_sin_imagen", reporte.descartadas.single().motivo)
+    }
+
+    @Test
+    fun parseJsonl_idsDuplicadosSeDescartan() {
+        val fila = """{"id": "dup-1", "area": "razonamiento_logico", "subtema": "RL01", "dificultad": "baja", "pregunta": "p", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A"}"""
+        val reporte = loader.parseJsonlConReporte("$fila\n$fila")
+
+        assertEquals(1, reporte.entidades.size)
+        assertEquals(1, reporte.descartadas.size)
+        assertEquals("id_duplicado", reporte.descartadas.single().motivo)
+    }
+
+    @Test
+    fun parseJsonl_estadoDesconocidoSeDescarta() {
+        val jsonl = """
+            {"id": "x-1", "area": "razonamiento_logico", "subtema": "RL01", "dificultad": "baja", "pregunta": "p", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A", "estado": "publicado"}
+        """.trimIndent()
+
+        val reporte = loader.parseJsonlConReporte(jsonl)
+        assertTrue(reporte.entidades.isEmpty())
+        assertEquals("estado_invalido", reporte.descartadas.single().motivo)
+    }
+
+    @Test
+    fun parseJsonl_sinEstadoQuedaPendienteNuncaAprobada() {
+        val jsonl = """
+            {"id": "p-1", "area": "competencia_lectora", "subtema": "CL01", "dificultad": "media", "pregunta": "p", "opciones": {"A": "1", "B": "2", "C": "3", "D": "4"}, "respuesta_correcta": "A", "verificada": true}
+        """.trimIndent()
+
+        val e = loader.parseJsonl(jsonl).single()
+        assertEquals("pendiente", e.estado)
     }
 }

@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.ui.screen.common.AppBackgroundEffect
 import com.udea.rutaudea.ui.screen.common.BarraProgresoSesion
+import com.udea.rutaudea.ui.screen.common.FiguraPregunta
 import com.udea.rutaudea.ui.screen.common.OpcionesPreguntaCard
 import com.udea.rutaudea.ui.screen.common.PauseOverlay
 import com.udea.rutaudea.ui.screen.common.TextoApoyo
@@ -147,11 +148,18 @@ private fun SimulacroContent(
                     textoApoyoDe(question)?.let { textoApoyo ->
                         TextoApoyo(texto = textoApoyo)
                     }
+                    // D-05: figuras del contexto compartido.
+                    FiguraPregunta(imagenes = question.imagenesDeContexto())
                     Text(
                         text = question.pregunta,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface
+                    )
+                    // D-05/D-06: figura propia y aviso de opciones en imagen.
+                    FiguraPregunta(
+                        imagenes = question.imagenesDePregunta(),
+                        destacada = question.opcionesEnImagen
                     )
                 }
             }
@@ -161,7 +169,8 @@ private fun SimulacroContent(
                 opciones = question.opciones,
                 seleccionada = selectedOption,
                 onSelect = onOptionSelected,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 16.dp),
+                opcionesEnImagen = question.opcionesEnImagen
             )
         }
 

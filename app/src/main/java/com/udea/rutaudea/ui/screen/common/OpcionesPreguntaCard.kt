@@ -34,7 +34,13 @@ fun OpcionesPreguntaCard(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     respuestaCorrecta: String? = null,
-    revelada: Boolean = false
+    revelada: Boolean = false,
+    /**
+     * D-06: las opciones reales están dentro de la figura; los botones
+     * solo muestran la letra (o el texto si es una opción de texto real,
+     * como los falsos positivos T4-P10/T4-P11).
+     */
+    opcionesEnImagen: Boolean = false
 ) {
     val primaryContainer = MaterialTheme.colorScheme.primaryContainer
     val errorContainer = MaterialTheme.colorScheme.errorContainer
@@ -80,8 +86,10 @@ fun OpcionesPreguntaCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "$letter) $option",
-                            fontSize = 16.sp,
+                            text = textoBoton(letter, option, opcionesEnImagen),
+                            fontSize = if (opcionesEnImagen && esPlaceholder(option, letter)) 22.sp else 16.sp,
+                            fontWeight = if (opcionesEnImagen && esPlaceholder(option, letter))
+                                FontWeight.Bold else FontWeight.Normal,
                             color = contentColor
                         )
                         val indicador: String? = when {
@@ -105,4 +113,22 @@ fun OpcionesPreguntaCard(
             }
         }
     }
+}
+
+/**
+ * Texto del botón de una opción. Con `opciones_en_imagen` se oculta el
+ * texto de relleno ("A (ver opción en la imagen)") y queda solo la letra;
+ * si la opción es texto real (p. ej. una fórmula) se conserva.
+ */
+private fun textoBoton(letra: String, opcion: String, opcionesEnImagen: Boolean): String {
+    if (!opcionesEnImagen) return "$letra) $opcion"
+    return if (esPlaceholder(opcion, letra)) letra else "$letra) ${opcion.trim()}"
+}
+
+private fun esPlaceholder(opcion: String, letra: String): Boolean {
+    val limpio = opcion.trim()
+    if (limpio.isEmpty() || limpio.equals(letra, ignoreCase = true)) return true
+    val minus = limpio.lowercase()
+    return minus.contains("ver opci") ||
+        (minus.startsWith("${letra.lowercase()} (") && minus.contains("imagen"))
 }

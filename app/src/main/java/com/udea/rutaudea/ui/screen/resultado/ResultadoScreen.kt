@@ -115,7 +115,9 @@ private fun QuestionResultItem(result: QuestionResult) {
         correccion = if (estado != EstadoRespuesta.CORRECTA)
             "Tu respuesta: ${result.userAnswer} · Correcta: ${result.correctAnswer}"
         else null,
-        explicacion = result.explanation
+        explicacion = result.explanation,
+        imagenesContexto = result.imagenesContexto,
+        imagenesPregunta = result.imagenesPregunta
     )
 }
 

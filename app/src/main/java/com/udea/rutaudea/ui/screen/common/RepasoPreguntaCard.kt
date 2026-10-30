@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.udea.rutaudea.domain.model.ImagenPregunta
 
 /** Estado de la pregunta en el repaso (define color de la card y la marca). */
 enum class EstadoRespuesta { CORRECTA, INCORRECTA, OMITIDA }
@@ -37,7 +38,9 @@ fun RepasoPreguntaCard(
     textoApoyo: String? = null,
     correccion: String? = null,
     explicacion: String = "",
-    recomendacion: String? = null
+    recomendacion: String? = null,
+    imagenesContexto: List<ImagenPregunta> = emptyList(),
+    imagenesPregunta: List<ImagenPregunta> = emptyList()
 ) {
     val (tinte, marca, colorMarca) = when (estado) {
         EstadoRespuesta.CORRECTA -> Triple(
@@ -98,6 +101,9 @@ fun RepasoPreguntaCard(
             textoApoyo?.let {
                 TextoApoyo(texto = it, alturaMaxima = 120.dp, tamanoFuente = 14.sp)
             }
+
+            FiguraPregunta(imagenes = imagenesContexto)
+            FiguraPregunta(imagenes = imagenesPregunta)
 
             correccion?.let {
                 Text(

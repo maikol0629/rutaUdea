@@ -3,7 +3,7 @@
 ## Resumen General
 El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP + Firebase.
 
-**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO + MEJORAS POST-MVP** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); autenticación manual + Google Sign-In, onboarding obligatorio, motor de 80 preguntas, práctica con feedback inmediato, dashboard de progreso offline-first con analítica, contenido educativo por componente, pausa con overlay al cambiar de app, racha diaria de actividad, Home renovado y cuestionario de satisfacción para la prueba piloto (Room local-first + sync Firestore). Build SUCCESS, tests PASS (194).
+**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO + BANCO V2 (FASE 7)** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); autenticación manual + Google Sign-In, onboarding obligatorio, motor de 80 preguntas, práctica con feedback inmediato, dashboard de progreso offline-first con analítica, contenido educativo por componente, pausa con overlay al cambiar de app, racha diaria de actividad, Home renovado y cuestionario de satisfacción para la prueba piloto. **Banco v2 (`udea-2026-10-v1`)**: 400 preguntas, imágenes con rol/alt, contextos compartidos, `opciones_en_imagen` y sincronización híbrida con Firestore (D-02). Build SUCCESS, tests PASS (225).
 
 ## 🌿 Ramas
 | Rama | Estado | Contenido |
@@ -33,7 +33,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
   - `QuestionEntity` con índices por área, subtema, dificultad, componente
   - `QuestionDao` con consultas para práctica filtrada y simulacro (40 RL / 40 CL)
   - `QuestionRepository` como punto único de acceso
-  - `QuestionJsonlLoader` parsea 200 preguntas desde `assets/questions/questions.jsonl` (maneja `JsonNull` correctamente)
+  - `QuestionJsonlLoader` parsea las 400 preguntas del banco v2 desde `assets/questions/questions.jsonl` (contrato v2, tolera `JsonNull`, descarta filas inválidas y conserva estados e imágenes)
   - `DatabaseSeeder` carga inicial automática en primera ejecución
   - Modelo de dominio `Question` con helpers (`respuestaCorrectaTexto()`, `opcionPorLetra()`)
 
@@ -109,9 +109,9 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Pendiente**: vinculación manual de una cuenta Google desde el perfil y tests de instrumentación del flujo.
 
 ### 5.2 Sincronización y persistencia (Firestore) — IMPLEMENTADO
-- **`google-services.json`** presente en `app/` (reglas completas en `firestore.rules`: users, questions, simulations, simulationQuestions, practiceSessions + practiceQuestions, contexts, components, subtopics, educationalContent, settings; roles aspirante/admin).
+- **`google-services.json`** presente en `app/` (reglas completas en `firestore.rules`: users, questions legacy, questions_v2, contexts_v2, bank_manifest, simulations, simulationQuestions, practiceSessions + practiceQuestions, contexts, components, subtopics, educationalContent, settings; roles aspirante/admin).
 - **Fix `firestore.rules`** (rama feat/practica): `isOwner()` estaba definido dentro del bloque `users` pero se usaba en `simulations`/`practiceSessions`/`recommendations` — las funciones dentro de un `match` son locales a ese bloque, el deploy habría fallado. Movida a scope global; añadida subcolección `practiceQuestions` (legible por el dueño de la sesión). **✅ Verificado desplegado en producción (oct 2026): las reglas del proyecto coinciden byte a byte con el repo.**
-- **`QuestionRepository.updateBankFromFirestore()`**: descarga el banco maestro (`questions` con `estado=aprobado`) y reemplaza Room.
+- **`QuestionRepository.updateBankFromFirestore()`**: sincronización híbrida D-02: lee `bank_manifest/active`, descarga `questions_v2` con estados publicables, valida el lote y reemplaza Room de forma atómica. Sin manifiesto conserva el asset empaquetado.
 - **`SimulationRepository.saveSimulation()`**: guarda simulacro completado (resumen + detalle por pregunta); requiere sesión (si no hay, se omite el guardado).
 - **`SimulationRepository.getQuestionIdsFromRecentSimulacros(3)`**: usado por el motor para excluir preguntas de los últimos 3 simulacros.
 
@@ -171,8 +171,8 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Frase relleno eliminada**: los 92 `texto_base` de CL-ORG repetían 10 veces la frase *"El tema sigue siendo objeto de estudio…"* (relleno sin aporte) → **eliminada por completo** (`scripts/limpiar_banco.py`, banco v4).
 - **Scraping truncado**: `profe_alex_52` traía ~28.000 caracteres de comentarios/JS de Blogger en el enunciado → truncado al primer párrafo coherente.
 - **12 preguntas RL deshabilitadas** (`estado="deshabilitado"`): referencian figuras/diagramas/tablas que no existen en la app (profe_alex_12/14/15/18/19/36/51/52, RL-ORG-035/037/038/039). El DAO ya filtra `estado='aprobado'` en todas las consultas, así que quedan fuera de selección sin tocar los selectores.
-- **Loader respeta `estado` del JSONL** (antes hardcodeaba `"aprobado"`). **Banco aprobado resultante: 88 RL + 100 CL = 188** (el simulacro requiere 40/40: margen sano).
-- **`BANK_SEED_VERSION = 4`**: re-siembra automática en dispositivos instalados.
+- **Loader respeta `estado` del JSONL** (antes hardcodeaba `"aprobado"`). Tras Fase 5 el asset trae 183 aprobadas (83 RL + 100 CL; el simulacro requiere 40/40: margen sano). Las 26 filas base sin respuesta quedaron `pendiente` (regla de carga).
+- **`BANK_SEED_VERSION = 5`** (Fase 5): banco fusionado (530 filas: 183 aprobado —83 RL + 100 CL— / 335 pendiente / 12 deshabilitado). 21 preguntas nuevas verificadas (12 rec2_* + 9 Fase 4); 26 filas base sin respuesta pasan a pendiente (regla de carga, igual que el upload). Re-siembra automática en dispositivos instalados.
 - **UI**: `TextoApoyo` (componente común, sin recuadro anidado, 16sp, scroll acotado 260.dp) — el simulacro ya muestra los textos de apoyo de las preguntas CL, la práctica ya no desborda con textos largos, y el resultado permite releer el texto al repasar. Home actualizado: "Simulacro — 120 min • 80 preguntas • 40 RL + 40 CL".
 
 ### 5.9 Racha diaria de actividad (en main vía PR #12, rama `feat/racha-usuario`)
@@ -202,6 +202,17 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Reglas Firestore**: colección `encuestasSatisfaccion` (dueño escribe/lee, admin lee todo).
 - **Tests**: `EncuestaSatisfaccionTest` (7), `EncuestaRepositoryTest` (7), `EncuestaViewModelTest` (6), `HomeViewModelTest` +2 (estado de encuesta).
 
+### 5.13 Banco v2, imágenes y sincronización (Fase 7)
+- **Asset canónico**: `assets/questions/questions.jsonl` es el JSONL del ETL (`udea-2026-10-v1`, schema 2, SHA-256 `c7227126…6456e7`): **400 preguntas** (269 `aprobado`, 127 `aprobado_con_imagen`, 3 `pendiente`, 1 `deshabilitado`), 200 RL + 200 CL. `BANK_SEED_VERSION = 6` re-siembra dispositivos existentes.
+- **Modelo y Room v6**: `ImagenPregunta` (url, rol `contexto`/`pregunta`, orden, alt, path y sha256); `QuestionEntity` conserva `bank_version`, `schema_version`, `estado`, `verificada`, `contexto_ids`, `imagenes`, `requiere_imagen`, `opciones_en_imagen`, fuente, tarea, número, confianza y metadata de revisión. `MIGRATION_5_6` y `QuestionDao.replaceAll`/`countAll`.
+- **Carga segura**: el loader valida filas y no promueve estados; `pendiente`/`deshabilitado` nunca se sirven como aprobadas. `BancoIntegridadTest` verifica IDs, conteos, hashes, URLs/alt de imágenes y contextos referenciados.
+- **Sincronización híbrida D-02** (`data/sync/`): lee `bank_manifest/active`, compara versión/hash/conteo, descarga `questions_v2` con estados publicables, valida (`BankValidator`), mapea (`PreguntaFirestoreMapper`) y reemplaza Room de forma atómica. Sin manifiesto no hay error visible; un lote inválido conserva la versión anterior. `BankSyncWorker` corre en segundo plano con WorkManager y Coil pre-cachea imágenes.
+- **Índice Firestore**: `questions_v2(bank_version ASC, estado ASC)` en `firestore.indexes.json` para la consulta de sincronización.
+- **UI de imágenes**: `FiguraPregunta` (varias imágenes ordenadas, `alt`, zoom, placeholder) y `OpcionesPreguntaCard` con `opcionesEnImagen` (figura destacada + botones A–D, D-06); simulacro, práctica y resultados comparten los componentes.
+- **Reglas**: `questions_v2`, `contexts_v2` y `bank_manifest` con lectura autenticada y escritura solo admin; `questions` legacy queda congelado para rollback.
+- **Tests nuevos**: `QuestionJsonlLoaderTest`, `BancoIntegridadTest`, `QuestionMapperTest` y `BankSyncTest`; total **225 tests**.
+- **Salvedad**: la prueba en dispositivo/emulador y la primera publicación real de `bank_manifest/active` quedan para Fase 8 (no hay KVM/ADB en la máquina de desarrollo).
+
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
 - **Secondary**: Blue Accent (#2196F3)
@@ -209,8 +220,8 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - Logo vectorial personalizado (`ic_splash_logo.xml`)
 
 ### 7. Tests Unitarios
-- ✅ `QuestionMapperTest` - 7 tests pasan
-- ✅ `QuestionJsonlLoaderTest` - 5 tests pasan
+- ✅ `QuestionMapperTest` - 14 tests pasan (incluye campos v2: imágenes, estados, contexto y metadata)
+- ✅ `QuestionJsonlLoaderTest` - 14 tests pasan (contrato v2, imágenes, estados, filas inválidas)
 - ✅ `DatabaseSeederTest` - 4 tests pasan (política de siembra versionada)
 - ✅ `QuestionSelectorTest` - 11 tests pasan (motor de selección)
 - ✅ `SplashViewModelTest` - 5 tests pasan (destinos login/onboarding/home + fallback del seed)
@@ -226,7 +237,8 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `ProgressMapperTest` - tests pasan (entidad ↔ dominio de caches)
 - ✅ `ProgresoViewModelTest` - tests pasan (dashboard, sync, racha)
 - ✅ `InfoViewModelTest` - 7 tests pasan (parseo, filtro por área, estructura del asset)
-- ✅ `BancoIntegridadTest` - 5 tests pasan (200 preguntas, sin frase repetida, 12 deshabilitadas exactas, cobertura simulacro, scraping truncado)
+- ✅ `BancoIntegridadTest` - 10 tests pasan (400 preguntas con IDs únicos, conteos por estado, hash del asset, imágenes con URL/alt, contextos referenciados y cobertura del simulacro)
+- ✅ `BankSyncTest` - 11 tests pasan (manifiesto ausente/inválido, versión igual, lote válido, rechazo y red)
 - ✅ `SimulacroViewModelTest` - tests pasan (motor + 5 de pausa/persistencia)
 - ✅ `AnalizadorRachaTest` - 13 tests pasan (días consecutivos, idempotencia, vigencia, fusión local-nube)
 - ✅ `RachaMapperTest` - 4 tests pasan
@@ -255,16 +267,16 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 ### 8. Build & Deploy
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
-- ✅ `./gradlew installDebug` - **Instala en dispositivo físico**
-- ✅ `./gradlew test` - **PASAN (194 tests)**
+- ✅ `./gradlew testDebugUnitTest` - **PASAN (225 tests)**
+- ⚠️ `./gradlew installDebug` / prueba en dispositivo - **pendiente Fase 8** (esta máquina no tiene `adb` ni `/dev/kvm`)
 
 ---
 
 ## ❌ PROBLEMAS PENDIENTES / NO IMPLEMENTADOS
 
-### 0. Calidad del banco (Alto)
-- **Resuelto (v3)**: frase relleno duplicada en 92 textos CL, scraping de `profe_alex_52`, y 12 preguntas RL con figuras inexistentes → deshabilitadas. Banco aprobado: **88 RL + 100 CL = 188**.
-- **Pendiente**: ~20 preguntas RL aprobadas siguen sin `respuesta_correcta` o enunciado (los selectores las excluyen con `esValida`; pool válido efectivo ≈ 68 RL). Completar con curación manual o el panel administrativo.
+### 0. Calidad del banco (Resuelto en Fase 7)
+- **Resuelto**: el banco v2 curado (`udea-2026-10-v1`) reemplaza el asset legacy. 400 preguntas (200 RL + 200 CL), 269 `aprobado`, 127 `aprobado_con_imagen`, 3 `pendiente` y 1 `deshabilitado`; 0 rechazos del ETL y sin filas base incompletas.
+- **Pendiente**: validación visual en dispositivo (Fase 8) y la primera publicación de `bank_manifest/active` en staging.
 
 ### 1. Iconos de la App (Crítico)
 - **Problema**: Adaptive icons configurados (`ic_launcher_foreground.xml` + `launcher_background #1B4D3E`) pero se ve cuadrado verde en launcher
@@ -308,8 +320,9 @@ app/src/main/java/com/udea/rutaudea/
 │   ├── AppModule.kt                   # provideQuestion/Auth/Simulation repositories
 │   └── ViewModelFactories.kt          # Splash/Simulacro/Resultado/Perfil factories
 ├── data/
-│   ├── local/                         # Room (v3) - COMPLETO (questions + caches de progreso + racha)
+│   ├── local/                         # Room (v6) - questions + caches de progreso + racha
 │   ├── mapper/                        # ✅
+│   ├── sync/                          # ✅ Manifiesto, validador, mapper v2 y worker (D-02)
 │   ├── repository/
 │   │   ├── QuestionRepository.kt      # ✅ Banco local + updateBankFromFirestore()
 │   │   ├── AuthRepository.kt          # ✅ Firebase Auth + colección users
@@ -320,7 +333,8 @@ app/src/main/java/com/udea/rutaudea/
 │   │   └── EncuestaRepository.kt      # ✅ Encuesta piloto local-first + sync best-effort
 │   └── source/local/                  # ✅ JsonL loader + Seeder versionado (v4)
 ├── domain/
-│   ├── model/Question.kt              # ✅ Modelo dominio
+│   ├── model/Question.kt              # ✅ Modelo dominio (contrato v2)
+│   ├── model/ImagenPregunta.kt        # ✅ Imagen con rol, orden, alt y sha256
 │   ├── model/User.kt                  # ✅ Modelo usuario (uid, nombre, correo, rol)
 │   ├── services/QuestionSelector.kt   # ✅ Motor de selección 80 preguntas (testeado)
 │   └── services/PracticeSelector.kt   # ✅ Estratificación proporcional de práctica (testeado)
@@ -331,7 +345,7 @@ app/src/main/java/com/udea/rutaudea/
 ├── ui/
 │   ├── navigation/
 │   │   ├── AppNavHost.kt              # ✅ NavHost principal (10 destinos)
-│   │   ├── screen/common/               # ✅ PauseOverlay, BarraProgresoSesion, OpcionesPreguntaCard, ResumenScoreCard
+│   │   ├── screen/common/               # ✅ PauseOverlay, BarraProgresoSesion, OpcionesPreguntaCard, ResumenScoreCard, FiguraPregunta
 │   │   └── AppNavGraph.kt             # ✅ Rutas
 │   ├── screen/
 │   │   ├── splash/                    # ✅ Splash + ViewModel (poll DB seed + gate auth)
@@ -450,4 +464,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-10-25 - Rama `feat/auth-google-onboarding`: login rediseñado (contraseña visible/oculta + botón de Google destacado), registro manual, Google Sign-In con Credential Manager, onboarding obligatorio (con opción “Otra” sin institución, grado ni semestre), edición de perfil, recuperación de contraseña y reglas Firestore endurecidas. Verificado: `testDebugUnitTest` + `assembleDebug` BUILD SUCCESSFUL (194 tests PASS) y `firebase deploy --only firestore:rules` OK.*
+*Última actualización: 2026-10-26 - Fase 7: banco v2 (`udea-2026-10-v1`, 400 preguntas), Room v6, imágenes con rol/alt, `opciones_en_imagen`, contextos compartidos y sincronización híbrida D-02; 225 tests y `assembleDebug` en verde. La prueba en dispositivo y la primera publicación de `bank_manifest/active` quedan para Fase 8.*

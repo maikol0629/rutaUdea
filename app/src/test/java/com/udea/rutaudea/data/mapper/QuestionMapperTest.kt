@@ -3,6 +3,7 @@ package com.udea.rutaudea.data.mapper
 import com.udea.rutaudea.data.local.entity.QuestionEntity
 import com.udea.rutaudea.domain.model.Question
 import org.junit.Test
+import com.udea.rutaudea.domain.model.ImagenPregunta
 import org.junit.Assert.*
 
 class QuestionMapperTest {
@@ -155,6 +156,30 @@ class QuestionMapperTest {
     }
 
     @Test
+    fun entityToDomain_mapsImagenUrl() {
+        val withImg = entity.copy(imagenUrl = "https://storage/fig.png")
+        val domain = QuestionMapper.entityToDomain(withImg)
+        assertEquals("https://storage/fig.png", domain.imagenUrl)
+        assertTrue(domain.tieneImagen())
+    }
+
+    @Test
+    fun entityToDomain_sinImagen_tieneImagenFalse() {
+        val domain = QuestionMapper.entityToDomain(entity)
+        assertNull(domain.imagenUrl)
+        assertFalse(domain.tieneImagen())
+    }
+
+    @Test
+    fun domainToEntity_mapsImagenUrl() {
+        val domain = QuestionMapper.entityToDomain(entity).copy(
+            imagenUrl = "https://storage/fig.png"
+        )
+        val e = QuestionMapper.domainToEntity(domain)
+        assertEquals("https://storage/fig.png", e.imagenUrl)
+    }
+
+    @Test
     fun respuestaCorrectaTexto_returnsCorrectOption() {
         val domain = QuestionMapper.entityToDomain(entity)
         assertEquals("-50", domain.respuestaCorrectaTexto())
@@ -168,5 +193,82 @@ class QuestionMapperTest {
         assertEquals("-20", domain.opcionPorLetra("C"))
         assertEquals("-50", domain.opcionPorLetra("D"))
         assertNull(domain.opcionPorLetra("E"))
+    }
+
+    @Test
+    fun domainToEntity_preservaEstadoYProcedencia() {
+        val domain = QuestionMapper.entityToDomain(entity).copy(
+            estado = "pendiente",
+            fuente = "pdf",
+            tipoFuente = "original",
+            verificada = false,
+            contextoId = "T2-C01",
+            bancoVersion = "udea-2026-10-v1",
+            tarea = "T2",
+            numero = 1,
+            confianzaModelo = "alta",
+            revisadoPor = "Michael",
+            fechaRevision = "2026-10-22",
+            notas = "revisión"
+        )
+        val e = QuestionMapper.domainToEntity(domain)
+
+        assertEquals("pendiente", e.estado)
+        assertEquals("pdf", e.fuente)
+        assertEquals("original", e.tipoFuente)
+        assertEquals("T2-C01", e.contextoId)
+        assertEquals("udea-2026-10-v1", e.bancoVersion)
+        assertEquals("T2", e.tarea)
+        assertEquals(1, e.numero)
+        assertEquals("alta", e.confianzaModelo)
+        assertEquals("Michael", e.revisadoPor)
+        assertEquals("2026-10-22", e.fechaRevision)
+        assertEquals("revisión", e.notas)
+    }
+
+    @Test
+    fun mapper_idaYVueltaConservaImagenesConRol() {
+        val domain = QuestionMapper.entityToDomain(entity).copy(
+            imagenes = listOf(
+                ImagenPregunta(
+                    url = "https://host/contexto.png",
+                    rol = ImagenPregunta.ROL_CONTEXTO,
+                    orden = 1,
+                    alt = "Tabla"
+                ),
+                ImagenPregunta(
+                    url = "https://host/pregunta.png",
+                    rol = ImagenPregunta.ROL_PREGUNTA,
+                    orden = 1,
+                    alt = null
+                )
+            ),
+            opcionesEnImagen = true,
+            requiereImagen = true
+        )
+        val e = QuestionMapper.domainToEntity(domain)
+        val vuelta = QuestionMapper.entityToDomain(e)
+
+        assertEquals(2, vuelta.imagenes.size)
+        assertEquals(ImagenPregunta.ROL_CONTEXTO, vuelta.imagenes[0].rol)
+        assertEquals("Tabla", vuelta.imagenes[0].alt)
+        assertTrue(vuelta.opcionesEnImagen)
+        assertTrue(vuelta.requiereImagen)
+        assertTrue(vuelta.tieneImagen())
+        assertEquals(1, vuelta.imagenesDeContexto().size)
+        assertEquals(1, vuelta.imagenesDePregunta().size)
+    }
+
+    @Test
+    fun imagenesDesdeJson_toleraJsonInvalido() {
+        assertTrue(QuestionMapper.imagenesDesdeJson("no-es-json").isEmpty())
+        assertTrue(QuestionMapper.imagenesDesdeJson("[]").isEmpty())
+        assertTrue(QuestionMapper.imagenesDesdeJson(null).isEmpty())
+    }
+
+    @Test
+    fun entidadPorDefectoNoEsAprobada() {
+        val e = entity.copy(estado = Question.ESTADO_PENDIENTE)
+        assertEquals(Question.ESTADO_PENDIENTE, QuestionMapper.entityToDomain(e).estado)
     }
 }
