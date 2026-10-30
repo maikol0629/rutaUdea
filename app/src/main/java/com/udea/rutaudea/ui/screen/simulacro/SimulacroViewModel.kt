@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
+import com.udea.rutaudea.domain.model.DistribucionDificultad
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.SimulacroConfig
 import com.udea.rutaudea.domain.services.QuestionSelector
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,9 +47,11 @@ class SimulacroViewModel(
         private const val USER_ANSWERS_KEY = "user_answers"
         private const val CURRENT_INDEX_KEY = "current_index"
         private const val SELECTION_KEY = "selection_ids_json"
-        private const val TOTAL_DURATION_MS = 120 * 60 * 1000L // 120 minutos
         private val gson = Gson()
     }
+
+    /** Duración del simulacro en milisegundos (desde settings/config o 120 min por defecto). */
+    private var duracionSimulacroMs: Long = 120 * 60 * 1000L
 
     private val _uiState: MutableStateFlow<SimulacroState> = MutableStateFlow(SimulacroState())
     val uiState: StateFlow<SimulacroState> = _uiState
@@ -75,7 +79,7 @@ class SimulacroViewModel(
             val savedAnswers = savedStateHandle.get<MutableMap<Int, String>>(USER_ANSWERS_KEY) ?: mutableMapOf()
             val savedIndex = savedStateHandle.get<Int>(CURRENT_INDEX_KEY) ?: 0
             val elapsed = System.currentTimeMillis() - savedStartTime
-            val remainingMs = maxOf(0L, TOTAL_DURATION_MS - elapsed)
+            val remainingMs = maxOf(0L, duracionSimulacroMs - elapsed)
 
             pendingRestoredIndex = savedIndex
             val currentState = _uiState.value
@@ -89,6 +93,8 @@ class SimulacroViewModel(
 
     private fun loadQuestions() {
         viewModelScope.launch {
+            // Lee la configuración publicada en el panel antes de arrancar el cronómetro.
+            duracionSimulacroMs = repository.leerConfiguracionSimulacro().duracionMs
             val questions = cargarSeleccion()
             if (questions.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
@@ -142,13 +148,13 @@ class SimulacroViewModel(
 
         timerJob?.cancel()
         if (!relojActivo) {
-            _uiState.value = _uiState.value.copy(timeRemainingMs = TOTAL_DURATION_MS)
+            _uiState.value = _uiState.value.copy(timeRemainingMs = duracionSimulacroMs)
             return
         }
         timerJob = viewModelScope.launch {
             while (true) {
                 val elapsed = System.currentTimeMillis() - startTime
-                val remaining = maxOf(0L, TOTAL_DURATION_MS - elapsed)
+                val remaining = maxOf(0L, duracionSimulacroMs - elapsed)
 
                 val currentState = _uiState.value
                 _uiState.value = currentState.copy(
@@ -172,7 +178,7 @@ class SimulacroViewModel(
     private fun resumeTimer() {
         val startTime = savedStateHandle.get<Long>(START_TIME_KEY) ?: System.currentTimeMillis()
         val elapsed = System.currentTimeMillis() - startTime
-        val remaining = maxOf(0L, TOTAL_DURATION_MS - elapsed)
+        val remaining = maxOf(0L, duracionSimulacroMs - elapsed)
 
         timerJob?.cancel()
         if (!relojActivo) {
@@ -182,7 +188,7 @@ class SimulacroViewModel(
         timerJob = viewModelScope.launch {
             while (true) {
                 val currentElapsed = System.currentTimeMillis() - startTime
-                val currentRemaining = maxOf(0L, TOTAL_DURATION_MS - currentElapsed)
+                val currentRemaining = maxOf(0L, duracionSimulacroMs - currentElapsed)
 
                 val currentState = _uiState.value
                 // No se limpia `showResumeOverlay` aquí: el overlay debe
@@ -238,7 +244,7 @@ class SimulacroViewModel(
             if (userAnswer == question.respuestaCorrecta) 1 else 0
         }.sum()
         val total = questions.size
-        val timeUsedMs = TOTAL_DURATION_MS - state.timeRemainingMs
+        val timeUsedMs = duracionSimulacroMs - state.timeRemainingMs
 
         savedStateHandle["simulation_score"] = score
         savedStateHandle["simulation_total"] = total

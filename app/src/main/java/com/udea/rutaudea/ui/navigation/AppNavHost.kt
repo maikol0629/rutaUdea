@@ -277,7 +277,8 @@ fun AppNavHost() {
             val perfilViewModel: PerfilViewModel = viewModel(
                 factory = ViewModelFactories.PerfilFactory(
                     authRepository,
-                    AppModule.provideEncuestaRepository(app)
+                    AppModule.provideEncuestaRepository(app),
+                    AppModule.provideQuestionRepository(app)
                 )
             )
             PerfilScreen(

@@ -5,9 +5,13 @@ import com.udea.rutaudea.data.local.entity.QuestionEntity
 import com.udea.rutaudea.data.mapper.QuestionMapper
 import com.udea.rutaudea.data.sync.BankSyncManager
 import com.udea.rutaudea.data.sync.ResultadoSync
+import com.udea.rutaudea.domain.model.DistribucionDificultad
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.SimulacroConfig
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 
 /**
  * Punto único de acceso a las preguntas.
@@ -74,6 +78,68 @@ class QuestionRepository(
     /** Versión del banco instalada (asset o última sincronización). */
     fun versionBanco(): String? = bankSync?.versionLocal()
 
+    /**
+     * Datos de diagnóstico del banco local: versión, huella, total y fecha
+     * de la última sincronización. `null` si la sincronización no está
+     * configurada (tests o build sin google-services).
+     */
+    fun infoBanco(): InfoBanco? = bankSync?.let { sync ->
+        InfoBanco(
+            version = sync.versionLocal(),
+            hash = sync.hashLocal(),
+            totalSincronizado = sync.totalLocal(),
+            ultimaSincronizacion = sync.ultimaSincronizacion(),
+            schemaVersion = sync.schemaLocal()
+        )
+    }
+
+    /** Resumen del estado del banco local para la pantalla de diagnóstico. */
+    data class InfoBanco(
+        val version: String?,
+        val hash: String?,
+        val totalSincronizado: Int,
+        val ultimaSincronizacion: Long,
+        val schemaVersion: Int
+    )
+
+    // ----- CONFIGURACIÓN DEL SIMULACRO (settings/config) -----
+
+    /**
+     * Lee la configuración del simulacro desde `settings/config` en Firestore.
+     * Devuelve valores por defecto si el documento no existe o no se puede leer.
+     */
+    suspend fun leerConfiguracionSimulacro(): SimulacroConfig {
+        val fs = bankSync?.fs ?: return SimulacroConfig()
+        return try {
+            val snap = fs
+                .collection("settings")
+                .document("config")
+                .get()
+                .await()
+            if (!snap.exists()) return SimulacroConfig()
+            val data = snap.data ?: return SimulacroConfig()
+            val d = data["distribucion_dificultad"] as? Map<*, *>
+            SimulacroConfig(
+                tiempoSimulacroMinutos =
+                    (data["tiempo_simulacro_minutos"] as? Number)?.toInt() ?: 120,
+                inactividadMaxMinutos =
+                    (data["inactividad_max_minutos"] as? Number)?.toInt() ?: 30,
+                politicaRepeticion = data["politica_repeticion"] as? String ?: "ultimos_3",
+                distribucionDificultad = if (d != null) {
+                    DistribucionDificultad(
+                        baja = (d["baja"] as? Number)?.toInt() ?: 25,
+                        media = (d["media"] as? Number)?.toInt() ?: 50,
+                        alta = (d["alta"] as? Number)?.toInt() ?: 25
+                    )
+                } else {
+                    DistribucionDificultad(25, 50, 25)
+                }
+            )
+        } catch (e: Exception) {
+            SimulacroConfig()
+        }
+    }
+
     // ----- SEED (carga inicial) -----
 
     /** Reemplaza el banco local por completo (usado al cargar el JSONL v2). */
@@ -90,6 +156,15 @@ class QuestionRepository(
     }
 
     // ----- SINCRONIZACIÓN CON FIRESTORE -----
+
+    /**
+     * Comprueba el manifiesto y sincroniza solo si cambió (botón «Buscar
+     * actualizaciones»). Devuelve el resultado detallado ([ResultadoSync])
+     * para explicar qué pasó (sin manifiesto, sin cambios, actualizado o
+     * rechazado).
+     */
+    suspend fun sincronizarBanco(): ResultadoSync =
+        bankSync?.sincronizar(forzar = false) ?: ResultadoSync.SinConfiguracion
 
     /**
      * Fuerza una sincronización con `questions_v2` y devuelve el total

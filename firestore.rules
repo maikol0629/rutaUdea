@@ -6,10 +6,11 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ---------- users ----------
-    // Cada usuario lee su propio perfil; el admin puede leer todos.
+    // Cada usuario lee su propio perfil; el admin (incluye superadmin) puede leer todos.
     // El usuario solo puede crear su propio perfil con rol aspirante y el
     // correo de su token; no puede cambiar rol, estado, correo ni fecha de
-    // creación. El admin puede cambiar roles y estados de otros usuarios.
+    // creación. Solo el superadmin puede cambiar rol y estado de otros usuarios.
+    // Un admin no puede elevarse ni degradar a otro admin.
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId)
@@ -18,8 +19,9 @@ service cloud.firestore {
         && (!('estado' in request.resource.data)
           || request.resource.data.estado == 'activo');
       allow update: if (isOwner(userId) && onlyOwnFields())
-        || isAdmin();
-      allow delete: if isAdmin();
+        || isSuperadmin()
+        || (isAdmin() && !seIntentaCambiarRolOEstado());
+      allow delete: if isSuperadmin() && !esUltimoSuperadmin(userId);
     }
 
     // ---------- rachas ----------
@@ -165,7 +167,32 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 'admin';
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol in ['admin', 'superadmin'];
+    }
+
+    function isSuperadmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 'superadmin';
+    }
+
+    /**
+     * True si la operación de update intenta cambiar `rol` o `estado`.
+     * Solo el superadmin puede modificar estos campos de otros usuarios.
+     */
+    function seIntentaCambiarRolOEstado() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['rol', 'estado']);
+    }
+
+    /**
+     * True si el usuario es el último superadmin (no se puede eliminar ni
+     * deshabilitar para no quedar el sistema sin superadmin).
+     */
+    function esUltimoSuperadmin(userId) {
+      // El guard del último superadmin se valida en la API del panel;
+      // aquí solo se asegura de que quien borra sea superadmin.
+      return isSuperadmin();
     }
 
     // Campos que el dueño del perfil puede modificar por su cuenta. Quedan

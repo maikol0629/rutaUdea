@@ -77,11 +77,12 @@ object ViewModelFactories {
 
     class PerfilFactory(
         private val authRepository: AuthRepository,
-        private val encuestaRepository: EncuestaRepository
+        private val encuestaRepository: EncuestaRepository,
+        private val questionRepository: QuestionRepository
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            PerfilViewModel(authRepository, encuestaRepository) as T
+            PerfilViewModel(authRepository, encuestaRepository, questionRepository) as T
     }
 
     class OnboardingFactory(

@@ -25,9 +25,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -172,11 +174,13 @@ fun PerfilScreen(
                 user = state.user!!,
                 esGate = esGate,
                 encuestaRespondida = state.encuestaRespondida,
+                banco = state.banco,
                 onLogout = viewModel::logout,
                 onBack = onBack,
                 onEncuestaClick = onEncuestaClick,
                 onEditarPerfil = onEditarPerfil,
-                onCompletarPerfil = onCompletarPerfil
+                onCompletarPerfil = onCompletarPerfil,
+                onBuscarActualizaciones = viewModel::buscarActualizaciones
             )
         }
 
@@ -816,11 +820,13 @@ private fun PerfilLogueado(
     user: User,
     esGate: Boolean,
     encuestaRespondida: Boolean,
+    banco: PerfilViewModel.BancoUiState,
     onLogout: () -> Unit,
     onBack: () -> Unit,
     onEncuestaClick: () -> Unit,
     onEditarPerfil: () -> Unit,
-    onCompletarPerfil: () -> Unit
+    onCompletarPerfil: () -> Unit,
+    onBuscarActualizaciones: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -948,6 +954,12 @@ private fun PerfilLogueado(
         }
     }
 
+    // Diagnóstico del banco: permite comprobar la sincronización sin Logcat.
+    TarjetaEstadoBanco(
+        banco = banco,
+        onBuscarActualizaciones = onBuscarActualizaciones
+    )
+
     // Encuesta piloto: llamativa para que la diligencien.
     Card(
         onClick = onEncuestaClick,
@@ -1010,6 +1022,153 @@ private fun PerfilLogueado(
                 fontWeight = FontWeight.SemiBold
             )
         }
+    }
+}
+
+@Composable
+private fun TarjetaEstadoBanco(
+    banco: PerfilViewModel.BancoUiState,
+    onBuscarActualizaciones: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CloudSync,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Text(
+                    text = "Estado del banco",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            FilaDiagnostico(
+                etiqueta = "Versión",
+                valor = banco.version ?: "Asset local (sin sincronizar)"
+            )
+            FilaDiagnostico(etiqueta = "Preguntas", valor = banco.total.toString())
+            FilaDiagnostico(
+                etiqueta = "Última sincronización",
+                valor = BancoDiagnostico.formatearFechaHora(banco.ultimaSincronizacion)
+                    ?: "Nunca"
+            )
+            BancoDiagnostico.huellaCorta(banco.hash)?.let { huella ->
+                FilaDiagnostico(etiqueta = "Huella", valor = huella)
+            }
+            if (banco.schemaVersion > 0) {
+                FilaDiagnostico(etiqueta = "Esquema", valor = "v${banco.schemaVersion}")
+            }
+
+            Text(
+                text = "La app revisa el banco al abrirse o volver a primer plano " +
+                    "(con internet) y cada 24 horas. Si pasas más de 3 días sin " +
+                    "sincronizar, te enviaremos un recordatorio local.",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            banco.error?.let { TiraMensajeBanco(texto = it, esError = true) }
+            banco.mensaje?.let { TiraMensajeBanco(texto = it, esError = false) }
+
+            Button(
+                onClick = onBuscarActualizaciones,
+                enabled = !banco.sincronizando,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (banco.sincronizando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Buscando…", fontWeight = FontWeight.Medium)
+                } else {
+                    Icon(
+                        imageVector = Icons.Outlined.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Buscar actualizaciones", fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilaDiagnostico(etiqueta: String, valor: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = etiqueta,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = valor,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun TiraMensajeBanco(texto: String, esError: Boolean) {
+    val fondo = if (esError) {
+        MaterialTheme.colorScheme.errorContainer
+    } else {
+        MaterialTheme.colorScheme.primaryContainer
+    }
+    val color = if (esError) {
+        MaterialTheme.colorScheme.onErrorContainer
+    } else {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(fondo)
+            .padding(12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Icon(
+            imageVector = if (esError) {
+                Icons.Outlined.WarningAmber
+            } else {
+                Icons.Outlined.CheckCircle
+            },
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = texto, fontSize = 13.sp, color = color)
     }
 }
 

@@ -464,4 +464,4 @@ app/src/main/java/com/udea/rutaudea/
 
 ---
 
-*Última actualización: 2026-10-26 - Fase 7: banco v2 (`udea-2026-10-v1`, 400 preguntas), Room v6, imágenes con rol/alt, `opciones_en_imagen`, contextos compartidos y sincronización híbrida D-02; 225 tests y `assembleDebug` en verde. La prueba en dispositivo y la primera publicación de `bank_manifest/active` quedan para Fase 8.*
+*Última actualización: 2026-10-30 - Fase 9 (puntos 1-2): `bank_manifest/active` publicado (`udea-2026-10-v1`, 396 preguntas), reglas e índice desplegados y diagnóstico de sincronización en Perfil (versión, total, última sincronización y botón «Buscar actualizaciones»). 237 tests, `assembleDebug` y `lintDebug` en verde.*

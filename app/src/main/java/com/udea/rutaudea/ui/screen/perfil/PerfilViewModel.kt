@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.udea.rutaudea.data.repository.AuthRepository
 import com.udea.rutaudea.data.repository.EncuestaRepository
+import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.domain.model.User
 import com.udea.rutaudea.domain.model.ValidadorCorreo
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,7 +25,8 @@ import kotlinx.coroutines.launch
  */
 class PerfilViewModel(
     private val authRepository: AuthRepository,
-    private val encuestaRepository: EncuestaRepository
+    private val encuestaRepository: EncuestaRepository,
+    private val questionRepository: QuestionRepository
 ) : ViewModel() {
 
     /** Eventos de navegación derivados de la autenticación. */
@@ -55,10 +57,24 @@ class PerfilViewModel(
         val googleCargando: Boolean = false,
         /** `true` si el usuario ya respondió la encuesta piloto. */
         val encuestaRespondida: Boolean = false,
+        /** Estado del banco local y de la última sincronización manual. */
+        val banco: BancoUiState = BancoUiState(),
         // ----- Recuperación de contraseña -----
         val mostrarRecuperacion: Boolean = false,
         val correoRecuperacion: String = "",
         val recuperacionEnviada: Boolean = false
+    )
+
+    /** Datos visibles de la tarjeta de diagnóstico del banco. */
+    data class BancoUiState(
+        val version: String? = null,
+        val hash: String? = null,
+        val total: Int = 0,
+        val ultimaSincronizacion: Long = 0L,
+        val schemaVersion: Int = 0,
+        val sincronizando: Boolean = false,
+        val mensaje: String? = null,
+        val error: String? = null
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -86,6 +102,7 @@ class PerfilViewModel(
             _uiState.update {
                 it.copy(isLoading = false, user = user, encuestaRespondida = respondida)
             }
+            if (user != null) cargarDiagnosticoBanco()
         }
     }
 
@@ -95,6 +112,53 @@ class PerfilViewModel(
      */
     fun recargar() {
         restoreSession()
+    }
+
+    // ----- Diagnóstico del banco -----
+
+    /**
+     * Fuerza una sincronización con `questions_v2` (botón «Buscar
+     * actualizaciones») y refresca la tarjeta de diagnóstico.
+     */
+    fun buscarActualizaciones() {
+        if (_uiState.value.banco.sincronizando) return
+        _uiState.update {
+            it.copy(banco = it.banco.copy(sincronizando = true, mensaje = null, error = null))
+        }
+        viewModelScope.launch {
+            val resultado = questionRepository.sincronizarBanco()
+            val mensaje = BancoDiagnostico.mensaje(resultado)
+            _uiState.update {
+                it.copy(
+                    banco = it.banco.copy(
+                        sincronizando = false,
+                        mensaje = if (mensaje.esError) null else mensaje.texto,
+                        error = if (mensaje.esError) mensaje.texto else null
+                    )
+                )
+            }
+            cargarDiagnosticoBanco()
+        }
+    }
+
+    private suspend fun cargarDiagnosticoBanco() {
+        val info = questionRepository.infoBanco()
+        val total = try {
+            questionRepository.countAll()
+        } catch (e: Exception) {
+            info?.totalSincronizado ?: 0
+        }
+        _uiState.update {
+            it.copy(
+                banco = it.banco.copy(
+                    version = info?.version,
+                    hash = info?.hash,
+                    total = total,
+                    ultimaSincronizacion = info?.ultimaSincronizacion ?: 0L,
+                    schemaVersion = info?.schemaVersion ?: 0
+                )
+            )
+        }
     }
 
     // ----- Formulario -----

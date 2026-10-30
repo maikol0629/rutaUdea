@@ -6,6 +6,12 @@
     <string name="splash_title">RutaUdeA</string>
     <string name="splash_subtitle">Preparación para admisión UdeA</string>
 
+    <!-- Recordatorio de sincronización del banco -->
+    <string name="sync_channel_name">Actualización del banco</string>
+    <string name="sync_channel_desc">Recordatorios para actualizar preguntas y configuración</string>
+    <string name="sync_reminder_title">Actualiza tu banco de preguntas</string>
+    <string name="sync_reminder_text">Llevas varios días sin sincronizar. Abre RutaUdea con internet para recibir las preguntas y la configuración más recientes.</string>
+
     <!-- Home / Bottom Bar -->
     <string name="nav_simulacro">Simulacro</string>
     <string name="nav_practica">Práctica</string>

@@ -48,6 +48,9 @@ class BankSyncManager(
     private val alActualizar: (List<QuestionEntity>) -> Unit = {}
 ) {
 
+    /** Acceso a Firestore para lectura de configuración (settings). */
+    internal val fs: FirebaseFirestore? = firestore
+
     /**
      * Consulta el manifiesto y sincroniza si hace falta.
      * @param forzar ignora la comparación de versión (acción manual).
@@ -82,6 +85,11 @@ class BankSyncManager(
                 hashLocal == manifiesto.hash &&
                 totalLocal == totalEsperado
             if (!forzar && igual) {
+                // La comprobación fue exitosa aunque no haya cambios: sirve
+                // para el diagnóstico y para el recordatorio de 3 días.
+                prefs.edit()
+                    .putLong(KEY_LAST_SYNC, System.currentTimeMillis())
+                    .apply()
                 return ResultadoSync.SinCambios(manifiesto.bankVersion, totalLocal)
             }
 
@@ -129,8 +137,17 @@ class BankSyncManager(
     /** Versión local conocida (para mostrar en ajustes/diagnóstico). */
     fun versionLocal(): String? = prefs.getString(KEY_VERSION, null)
 
-    /** Última sincronización exitosa en milisegundos, o 0. */
+    /** Última comprobación exitosa del manifiesto en milisegundos, o 0. */
     fun ultimaSincronizacion(): Long = prefs.getLong(KEY_LAST_SYNC, 0L)
+
+    /** Huella (hash) del último lote aplicado, si existe. */
+    fun hashLocal(): String? = prefs.getString(KEY_HASH, null)
+
+    /** Total de preguntas del último lote aplicado (0 si nunca sincronizó). */
+    fun totalLocal(): Int = prefs.getInt(KEY_TOTAL, 0)
+
+    /** Versión de esquema del último lote aplicado (0 si nunca sincronizó). */
+    fun schemaLocal(): Int = prefs.getInt(KEY_SCHEMA, 0)
 
     companion object {
         private const val TAG = "BankSync"

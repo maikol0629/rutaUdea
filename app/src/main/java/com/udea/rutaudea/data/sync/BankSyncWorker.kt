@@ -23,8 +23,17 @@ class BankSyncWorker(
 
     override suspend fun doWork(): Result {
         val app = applicationContext as? RutaUdeaApp ?: return Result.success()
-        return when (app.bankSync.sincronizar()) {
+        val resultado = app.bankSync.sincronizar()
+        return when (resultado) {
             is ResultadoSync.Error -> Result.retry()
+            is ResultadoSync.Actualizado -> {
+                RecordatorioSync.cancelar(applicationContext)
+                Result.success()
+            }
+            is ResultadoSync.SinCambios -> {
+                RecordatorioSync.cancelar(applicationContext)
+                Result.success()
+            }
             else -> Result.success()
         }
     }
@@ -34,8 +43,14 @@ class BankSyncWorker(
 object BankSyncScheduler {
 
     const val WORK_NAME = "bank_sync_periodico"
+    const val WORK_RECORDATORIO = "recordatorio_sync"
 
     fun programar(context: Context) {
+        programarSincronizacion(context)
+        programarRecordatorio(context)
+    }
+
+    private fun programarSincronizacion(context: Context) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
@@ -45,6 +60,21 @@ object BankSyncScheduler {
             .build()
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
+    }
+
+    /**
+     * Recordatorio diario sin restricción de red: si el equipo lleva más de
+     * tres días sin sincronizar, la notificación local invita a abrir la app
+     * con internet. La política de enfriamiento evita avisos repetidos.
+     */
+    private fun programarRecordatorio(context: Context) {
+        val request = PeriodicWorkRequestBuilder<RecordatorioSyncWorker>(24, TimeUnit.HOURS)
+            .build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            WORK_RECORDATORIO,
             ExistingPeriodicWorkPolicy.KEEP,
             request
         )

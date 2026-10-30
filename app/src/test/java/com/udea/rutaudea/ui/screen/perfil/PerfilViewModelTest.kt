@@ -2,6 +2,8 @@ package com.udea.rutaudea.ui.screen.perfil
 
 import com.udea.rutaudea.data.repository.AuthRepository
 import com.udea.rutaudea.data.repository.EncuestaRepository
+import com.udea.rutaudea.data.repository.QuestionRepository
+import com.udea.rutaudea.data.sync.ResultadoSync
 import com.udea.rutaudea.domain.model.User
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -254,13 +256,68 @@ class PerfilViewModelTest {
         assertNull(viewModel.uiState.value.user)
     }
 
+    // ----- Diagnóstico del banco -----
+
+    @Test
+    fun `buscar actualizaciones exitoso refresca el diagnostico`() = runTest {
+        val auth = mockk<AuthRepository> {
+            coEvery { restoreSession() } returns user(onboardingCompletado = false)
+        }
+        val repo = mockk<QuestionRepository>(relaxed = true) {
+            every { infoBanco() } returns QuestionRepository.InfoBanco(
+                version = "udea-2026-10-v1",
+                hash = "fdfe8d9fd41fcd657dde7900",
+                totalSincronizado = 396,
+                ultimaSincronizacion = 1_700_000_000_000L,
+                schemaVersion = 2
+            )
+            coEvery { countAll() } returns 396
+            coEvery { sincronizarBanco() } returns
+                ResultadoSync.Actualizado("udea-2026-10-v1", 396)
+        }
+        val viewModel = PerfilViewModel(auth, encuestaRepository(), repo)
+        advanceUntilIdle()
+
+        viewModel.buscarActualizaciones()
+        advanceUntilIdle()
+
+        val banco = viewModel.uiState.value.banco
+        assertEquals("udea-2026-10-v1", banco.version)
+        assertEquals(396, banco.total)
+        assertNull(banco.error)
+        assertTrue(banco.mensaje!!.contains("Banco actualizado"))
+        assertFalse(banco.sincronizando)
+    }
+
+    @Test
+    fun `buscar actualizaciones sin manifiesto muestra error`() = runTest {
+        val auth = mockk<AuthRepository> {
+            coEvery { restoreSession() } returns user(onboardingCompletado = false)
+        }
+        val repo = mockk<QuestionRepository>(relaxed = true) {
+            every { infoBanco() } returns null
+            coEvery { countAll() } returns 400
+            coEvery { sincronizarBanco() } returns ResultadoSync.SinManifiesto
+        }
+        val viewModel = PerfilViewModel(auth, encuestaRepository(), repo)
+        advanceUntilIdle()
+
+        viewModel.buscarActualizaciones()
+        advanceUntilIdle()
+
+        val banco = viewModel.uiState.value.banco
+        assertNull(banco.mensaje)
+        assertTrue(banco.error!!.contains("banco activo"))
+        assertFalse(banco.sincronizando)
+    }
+
     // ----- helpers -----
 
     private fun TestScope.esperarEvento(viewModel: PerfilViewModel) =
         async(UnconfinedTestDispatcher(testScheduler)) { viewModel.evento.first() }
 
     private fun crearViewModel(auth: AuthRepository): PerfilViewModel =
-        PerfilViewModel(auth, encuestaRepository())
+        PerfilViewModel(auth, encuestaRepository(), questionRepository())
 
     private fun llenarRegistro(
         viewModel: PerfilViewModel,
@@ -284,6 +341,11 @@ class PerfilViewModelTest {
 
     private fun encuestaRepository(): EncuestaRepository = mockk {
         coEvery { cargar() } returns null
+    }
+
+    private fun questionRepository(): QuestionRepository = mockk(relaxed = true) {
+        coEvery { countAll() } returns 0
+        every { infoBanco() } returns null
     }
 
     private fun user(onboardingCompletado: Boolean) = User(

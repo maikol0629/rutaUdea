@@ -1,6 +1,10 @@
 package com.udea.rutaudea
 
 import android.app.Application
+import android.util.Log
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import coil.Coil
 import coil.request.ImageRequest
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,6 +15,9 @@ import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.source.local.DatabaseSeeder
 import com.udea.rutaudea.data.sync.BankSyncManager
 import com.udea.rutaudea.data.sync.BankSyncScheduler
+import com.udea.rutaudea.data.sync.Conectividad
+import com.udea.rutaudea.data.sync.RecordatorioSync
+import com.udea.rutaudea.data.sync.ResultadoSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -58,13 +65,57 @@ class RutaUdeaApp : Application() {
     /** Cache local del cuestionario de satisfacción (prueba piloto). */
     val encuestaDao by lazy { database.encuestaDao() }
 
+    /** Evita repetir la revisión automática en cada cambio de foreground. */
+    @Volatile
+    private var ultimaRevision = 0L
+
     override fun onCreate() {
         super.onCreate()
+        RecordatorioSync.registrarPrimerUso(this)
         BankSyncScheduler.programar(this)
+
+        // Cada vez que la app vuelve a primer plano se comprueba el
+        // manifiesto (con red y con una ventana mínima para no repetir).
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    sincronizarSiHayRed()
+                }
+            }
+        )
+
+        // El primer arranque conserva la prioridad del seed local antes de
+        // consultar Firestore.
+        ultimaRevision = System.currentTimeMillis()
         appScope.launch {
-            // Primero el asset (offline garantizado); después Firestore.
             seeder.seedIfNeeded()
-            bankSync.sincronizar()
+            if (Conectividad.hayRed(this@RutaUdeaApp)) {
+                aplicarSincronizacion()
+            } else {
+                Log.i(TAG, "Sin red al iniciar; se conserva el banco local")
+            }
+        }
+    }
+
+    /**
+     * Revisa el banco al volver a primer plano, solo si hay red y no se
+     * revisó hace menos de [VENTANA_REVISION_MS].
+     */
+    private fun sincronizarSiHayRed() {
+        appScope.launch {
+            val ahora = System.currentTimeMillis()
+            if (ahora - ultimaRevision < VENTANA_REVISION_MS) return@launch
+            if (!Conectividad.hayRed(this@RutaUdeaApp)) return@launch
+            ultimaRevision = ahora
+            aplicarSincronizacion()
+        }
+    }
+
+    private suspend fun aplicarSincronizacion() {
+        when (bankSync.sincronizar()) {
+            is ResultadoSync.Actualizado, is ResultadoSync.SinCambios ->
+                RecordatorioSync.cancelar(this)
+            else -> Unit
         }
     }
 
@@ -91,7 +142,12 @@ class RutaUdeaApp : Application() {
     }
 
     companion object {
+        private const val TAG = "RutaUdeaApp"
+
         /** Tope defensivo: el banco v2 tiene 93 imágenes publicadas. */
         private const val MAX_IMAGENES_PRECACHE = 200
+
+        /** No repetir la revisión automática si ya se hizo hace 5 minutos. */
+        private const val VENTANA_REVISION_MS = 5L * 60L * 1000L
     }
 }

@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.SimulacroConfig
 import com.udea.rutaudea.domain.services.QuestionSelector
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -63,6 +64,7 @@ class SimulacroViewModelTest {
                 val id = firstArg<String>()
                 preguntas.firstOrNull { it.id == id }
             }
+            coEvery { leerConfiguracionSimulacro() } returns SimulacroConfig()
         }
         return SimulacroViewModel(
             selector = mockk<QuestionSelector>(relaxed = true),
