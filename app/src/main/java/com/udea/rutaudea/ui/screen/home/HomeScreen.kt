@@ -49,6 +49,7 @@ import com.udea.rutaudea.ui.theme.RutaUdeaTheme
 fun HomeScreen(
     viewModel: HomeViewModel,
     onSimulacroClick: () -> Unit,
+    onPruebaClick: () -> Unit,
     onPracticaClick: () -> Unit,
     onProgresoClick: () -> Unit,
     onInfoClick: () -> Unit,
@@ -70,6 +71,7 @@ fun HomeScreen(
         racha = state.racha,
         encuestaRespondida = state.encuestaRespondida,
         onSimulacroClick = onSimulacroClick,
+        onPruebaClick = onPruebaClick,
         onPracticaClick = onPracticaClick,
         onProgresoClick = onProgresoClick,
         onInfoClick = onInfoClick,
@@ -84,6 +86,7 @@ private fun HomeContenido(
     racha: Racha,
     encuestaRespondida: Boolean,
     onSimulacroClick: () -> Unit,
+    onPruebaClick: () -> Unit,
     onPracticaClick: () -> Unit,
     onProgresoClick: () -> Unit,
     onInfoClick: () -> Unit,
@@ -174,6 +177,72 @@ private fun HomeContenido(
                         )
                     ) {
                         Text("Iniciar simulacro", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+
+        // Acción secundaria: prueba corta "Pruébate" (mismas reglas del simulacro).
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Prueba corta · 30 min",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                            )
+                            Text(
+                                text = "Pruébate",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondary,
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.size(48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = "⚡", fontSize = 24.sp)
+                            }
+                        }
+                    }
+                    Text(
+                        text = "20 preguntas · 10 de razonamiento lógico + 10 de competencia lectora",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                    )
+                    Button(
+                        onClick = onPruebaClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        Text("Empezar prueba", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -561,6 +630,7 @@ private fun HomeScreenPreview() {
             racha = Racha(actual = 4, mejor = 9),
             encuestaRespondida = false,
             onSimulacroClick = {},
+            onPruebaClick = {},
             onPracticaClick = {},
             onProgresoClick = {},
             onInfoClick = {},

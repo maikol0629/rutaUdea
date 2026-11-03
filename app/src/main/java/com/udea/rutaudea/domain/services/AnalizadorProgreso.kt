@@ -28,7 +28,8 @@ object AnalizadorProgreso {
     /** Historial unificado, ordenado por fecha descendente. */
     fun historial(
         simulacros: List<SimulacroResumen>,
-        practicas: List<PracticaResumen>
+        practicas: List<PracticaResumen>,
+        pruebas: List<SimulacroResumen> = emptyList()
     ): List<ItemHistorial> {
         val items = simulacros.map {
             ItemHistorial(
@@ -36,6 +37,17 @@ object AnalizadorProgreso {
                 id = it.id,
                 fechaMs = it.fechaMs,
                 titulo = "Simulacro ${formatFecha(it.fechaMs)}",
+                score = it.score,
+                total = it.total,
+                porcentaje = it.porcentaje,
+                tiempoUsedMs = it.tiempoUsedMs
+            )
+        } + pruebas.map {
+            ItemHistorial(
+                tipo = TipoActividad.PRUEBA,
+                id = it.id,
+                fechaMs = it.fechaMs,
+                titulo = "Prueba ${formatFecha(it.fechaMs)}",
                 score = it.score,
                 total = it.total,
                 porcentaje = it.porcentaje,

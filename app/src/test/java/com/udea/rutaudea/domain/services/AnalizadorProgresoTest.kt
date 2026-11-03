@@ -4,6 +4,7 @@ import com.udea.rutaudea.domain.model.PracticaResumen
 import com.udea.rutaudea.domain.model.SimulacroResumen
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
 import com.udea.rutaudea.domain.model.TipoActividad
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -128,6 +129,27 @@ class AnalizadorProgresoTest {
         assertEquals(TipoActividad.SIMULACRO, items[1].tipo)
         assertEquals(70, items[0].porcentaje)
         assertEquals(50, items[1].porcentaje)
+    }
+
+    @Test
+    fun `historial etiqueta las pruebas cortas y las ordena con el resto`() {
+        val prueba = simulacro("pr1", fecha = 300, score = 15).copy(
+            total = 20,
+            tipo = TipoSimulacro.PRUEBA
+        )
+
+        val items = AnalizadorProgreso.historial(
+            simulacros = listOf(simulacro("s1", fecha = 100, score = 40)),
+            practicas = listOf(practica("p1", fecha = 200, score = 7)),
+            pruebas = listOf(prueba)
+        )
+
+        assertEquals(3, items.size)
+        assertEquals(TipoActividad.PRUEBA, items[0].tipo)      // más reciente
+        assertEquals(TipoActividad.PRACTICA, items[1].tipo)
+        assertEquals(TipoActividad.SIMULACRO, items[2].tipo)
+        assertEquals("Prueba", items[0].titulo.substringBefore(" "))
+        assertEquals(75, items[0].porcentaje)
     }
 
     @Test

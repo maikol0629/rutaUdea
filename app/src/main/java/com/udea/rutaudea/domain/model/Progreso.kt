@@ -14,7 +14,9 @@ data class SimulacroResumen(
     val total: Int,
     val tiempoUsedMs: Long,
     val respondidas: Int,
-    val omitidas: Int
+    val omitidas: Int,
+    /** `COMPLETO` (examen real) o `PRUEBA` (Pruébate). */
+    val tipo: TipoSimulacro = TipoSimulacro.COMPLETO
 ) {
     val porcentaje: Int
         get() = if (total > 0) score * 100 / total else 0
@@ -64,7 +66,7 @@ data class SubtemaEstadistica(
 }
 
 /** Tipo de actividad del historial. */
-enum class TipoActividad { SIMULACRO, PRACTICA }
+enum class TipoActividad { SIMULACRO, PRUEBA, PRACTICA }
 
 /** Entrada unificada del historial (simulacros y prácticas). */
 data class ItemHistorial(

@@ -15,6 +15,7 @@ import com.udea.rutaudea.domain.model.PracticaResumen
 import com.udea.rutaudea.domain.model.Racha
 import com.udea.rutaudea.domain.model.SimulacroResumen
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.tasks.await
@@ -151,6 +152,8 @@ class ProgressRepository(
                 tiempoUsedMs = doc.getLong(SimulationRepository.CAMPO_TIEMPO_MS) ?: 0L,
                 respondidas = doc.getLong(SimulationRepository.CAMPO_RESPONDIDAS)?.toInt() ?: 0,
                 omitidas = doc.getLong(SimulationRepository.CAMPO_OMITIDAS)?.toInt() ?: 0,
+                tipo = doc.getString(SimulationRepository.CAMPO_TIPO)
+                    ?: TipoSimulacro.COMPLETO.clave,
                 synced = true
             )
         }

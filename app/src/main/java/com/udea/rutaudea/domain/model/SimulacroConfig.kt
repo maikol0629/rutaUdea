@@ -10,6 +10,8 @@ package com.udea.rutaudea.domain.model
 data class SimulacroConfig(
     /** Duración del simulacro en minutos (panel: tiempo_simulacro_minutos). */
     val tiempoSimulacroMinutos: Int = 120,
+    /** Duración de la prueba corta en minutos (panel: tiempo_prueba_minutos). */
+    val tiempoPruebaMinutos: Int = 30,
     /** Tiempo máximo de inactividad antes de pausar (minutos). */
     val inactividadMaxMinutos: Int = 30,
     /** Política de exclusión de preguntas repetidas. */
@@ -19,6 +21,9 @@ data class SimulacroConfig(
 ) {
     /** Duración en milisegundos para el cronómetro. */
     val duracionMs: Long get() = tiempoSimulacroMinutos.toLong() * 60L * 1000L
+
+    /** Duración en milisegundos de la prueba corta. */
+    val duracionPruebaMs: Long get() = tiempoPruebaMinutos.toLong() * 60L * 1000L
 
     /** True si la distribución suma 100 (válida para cuotas porcentuales). */
     val distribucionValida: Boolean get() =

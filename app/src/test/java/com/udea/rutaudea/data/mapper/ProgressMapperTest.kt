@@ -2,6 +2,7 @@ package com.udea.rutaudea.data.mapper
 
 import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -33,6 +34,38 @@ class ProgressMapperTest {
         assertEquals(78, dominio.respondidas)
         assertEquals(2, dominio.omitidas)
         assertEquals(75, dominio.porcentaje)
+    }
+
+    @Test
+    fun `mapea el tipo de sesion completo por defecto`() {
+        val entity = SimulationSummaryEntity(
+            id = "sim-1", uid = "u1", fechaMs = 1_000L, score = 60, total = 80,
+            tiempoUsedMs = 5_000L, respondidas = 78, omitidas = 2
+        )
+
+        assertEquals(TipoSimulacro.COMPLETO, ProgressMapper.simulacroToDomain(entity).tipo)
+    }
+
+    @Test
+    fun `mapea una prueba corta desde la clave persistida`() {
+        val entity = SimulationSummaryEntity(
+            id = "prueba-1", uid = "u1", fechaMs = 1_000L, score = 15, total = 20,
+            tiempoUsedMs = 5_000L, respondidas = 20, omitidas = 0,
+            tipo = TipoSimulacro.PRUEBA.clave
+        )
+
+        assertEquals(TipoSimulacro.PRUEBA, ProgressMapper.simulacroToDomain(entity).tipo)
+    }
+
+    @Test
+    fun `una clave de tipo desconocida degrada a completo`() {
+        val entity = SimulationSummaryEntity(
+            id = "sim-x", uid = "u1", fechaMs = 1_000L, score = 60, total = 80,
+            tiempoUsedMs = 5_000L, respondidas = 78, omitidas = 2,
+            tipo = "desconocido"
+        )
+
+        assertEquals(TipoSimulacro.COMPLETO, ProgressMapper.simulacroToDomain(entity).tipo)
     }
 
     @Test

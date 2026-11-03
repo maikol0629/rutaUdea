@@ -4,6 +4,7 @@ import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
 import com.udea.rutaudea.domain.model.PracticaResumen
 import com.udea.rutaudea.domain.model.SimulacroResumen
+import com.udea.rutaudea.domain.model.TipoSimulacro
 
 /**
  * Conversiones entre la cache local (Room) y los modelos de dominio
@@ -18,7 +19,8 @@ object ProgressMapper {
         total = entity.total,
         tiempoUsedMs = entity.tiempoUsedMs,
         respondidas = entity.respondidas,
-        omitidas = entity.omitidas
+        omitidas = entity.omitidas,
+        tipo = TipoSimulacro.fromClave(entity.tipo)
     )
 
     fun practicaToDomain(entity: PracticeSummaryEntity): PracticaResumen = PracticaResumen(

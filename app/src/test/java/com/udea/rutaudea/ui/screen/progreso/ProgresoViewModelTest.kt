@@ -4,6 +4,8 @@ import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.domain.model.PracticaResumen
 import com.udea.rutaudea.domain.model.SimulacroResumen
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
+import com.udea.rutaudea.domain.model.TipoActividad
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -80,6 +82,43 @@ class ProgresoViewModelTest {
         assertEquals("RL07 Sucesiones", state.areasDeMejora.first().subtema)
         assertEquals(1, state.recomendaciones.size)
         assertTrue(state.recomendacionesTexto.first().contains("RL07 Sucesiones"))
+    }
+
+    @Test
+    fun `separa las pruebas de los simulacros y las suma a las estadisticas`() = runTest {
+        val simulacros = listOf(
+            simulacro("s1", 1000L, 40, 80),
+            simulacro("s2", 2000L, 60, 80)
+        )
+        val pruebas = listOf(
+            simulacro("pr1", 3000L, 15, 20).copy(tipo = TipoSimulacro.PRUEBA)
+        )
+        val practicas = listOf(practica("p1", 1500L))
+        val repository = mockk<ProgressRepository>(relaxed = true) {
+            coEvery { cargarSimulacros(any()) } returns simulacros + pruebas
+            coEvery { cargarPracticas(any()) } returns practicas
+            coEvery { cargarEstadisticasPorSubtema(any(), any()) } returns emptyList()
+            coEvery { sincronizar() } returns true
+        }
+
+        val vm = ProgresoViewModel(repository)
+        val state = vm.uiState.value
+
+        assertEquals(2, state.simulacros.size)
+        assertEquals(1, state.pruebas.size)
+        // Promedio, mejor y evolución solo consideran simulacros completos.
+        assertEquals(listOf(50, 75), state.evolucion)
+        assertEquals(62, state.promedioGlobal)
+        assertEquals(75, state.mejorPuntaje)
+        // El historial incluye la prueba con su propia etiqueta.
+        assertEquals(4, state.historial.size)
+        assertEquals(TipoActividad.PRUEBA, state.historial.first().tipo)
+        coVerify {
+            repository.cargarEstadisticasPorSubtema(
+                match { it.size == 3 && it.count { s -> s.tipo == TipoSimulacro.PRUEBA } == 1 },
+                practicas
+            )
+        }
     }
 
     @Test

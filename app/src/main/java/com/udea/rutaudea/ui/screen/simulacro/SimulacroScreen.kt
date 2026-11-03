@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.ui.screen.common.AppBackgroundEffect
 import com.udea.rutaudea.ui.screen.common.BarraProgresoSesion
 import com.udea.rutaudea.ui.screen.common.FiguraPregunta
@@ -100,7 +101,11 @@ fun SimulacroScreen(
 
         if (uiState.showResumeOverlay) {
             PauseOverlay(
-                titulo = "Simulacro en pausa",
+                titulo = if (viewModel.tipo == TipoSimulacro.PRUEBA) {
+                    "Prueba en pausa"
+                } else {
+                    "Simulacro en pausa"
+                },
                 mensaje = "Tu tiempo sigue corriendo: ${formatTime(uiState.timeRemainingSeconds)} restantes.\n¿Qué deseas hacer?",
                 onSalir = {
                     salio = true

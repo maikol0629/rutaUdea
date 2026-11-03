@@ -4,6 +4,7 @@ object AppNavGraph {
     const val SPLASH = "splash"
     const val HOME = "home"
     const val SIMULACRO = "simulacro"
+    const val SIMULACRO_ARGS = "simulacro?prueba={prueba}"
     const val RESULTADO = "resultado"
     const val PRACTICA = "practica"
     const val PRACTICA_SESION = "practica/sesion"
@@ -23,6 +24,9 @@ object AppNavGraph {
     /** Ruta navegable del tab Perfil / gate de login. */
     fun perfilRoute(gate: Boolean = false): String = "perfil?gate=$gate"
 
-    /** Ruta del onboarding o de la edición de perfil. */
+    /** Ruta navegable del onboarding o de la edición de perfil. */
     fun onboardingRoute(editar: Boolean = false): String = "onboarding?editar=$editar"
+
+    /** Ruta del simulacro completo o de la prueba corta "Pruébate". */
+    fun simulacroRoute(prueba: Boolean = false): String = "simulacro?prueba=$prueba"
 }

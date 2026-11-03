@@ -122,6 +122,8 @@ class QuestionRepository(
             SimulacroConfig(
                 tiempoSimulacroMinutos =
                     (data["tiempo_simulacro_minutos"] as? Number)?.toInt() ?: 120,
+                tiempoPruebaMinutos =
+                    (data["tiempo_prueba_minutos"] as? Number)?.toInt() ?: 30,
                 inactividadMaxMinutos =
                     (data["inactividad_max_minutos"] as? Number)?.toInt() ?: 30,
                 politicaRepeticion = data["politica_repeticion"] as? String ?: "ultimos_3",

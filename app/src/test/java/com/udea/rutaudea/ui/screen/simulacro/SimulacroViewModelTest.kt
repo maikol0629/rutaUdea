@@ -8,6 +8,7 @@ import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.MotivoReporte
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.domain.model.SimulacroConfig
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.domain.services.QuestionSelector
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -62,7 +63,8 @@ class SimulacroViewModelTest {
         sah: SavedStateHandle,
         reporteRepository: ReportePreguntaRepository = mockk(relaxed = true) {
             coEvery { getReportadasDeSesion(any()) } returns emptySet()
-        }
+        },
+        tipo: TipoSimulacro = TipoSimulacro.COMPLETO
     ): SimulacroViewModel {
         val repository = mockk<QuestionRepository> {
             coEvery { getById(any()) } answers {
@@ -77,6 +79,7 @@ class SimulacroViewModelTest {
             simulationRepository = mockk<SimulationRepository>(relaxed = true),
             reporteRepository = reporteRepository,
             savedStateHandle = sah,
+            tipo = tipo,
             relojActivo = false
         )
     }
@@ -174,6 +177,42 @@ class SimulacroViewModelTest {
         assertTrue("q1" in vm.reportadas.value)
         assertNotNull(vm.reporteEstado.value.mensaje)
         assertFalse(vm.reporteEstado.value.enviando)
+    }
+
+    @Test
+    fun `la prueba corta finaliza al superar sus 30 minutos`() = runTest {
+        val sah = SavedStateHandle(
+            mapOf(
+                "selection_ids_json" to Gson().toJson(listOf("q1", "q2")),
+                // Arrancó hace 31 minutos (> 30 del límite de la prueba).
+                "start_time_ms" to (System.currentTimeMillis() - 31L * 60 * 1000)
+            )
+        )
+        val vm = viewModel(
+            listOf(pregunta("q1"), pregunta("q2")),
+            sah,
+            tipo = TipoSimulacro.PRUEBA
+        )
+
+        assertTrue(vm.uiState.value.isFinished)
+    }
+
+    @Test
+    fun `la prueba corta no finaliza antes de sus 30 minutos`() = runTest {
+        val sah = SavedStateHandle(
+            mapOf(
+                "selection_ids_json" to Gson().toJson(listOf("q1", "q2")),
+                // Arrancó hace 29 minutos: aún tiene tiempo.
+                "start_time_ms" to (System.currentTimeMillis() - 29L * 60 * 1000)
+            )
+        )
+        val vm = viewModel(
+            listOf(pregunta("q1"), pregunta("q2")),
+            sah,
+            tipo = TipoSimulacro.PRUEBA
+        )
+
+        assertFalse(vm.uiState.value.isFinished)
     }
 
     @Test

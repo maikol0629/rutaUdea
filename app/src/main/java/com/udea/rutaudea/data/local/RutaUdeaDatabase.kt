@@ -39,7 +39,7 @@ import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
         EncuestaEntity::class,
         ReportePreguntaEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class RutaUdeaDatabase : RoomDatabase() {
@@ -295,6 +295,19 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v7 → v8: agrega `tipo` al resumen de simulacros para distinguir
+         * el examen completo de la prueba corta "Pruébate". Las filas
+         * existentes quedan como `completo`.
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `simulations_cache` ADD COLUMN `tipo` TEXT NOT NULL DEFAULT 'completo'"
+                )
+            }
+        }
+
         fun getInstance(context: Context): RutaUdeaDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -308,7 +321,8 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
                         MIGRATION_3_4,
                         MIGRATION_4_5,
                         MIGRATION_5_6,
-                        MIGRATION_6_7
+                        MIGRATION_6_7,
+                        MIGRATION_7_8
                     )
                     .build()
                     .also { INSTANCE = it }

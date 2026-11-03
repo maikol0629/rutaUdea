@@ -13,6 +13,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.udea.rutaudea.di.AppModule
 import com.udea.rutaudea.di.ViewModelFactories
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.ui.screen.home.HomeScreen
 import com.udea.rutaudea.ui.screen.encuesta.EncuestaScreen
 import com.udea.rutaudea.ui.screen.encuesta.EncuestaViewModel
@@ -74,7 +75,12 @@ fun AppNavHost() {
             )
             HomeScreen(
                 viewModel = homeViewModel,
-                onSimulacroClick = { navController.navigate(AppNavGraph.SIMULACRO) },
+                onSimulacroClick = {
+                    navController.navigate(AppNavGraph.simulacroRoute(prueba = false))
+                },
+                onPruebaClick = {
+                    navController.navigate(AppNavGraph.simulacroRoute(prueba = true))
+                },
                 onPracticaClick = { navController.navigate(AppNavGraph.PRACTICA) },
                 onProgresoClick = { navController.navigate(AppNavGraph.PROGRESO) },
                 onInfoClick = { navController.navigate(AppNavGraph.INFO) },
@@ -83,18 +89,27 @@ fun AppNavHost() {
             )
         }
 
-        composable(AppNavGraph.SIMULACRO) { backStackEntry ->
+        composable(
+            route = AppNavGraph.SIMULACRO_ARGS,
+            arguments = listOf(navArgument("prueba") {
+                type = NavType.BoolType
+                defaultValue = false
+            })
+        ) { backStackEntry ->
             // La entrada de esta misma ruta la entrega NavHost: no hace falta
             // getBackStackEntry (que además falla durante la animación de
             // salida, cuando la entrada ya fue popeada).
             val savedStateHandle = backStackEntry.savedStateHandle
+            val esPrueba = backStackEntry.arguments?.getBoolean("prueba") ?: false
+            val tipo = if (esPrueba) TipoSimulacro.PRUEBA else TipoSimulacro.COMPLETO
             val simulacroViewModel: SimulacroViewModel = viewModel(
                 factory = ViewModelFactories.SimulacroFactory(
                     selector,
                     repository,
                     simulationRepository,
                     reporteRepository,
-                    savedStateHandle
+                    savedStateHandle,
+                    tipo
                 )
             )
             SimulacroScreen(
@@ -119,8 +134,10 @@ fun AppNavHost() {
             // Read it ONCE with remember: during the exit animation (after SIMULACRO was
             // popped from the back stack) getBackStackEntry() would throw and crash the app.
             val resultadoData = remember(backStackEntry) {
-                val simulacroSavedStateHandle =
-                    navController.getBackStackEntry(AppNavGraph.SIMULACRO).savedStateHandle
+                val simulacroEntry =
+                    navController.getBackStackEntry(AppNavGraph.SIMULACRO_ARGS)
+                val simulacroSavedStateHandle = simulacroEntry.savedStateHandle
+                val esPrueba = simulacroEntry.arguments?.getBoolean("prueba") ?: false
                 ResultadoData(
                     score = simulacroSavedStateHandle.get<Int>("simulation_score") ?: 0,
                     total = simulacroSavedStateHandle.get<Int>("simulation_total") ?: 0,
@@ -133,7 +150,8 @@ fun AppNavHost() {
                     ),
                     sesionId = simulacroSavedStateHandle.get<String>(
                         SimulacroViewModel.SESION_ID_KEY
-                    )
+                    ),
+                    tipo = if (esPrueba) TipoSimulacro.PRUEBA else TipoSimulacro.COMPLETO
                 )
             }
             
@@ -146,7 +164,8 @@ fun AppNavHost() {
                     resultadoData.score,
                     resultadoData.total,
                     resultadoData.timeUsed,
-                    resultadoData.sesionId
+                    resultadoData.sesionId,
+                    resultadoData.tipo
                 )
             )
             ResultadoScreen(
@@ -262,7 +281,9 @@ fun AppNavHost() {
             )
             ProgresoScreen(
                 viewModel = progresoViewModel,
-                onSimulacroClick = { navController.navigate(AppNavGraph.SIMULACRO) },
+                onSimulacroClick = {
+                    navController.navigate(AppNavGraph.simulacroRoute(prueba = false))
+                },
                 onPracticaClick = { navController.navigate(AppNavGraph.PRACTICA) }
             )
         }
@@ -375,7 +396,8 @@ private data class ResultadoData(
     val timeUsed: Long,
     val userAnswers: Map<Int, String>,
     val questions: List<com.udea.rutaudea.domain.model.Question>,
-    val sesionId: String?
+    val sesionId: String?,
+    val tipo: TipoSimulacro
 )
 
 private data class PracticaSesionData(

@@ -12,6 +12,7 @@ import com.udea.rutaudea.domain.model.ModoReporte
 import com.udea.rutaudea.domain.model.MotivoReporte
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.domain.model.SimulacroConfig
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.domain.services.QuestionSelector
 import com.udea.rutaudea.ui.screen.common.ReportePreguntaSesion
 import com.udea.rutaudea.ui.screen.common.ReporteUiState
@@ -45,6 +46,8 @@ class SimulacroViewModel(
     private val simulationRepository: SimulationRepository,
     private val reporteRepository: ReportePreguntaRepository,
     private val savedStateHandle: SavedStateHandle,
+    /** Tipo de sesión: simulacro completo o prueba corta "Pruébate". */
+    val tipo: TipoSimulacro = TipoSimulacro.COMPLETO,
     /** Desactivable en pruebas: el cronómetro es un bucle infinito. */
     private val relojActivo: Boolean = true
 ) : ViewModel() {
@@ -58,8 +61,8 @@ class SimulacroViewModel(
         private val gson = Gson()
     }
 
-    /** Duración del simulacro en milisegundos (desde settings/config o 120 min por defecto). */
-    private var duracionSimulacroMs: Long = 120 * 60 * 1000L
+    /** Duración de la sesión en milisegundos (config del panel o defaults). */
+    private var duracionSimulacroMs: Long = tipo.duracionMs(SimulacroConfig())
 
     private val _uiState: MutableStateFlow<SimulacroState> = MutableStateFlow(SimulacroState())
     val uiState: StateFlow<SimulacroState> = _uiState
@@ -124,7 +127,7 @@ class SimulacroViewModel(
     private fun loadQuestions() {
         viewModelScope.launch {
             // Lee la configuración publicada en el panel antes de arrancar el cronómetro.
-            duracionSimulacroMs = repository.leerConfiguracionSimulacro().duracionMs
+            duracionSimulacroMs = tipo.duracionMs(repository.leerConfiguracionSimulacro())
             val questions = cargarSeleccion()
             if (questions.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
@@ -162,7 +165,7 @@ class SimulacroViewModel(
         val excluidas = simulationRepository.getQuestionIdsFromRecentSimulacros(
             QuestionSelector.SIMULACROS_RECIENTES
         )
-        return selector.select(bank, excluidas).fold(
+        return selector.select(bank, excluidas, tipo).fold(
             onSuccess = { seleccion ->
                 savedStateHandle[SELECTION_KEY] = gson.toJson(seleccion.map { it.id })
                 seleccion

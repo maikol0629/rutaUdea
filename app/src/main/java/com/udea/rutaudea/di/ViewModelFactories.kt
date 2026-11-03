@@ -12,6 +12,7 @@ import com.udea.rutaudea.data.repository.RachaRepository
 import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.domain.services.PracticeSelector
 import com.udea.rutaudea.domain.services.QuestionSelector
 import com.udea.rutaudea.ui.screen.encuesta.EncuestaViewModel
@@ -53,16 +54,18 @@ object ViewModelFactories {
         private val repository: QuestionRepository,
         private val simulationRepository: SimulationRepository,
         private val reporteRepository: ReportePreguntaRepository,
-        private val savedStateHandle: SavedStateHandle
+        private val savedStateHandle: SavedStateHandle,
+        private val tipo: TipoSimulacro
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             SimulacroViewModel(
-                selector,
-                repository,
-                simulationRepository,
-                reporteRepository,
-                savedStateHandle
+                selector = selector,
+                repository = repository,
+                simulationRepository = simulationRepository,
+                reporteRepository = reporteRepository,
+                savedStateHandle = savedStateHandle,
+                tipo = tipo
             ) as T
     }
 
@@ -74,13 +77,14 @@ object ViewModelFactories {
         private val score: Int,
         private val total: Int,
         private val timeUsedMs: Long,
-        private val sesionId: String?
+        private val sesionId: String?,
+        private val tipo: TipoSimulacro
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             ResultadoViewModel(
                 questions, simulationRepository, rachaRepository,
-                userAnswers, score, total, timeUsedMs, sesionId
+                userAnswers, score, total, timeUsedMs, sesionId, tipo
             ) as T
     }
 
