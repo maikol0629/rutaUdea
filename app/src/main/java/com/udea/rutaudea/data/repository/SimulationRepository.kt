@@ -40,7 +40,9 @@ class SimulationRepository(
         userAnswers: Map<Int, String>,
         score: Int,
         total: Int,
-        timeUsedMs: Long
+        timeUsedMs: Long,
+        /** Reutiliza el id de la sesión para enlazar los reportes de pregunta. */
+        sessionId: String? = null
     ): Result<String> {
         val uid = auth.currentUser?.uid
             ?: return Result.failure(Exception("Sesión no iniciada: el resultado no se guarda"))
@@ -48,7 +50,7 @@ class SimulationRepository(
             return Result.failure(Exception("No hay preguntas para registrar"))
         }
 
-        val id = UUID.randomUUID().toString()
+        val id = sessionId ?: UUID.randomUUID().toString()
         val fechaMs = System.currentTimeMillis()
         val respondidas = userAnswers.size
         val omitidas = total - respondidas

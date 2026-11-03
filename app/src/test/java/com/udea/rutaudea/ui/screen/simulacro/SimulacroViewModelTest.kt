@@ -3,7 +3,9 @@ package com.udea.rutaudea.ui.screen.simulacro
 import androidx.lifecycle.SavedStateHandle
 import com.google.gson.Gson
 import com.udea.rutaudea.data.repository.QuestionRepository
+import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
+import com.udea.rutaudea.domain.model.MotivoReporte
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.domain.model.SimulacroConfig
 import com.udea.rutaudea.domain.services.QuestionSelector
@@ -57,7 +59,10 @@ class SimulacroViewModelTest {
 
     private fun viewModel(
         preguntas: List<Question>,
-        sah: SavedStateHandle
+        sah: SavedStateHandle,
+        reporteRepository: ReportePreguntaRepository = mockk(relaxed = true) {
+            coEvery { getReportadasDeSesion(any()) } returns emptySet()
+        }
     ): SimulacroViewModel {
         val repository = mockk<QuestionRepository> {
             coEvery { getById(any()) } answers {
@@ -70,6 +75,7 @@ class SimulacroViewModelTest {
             selector = mockk<QuestionSelector>(relaxed = true),
             repository = repository,
             simulationRepository = mockk<SimulationRepository>(relaxed = true),
+            reporteRepository = reporteRepository,
             savedStateHandle = sah,
             relojActivo = false
         )
@@ -145,6 +151,29 @@ class SimulacroViewModelTest {
         vm.onAppBackgrounded()
         vm.onAppResumed()
         assertFalse(vm.uiState.value.showResumeOverlay)
+    }
+
+    @Test
+    fun `reportar una pregunta la marca como reportada y confirma el envio`() = runTest {
+        val reporteRepository = mockk<ReportePreguntaRepository> {
+            coEvery { getReportadasDeSesion(any()) } returns emptySet()
+            coEvery { guardar(any()) } returns
+                ReportePreguntaRepository.ResultadoReporte.Guardado(sincronizada = false)
+        }
+        val vm = viewModel(
+            listOf(pregunta("q1")),
+            sahConSeleccion(listOf("q1")),
+            reporteRepository
+        )
+
+        vm.onReportarClick()
+        assertTrue(vm.uiState.value.reporte.visible)
+
+        vm.onReporteEnviar(MotivoReporte.ENUNCIADO_CONFUSO, "  no se entiende  ")
+
+        assertTrue("q1" in vm.uiState.value.reportadas)
+        assertNotNull(vm.uiState.value.reporte.mensaje)
+        assertFalse(vm.uiState.value.reporte.enviando)
     }
 
     @Test

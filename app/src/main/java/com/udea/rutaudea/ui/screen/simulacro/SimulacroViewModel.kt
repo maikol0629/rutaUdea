@@ -5,15 +5,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.udea.rutaudea.data.repository.QuestionRepository
+import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.DistribucionDificultad
+import com.udea.rutaudea.domain.model.ModoReporte
+import com.udea.rutaudea.domain.model.MotivoReporte
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.ReportePregunta
 import com.udea.rutaudea.domain.model.SimulacroConfig
 import com.udea.rutaudea.domain.services.QuestionSelector
+import com.udea.rutaudea.ui.screen.common.ReporteUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 data class SimulacroState(
     val questions: List<Question> = emptyList(),
@@ -21,7 +27,10 @@ data class SimulacroState(
     val userAnswers: Map<Int, String> = emptyMap(),
     val timeRemainingMs: Long = 0,
     val isFinished: Boolean = false,
-    val showResumeOverlay: Boolean = false
+    val showResumeOverlay: Boolean = false,
+    val reporte: ReporteUiState = ReporteUiState(),
+    /** IDs de preguntas ya reportadas en esta sesión. */
+    val reportadas: Set<String> = emptySet()
 ) {
     val currentAnswer: String?
         get() = userAnswers[currentIndex]
@@ -37,6 +46,7 @@ class SimulacroViewModel(
     private val selector: QuestionSelector,
     private val repository: QuestionRepository,
     private val simulationRepository: SimulationRepository,
+    private val reporteRepository: ReportePreguntaRepository,
     private val savedStateHandle: SavedStateHandle,
     /** Desactivable en pruebas: el cronómetro es un bucle infinito. */
     private val relojActivo: Boolean = true
@@ -47,6 +57,7 @@ class SimulacroViewModel(
         private const val USER_ANSWERS_KEY = "user_answers"
         private const val CURRENT_INDEX_KEY = "current_index"
         private const val SELECTION_KEY = "selection_ids_json"
+        const val SESION_ID_KEY = "simulation_session_id"
         private val gson = Gson()
     }
 
@@ -60,6 +71,14 @@ class SimulacroViewModel(
     private var pendingRestoredIndex: Int = 0
 
     /**
+     * Identificador del intento. Se genera al iniciar y se conserva en el
+     * SavedStateHandle para que los reportes de la sesión apunten al mismo
+     * simulacro que se guardará al finalizar.
+     */
+    private val sesionId: String = savedStateHandle.get<String>(SESION_ID_KEY)
+        ?: UUID.randomUUID().toString().also { savedStateHandle[SESION_ID_KEY] = it }
+
+    /**
      * Marca que la app pasó a segundo plano de verdad (no una rotación).
      * Se usa para no mostrar la pausa en el `ON_START` sintético que
      * dispara el registro del observador de ciclo de vida.
@@ -69,6 +88,17 @@ class SimulacroViewModel(
     init {
         restoreState()
         loadQuestions()
+        cargarReportadas()
+    }
+
+    /** Restaura el estado del icono de reporte tras rotación/muerte de proceso. */
+    private fun cargarReportadas() {
+        viewModelScope.launch {
+            val ids = reporteRepository.getReportadasDeSesion(sesionId)
+            if (ids.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(reportadas = ids)
+            }
+        }
     }
 
     private fun restoreState() {
@@ -224,6 +254,105 @@ class SimulacroViewModel(
         _uiState.value = currentState.copy(userAnswers = newAnswers.toMap())
     }
 
+    // ----- Reporte de pregunta -----
+
+    /** Abre el diálogo de reporte para la pregunta actual. */
+    fun onReportarClick() {
+        val state = _uiState.value
+        val question = currentQuestion ?: return
+        if (state.isFinished || question.id in state.reportadas) return
+        _uiState.value = state.copy(reporte = ReporteUiState(visible = true))
+    }
+
+    /** Cierra el diálogo (no se puede cerrar mientras se está enviando). */
+    fun onReporteDismiss() {
+        val state = _uiState.value
+        if (state.reporte.enviando) return
+        _uiState.value = state.copy(reporte = ReporteUiState())
+    }
+
+    /**
+     * Guarda el reporte local-first. La UI muestra si se envió ya o si
+     * queda pendiente de sincronizar cuando haya conexión.
+     */
+    fun onReporteEnviar(motivo: MotivoReporte, comentario: String) {
+        val state = _uiState.value
+        val question = currentQuestion ?: return
+        if (state.reporte.enviando || question.id in state.reportadas) return
+
+        val reporte = ReportePregunta(
+            questionId = question.id,
+            motivo = motivo,
+            comentario = comentario.trim(),
+            modo = ModoReporte.SIMULACRO,
+            sesionId = sesionId,
+            area = question.area,
+            subtema = question.subtema,
+            bancoVersion = question.bancoVersion,
+            respuestaUsuario = state.currentAnswer,
+            respuestaCorrecta = question.respuestaCorrecta
+        )
+
+        _uiState.value = state.copy(
+            reporte = state.reporte.copy(enviando = true, error = null)
+        )
+
+        viewModelScope.launch {
+            when (val resultado = reporteRepository.guardar(reporte)) {
+                is ReportePreguntaRepository.ResultadoReporte.Guardado -> {
+                    _uiState.value = _uiState.value.copy(
+                        reportadas = _uiState.value.reportadas + question.id,
+                        reporte = ReporteUiState(
+                            visible = true,
+                            mensaje = if (resultado.sincronizada) {
+                                "Reporte enviado. ¡Gracias por ayudarnos a mejorar!"
+                            } else {
+                                "Reporte guardado. Se enviará automáticamente cuando haya conexión."
+                            }
+                        )
+                    )
+                }
+
+                is ReportePreguntaRepository.ResultadoReporte.Invalido -> {
+                    _uiState.value = _uiState.value.copy(
+                        reporte = _uiState.value.reporte.copy(
+                            enviando = false,
+                            error = resultado.errores.joinToString(" ")
+                        )
+                    )
+                }
+
+                ReportePreguntaRepository.ResultadoReporte.Duplicado -> {
+                    _uiState.value = _uiState.value.copy(
+                        reportadas = _uiState.value.reportadas + question.id,
+                        reporte = ReporteUiState(
+                            visible = true,
+                            mensaje = "Ya reportaste esta pregunta en esta sesión."
+                        )
+                    )
+                }
+
+                ReportePreguntaRepository.ResultadoReporte.SinSesion -> {
+                    _uiState.value = _uiState.value.copy(
+                        reporte = _uiState.value.reporte.copy(
+                            enviando = false,
+                            error = "Inicia sesión para enviar el reporte."
+                        )
+                    )
+                }
+
+                ReportePreguntaRepository.ResultadoReporte.ErrorLocal -> {
+                    _uiState.value = _uiState.value.copy(
+                        reporte = _uiState.value.reporte.copy(
+                            enviando = false,
+                            error = "No se pudo guardar el reporte. Intenta de nuevo."
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     fun onNextOrFinish() {
         val currentState = _uiState.value
         if (currentState.isLastQuestion) {
@@ -232,7 +361,10 @@ class SimulacroViewModel(
         } else {
             val newIndex = currentState.currentIndex + 1
             savedStateHandle[CURRENT_INDEX_KEY] = newIndex
-            _uiState.value = currentState.copy(currentIndex = newIndex)
+            _uiState.value = currentState.copy(
+                currentIndex = newIndex,
+                reporte = ReporteUiState()
+            )
         }
     }
 

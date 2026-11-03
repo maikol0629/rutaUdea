@@ -1,7 +1,11 @@
 package com.udea.rutaudea.ui.screen.practica
 
 import androidx.lifecycle.SavedStateHandle
+import com.udea.rutaudea.data.repository.ReportePreguntaRepository
+import com.udea.rutaudea.domain.model.MotivoReporte
 import com.udea.rutaudea.domain.model.Question
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -12,6 +16,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -49,9 +54,12 @@ class PracticaSesionViewModelTest {
 
     private fun viewModel(
         preguntas: List<Question>,
-        savedStateHandle: SavedStateHandle = SavedStateHandle()
+        savedStateHandle: SavedStateHandle = SavedStateHandle(),
+        reporteRepository: ReportePreguntaRepository = mockk(relaxed = true) {
+            coEvery { getReportadasDeSesion(any()) } returns emptySet()
+        }
     ) = PracticaSesionViewModel(
-        preguntas, "razonamiento_logico", "Series", savedStateHandle,
+        preguntas, "razonamiento_logico", "Series", reporteRepository, savedStateHandle,
         relojActivo = false // el ticker es un bucle infinito: desactivado en tests
     )
 
@@ -193,6 +201,28 @@ class PracticaSesionViewModelTest {
 
         vm.onResumeConfirmed()
         assertFalse(vm.uiState.value.showPauseOverlay)
+    }
+
+    @Test
+    fun `reportar una pregunta la marca como reportada y confirma el envio`() = runTest {
+        val reporteRepository = mockk<ReportePreguntaRepository> {
+            coEvery { getReportadasDeSesion(any()) } returns emptySet()
+            coEvery { guardar(any()) } returns
+                ReportePreguntaRepository.ResultadoReporte.Guardado(sincronizada = true)
+        }
+        val vm = viewModel(
+            listOf(pregunta("q1")),
+            reporteRepository = reporteRepository
+        )
+
+        vm.onReportarClick()
+        assertTrue(vm.uiState.value.reporte.visible)
+
+        vm.onReporteEnviar(MotivoReporte.OTRA, "  falta la imagen  ")
+
+        assertTrue("q1" in vm.uiState.value.reportadas)
+        assertNotNull(vm.uiState.value.reporte.mensaje)
+        assertFalse(vm.uiState.value.reporte.enviando)
     }
 
     @Test

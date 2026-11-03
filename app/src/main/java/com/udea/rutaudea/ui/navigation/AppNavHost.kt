@@ -46,6 +46,7 @@ fun AppNavHost() {
     val selector = AppModule.provideQuestionSelector()
     val simulationRepository = AppModule.provideSimulationRepository(app)
     val rachaRepository = AppModule.provideRachaRepository(app)
+    val reporteRepository = AppModule.provideReportePreguntaRepository(app)
 
     NavHost(navController, startDestination = AppNavGraph.SPLASH) {
         composable(AppNavGraph.SPLASH) {
@@ -92,6 +93,7 @@ fun AppNavHost() {
                     selector,
                     repository,
                     simulationRepository,
+                    reporteRepository,
                     savedStateHandle
                 )
             )
@@ -128,6 +130,9 @@ fun AppNavHost() {
                     ),
                     questions = parseQuestions(
                         simulacroSavedStateHandle.get<String>("simulation_questions_json") ?: "[]"
+                    ),
+                    sesionId = simulacroSavedStateHandle.get<String>(
+                        SimulacroViewModel.SESION_ID_KEY
                     )
                 )
             }
@@ -140,7 +145,8 @@ fun AppNavHost() {
                     resultadoData.userAnswers,
                     resultadoData.score,
                     resultadoData.total,
-                    resultadoData.timeUsed
+                    resultadoData.timeUsed,
+                    resultadoData.sesionId
                 )
             )
             ResultadoScreen(
@@ -186,6 +192,7 @@ fun AppNavHost() {
                     sesionData.questions,
                     sesionData.area,
                     sesionData.subtema,
+                    reporteRepository,
                     backStackEntry.savedStateHandle
                 )
             )
@@ -217,7 +224,8 @@ fun AppNavHost() {
                     ),
                     area = sesionSah.get<String>(PracticaSesionViewModel.AREA_KEY)
                         ?: PracticaFiltrosViewModel.AREA_RL,
-                    subtema = sesionSah.get<String>(PracticaSesionViewModel.SUBTEMA_KEY)?.ifBlank { null }
+                    subtema = sesionSah.get<String>(PracticaSesionViewModel.SUBTEMA_KEY)?.ifBlank { null },
+                    sesionId = sesionSah.get<String>(PracticaSesionViewModel.SESION_ID_KEY)
                 )
             }
             val practiceRepository = AppModule.providePracticeRepository(app)
@@ -231,7 +239,8 @@ fun AppNavHost() {
                     resultadoData.subtema,
                     resultadoData.score,
                     resultadoData.total,
-                    resultadoData.timeUsedMs
+                    resultadoData.timeUsedMs,
+                    resultadoData.sesionId
                 )
             )
             PracticaResultadoScreen(
@@ -365,7 +374,8 @@ private data class ResultadoData(
     val total: Int,
     val timeUsed: Long,
     val userAnswers: Map<Int, String>,
-    val questions: List<com.udea.rutaudea.domain.model.Question>
+    val questions: List<com.udea.rutaudea.domain.model.Question>,
+    val sesionId: String?
 )
 
 private data class PracticaSesionData(
@@ -381,7 +391,8 @@ private data class PracticaResultadoData(
     val userAnswers: Map<Int, String>,
     val questions: List<com.udea.rutaudea.domain.model.Question>,
     val area: String,
-    val subtema: String?
+    val subtema: String?,
+    val sesionId: String?
 )
 
 private val gson = Gson()

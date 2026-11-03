@@ -4,15 +4,20 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,6 +39,7 @@ import com.udea.rutaudea.ui.screen.common.BarraProgresoSesion
 import com.udea.rutaudea.ui.screen.common.FiguraPregunta
 import com.udea.rutaudea.ui.screen.common.OpcionesPreguntaCard
 import com.udea.rutaudea.ui.screen.common.PauseOverlay
+import com.udea.rutaudea.ui.screen.common.ReportePreguntaDialog
 import com.udea.rutaudea.ui.screen.common.TextoApoyo
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 import com.udea.rutaudea.ui.theme.RutaUdeaTheme
@@ -73,8 +80,20 @@ fun SimulacroScreen(
             state = uiState,
             currentQuestion = viewModel.currentQuestion,
             onOptionSelected = viewModel::onOptionSelected,
-            onNextOrFinish = viewModel::onNextOrFinish
+            onNextOrFinish = viewModel::onNextOrFinish,
+            onReportarClick = viewModel::onReportarClick
         )
+
+        if (uiState.reporte.visible) {
+            ReportePreguntaDialog(
+                preguntaId = viewModel.currentQuestion?.id.orEmpty(),
+                enviando = uiState.reporte.enviando,
+                mensaje = uiState.reporte.mensaje,
+                error = uiState.reporte.error,
+                onDismiss = viewModel::onReporteDismiss,
+                onEnviar = viewModel::onReporteEnviar
+            )
+        }
 
         if (uiState.showResumeOverlay) {
             PauseOverlay(
@@ -103,7 +122,8 @@ private fun SimulacroContent(
     state: SimulacroState,
     currentQuestion: Question?,
     onOptionSelected: (String) -> Unit,
-    onNextOrFinish: () -> Unit
+    onNextOrFinish: () -> Unit,
+    onReportarClick: () -> Unit
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val errorColor = MaterialTheme.colorScheme.error
@@ -125,12 +145,33 @@ private fun SimulacroContent(
             progreso = if (totalQuestions > 0) (questionIndex + 1).toFloat() / totalQuestions else 0f,
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = formatTime(timeRemainingSeconds),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (timeRemainingSeconds <= 60) errorColor else primaryColor
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val reportada = currentQuestion?.id in state.reportadas
+                IconButton(
+                    onClick = onReportarClick,
+                    enabled = currentQuestion != null && !state.isFinished && !reportada
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Flag,
+                        contentDescription = if (reportada) {
+                            "Pregunta ya reportada"
+                        } else {
+                            "Reportar problema en esta pregunta"
+                        },
+                        tint = if (reportada) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            primaryColor
+                        }
+                    )
+                }
+                Text(
+                    text = formatTime(timeRemainingSeconds),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (timeRemainingSeconds <= 60) errorColor else primaryColor
+                )
+            }
         }
 
         currentQuestion?.let { question ->
@@ -233,7 +274,8 @@ private fun SimulacroContentPreview() {
             state = previewState(),
             currentQuestion = previewQuestion,
             onOptionSelected = {},
-            onNextOrFinish = {}
+            onNextOrFinish = {},
+            onReportarClick = {}
         )
     }
 }

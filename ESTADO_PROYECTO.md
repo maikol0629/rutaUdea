@@ -213,6 +213,17 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Tests nuevos**: `QuestionJsonlLoaderTest`, `BancoIntegridadTest`, `QuestionMapperTest` y `BankSyncTest`; total **225 tests**.
 - **Salvedad**: la prueba en dispositivo/emulador y la primera publicación real de `bank_manifest/active` quedan para Fase 8 (no hay KVM/ADB en la máquina de desarrollo).
 
+### 5.14 Reporte de preguntas inconsistentes (rama `feat/reporte-preguntas`)
+- **Dónde**: icono de bandera en la barra superior del simulacro y de la práctica (junto al cronómetro). Abre un diálogo compartido (`ReportePreguntaDialog`) sin pausar la sesión ni revelar la respuesta.
+- **Qué recoge**: motivo obligatorio (`enunciado_confuso`, `respuesta_incorrecta`, `explicacion_incorrecta`, `faltan_datos`, `ortografia`, `otra`), comentario opcional (obligatorio solo para «Otra», máx. 500 caracteres), más contexto automático: `questionId`, `area`, `subtema`, `bancoVersion`, respuesta del usuario, respuesta correcta, `sesionId`, `modo` y versión de la app.
+- **Un reporte por pregunta y sesión**: el icono queda deshabilitado tras reportar; el estado se restaura desde Room tras rotación/muerte de proceso.
+- **Persistencia local-first**: Room `reportes_preguntas_cache` (migración 6→7, `ReportePreguntaDao` + `ReportePreguntaMapper`) y `ReportePreguntaRepository` (upsert local + subida best-effort a `reportesPreguntas/{id}`, reintento de pendientes, sin lanzar excepciones).
+- **Sincronización**: intento inmediato al guardar; reintento al volver a primer plano (`RutaUdeaApp`) y `ReporteSyncWorker` con WorkManager cada 6 h (solo con red).
+- **Trazabilidad**: `sesionId` se genera al iniciar la sesión y se reutiliza como id de `simulations/{id}` / `practiceSessions/{id}`, de modo que un reporte se puede cruzar con el intento completo.
+- **Reglas Firestore**: `reportesPreguntas` (dueño crea en `pendiente` y lee los suyos; admin lee todos y actualiza/borra). Índices en `firestore.indexes.json` para `questionId+fechaMs`, `estado+fechaMs` y `uid+sesionId`.
+- **Revisión del equipo**: consultar `reportesPreguntas` con `estado == 'pendiente'` ordenado por `fechaMs desc`, o agrupar por `questionId` para priorizar el banco; el admin cambia `estado` a `revisado` o `descartado`.
+- **Tests**: `ReportePreguntaTest` (6), `ReportePreguntaMapperTest` (4), `ReportePreguntaRepositoryTest` (7) y casos de reporte en `SimulacroViewModelTest` / `PracticaSesionViewModelTest`.
+
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
 - **Secondary**: Blue Accent (#2196F3)
@@ -231,7 +242,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `PerfilViewModelTest` - 13 tests pasan (registro, login, Google, recuperación, eventos)
 - ✅ `OnboardingViewModelTest` - 7 tests pasan (precarga, “Otra”, validación, guardado, error, logout)
 - ✅ `PracticeSelectorTest` - 7 tests pasan (estratificación proporcional, mayor residuo)
-- ✅ `PracticaSesionViewModelTest` - 7 tests pasan (feedback, bloqueo, navegación, SAH, restauración)
+- ✅ `PracticaSesionViewModelTest` - 8 tests pasan (feedback, bloqueo, navegación, SAH, restauración, reporte)
 - ✅ `PracticaFiltrosViewModelTest` - 5 tests pasan (subtemas por área, disponibles, iniciar)
 - ✅ `AnalizadorProgresoTest` - 9 tests pasan (evidencia mínima, orden, evolución, historial)
 - ✅ `ProgressMapperTest` - tests pasan (entidad ↔ dominio de caches)
@@ -239,7 +250,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `InfoViewModelTest` - 7 tests pasan (parseo, filtro por área, estructura del asset)
 - ✅ `BancoIntegridadTest` - 10 tests pasan (400 preguntas con IDs únicos, conteos por estado, hash del asset, imágenes con URL/alt, contextos referenciados y cobertura del simulacro)
 - ✅ `BankSyncTest` - 11 tests pasan (manifiesto ausente/inválido, versión igual, lote válido, rechazo y red)
-- ✅ `SimulacroViewModelTest` - tests pasan (motor + 5 de pausa/persistencia)
+- ✅ `SimulacroViewModelTest` - tests pasan (motor + 5 de pausa/persistencia + reporte de pregunta)
 - ✅ `AnalizadorRachaTest` - 13 tests pasan (días consecutivos, idempotencia, vigencia, fusión local-nube)
 - ✅ `RachaMapperTest` - 4 tests pasan
 - ✅ `RachaRepositoryTest` - 10 tests pasan (registro, local-first, sync best-effort)
@@ -249,6 +260,9 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `EncuestaSatisfaccionTest` - 7 tests pasan (validez, grado/semestre condicional, abiertas opcionales, rangos)
 - ✅ `EncuestaRepositoryTest` - 7 tests pasan (local-first sin red, pendiente, validación, sin sesión, sync)
 - ✅ `EncuestaViewModelTest` - 6 tests pasan (precarga, validación, envío, sync pendiente, limpieza de errores)
+- ✅ `ReportePreguntaTest` - 6 tests pasan (validación, «Otra» obligatoria, límite de comentario, claves estables)
+- ✅ `ReportePreguntaMapperTest` - 4 tests pasan (Room ↔ dominio, documento Firestore, valores desconocidos)
+- ✅ `ReportePreguntaRepositoryTest` - 7 tests pasan (local-first sin red, validación, sin sesión, duplicado, sync, consulta por sesión)
 
 ### 8. Motor de selección de preguntas (100% completo)
 - **`QuestionSelector`** (`domain/services/QuestionSelector.kt`) — clase pura de dominio, testeable:

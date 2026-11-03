@@ -17,7 +17,9 @@ class ResultadoViewModel(
     private val userAnswers: Map<Int, String>,
     score: Int,
     total: Int,
-    timeUsedMs: Long
+    timeUsedMs: Long,
+    /** Id del intento, compartido con los reportes de pregunta. */
+    private val sesionId: String? = null
 ) : ViewModel() {
 
     private val _questionResults = MutableStateFlow<List<QuestionResult>>(emptyList())
@@ -67,7 +69,8 @@ class ResultadoViewModel(
             userAnswers = userAnswers,
             score = _score.value,
             total = _total.value,
-            timeUsedMs = _timeUsedMs.value
+            timeUsedMs = _timeUsedMs.value,
+            sessionId = sesionId
         )
         // La actividad completada cuenta para la racha diaria del usuario.
         if (resultado.isSuccess) rachaRepository.registrarActividad()

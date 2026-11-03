@@ -23,6 +23,30 @@
         { "fieldPath": "bank_version", "order": "ASCENDING" },
         { "fieldPath": "estado", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "reportesPreguntas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "questionId", "order": "ASCENDING" },
+        { "fieldPath": "fechaMs", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reportesPreguntas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "fechaMs", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reportesPreguntas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "sesionId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

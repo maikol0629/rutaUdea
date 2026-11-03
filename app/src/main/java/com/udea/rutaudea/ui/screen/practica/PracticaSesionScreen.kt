@@ -10,10 +10,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -32,6 +36,7 @@ import com.udea.rutaudea.ui.screen.common.BarraProgresoSesion
 import com.udea.rutaudea.ui.screen.common.FiguraPregunta
 import com.udea.rutaudea.ui.screen.common.OpcionesPreguntaCard
 import com.udea.rutaudea.ui.screen.common.PauseOverlay
+import com.udea.rutaudea.ui.screen.common.ReportePreguntaDialog
 import com.udea.rutaudea.ui.screen.common.TextoApoyo
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 
@@ -92,6 +97,25 @@ fun PracticaSesionScreen(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    val reportada = question?.id in state.reportadas
+                    IconButton(
+                        onClick = viewModel::onReportarClick,
+                        enabled = question != null && !reportada
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Flag,
+                            contentDescription = if (reportada) {
+                                "Pregunta ya reportada"
+                            } else {
+                                "Reportar problema en esta pregunta"
+                            },
+                            tint = if (reportada) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                primaryColor
+                            }
+                        )
+                    }
                     Text(
                         text = "⏱ ${formatTime(state.elapsedSeconds)}",
                         fontSize = 14.sp,
@@ -232,6 +256,17 @@ fun PracticaSesionScreen(
                     Text("Terminar práctica ahora", fontSize = 13.sp)
                 }
             }
+        }
+
+        if (state.reporte.visible) {
+            ReportePreguntaDialog(
+                preguntaId = question?.id.orEmpty(),
+                enviando = state.reporte.enviando,
+                mensaje = state.reporte.mensaje,
+                error = state.reporte.error,
+                onDismiss = viewModel::onReporteDismiss,
+                onEnviar = viewModel::onReporteEnviar
+            )
         }
 
         if (state.showPauseOverlay) {

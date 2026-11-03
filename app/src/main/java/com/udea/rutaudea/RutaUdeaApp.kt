@@ -7,16 +7,19 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import coil.Coil
 import coil.request.ImageRequest
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.udea.rutaudea.data.local.RutaUdeaDatabase
 import com.udea.rutaudea.data.local.entity.QuestionEntity
 import com.udea.rutaudea.data.mapper.QuestionMapper
 import com.udea.rutaudea.data.repository.QuestionRepository
+import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.source.local.DatabaseSeeder
 import com.udea.rutaudea.data.sync.BankSyncManager
 import com.udea.rutaudea.data.sync.BankSyncScheduler
 import com.udea.rutaudea.data.sync.Conectividad
 import com.udea.rutaudea.data.sync.RecordatorioSync
+import com.udea.rutaudea.data.sync.ReporteSyncScheduler
 import com.udea.rutaudea.data.sync.ResultadoSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -65,6 +68,19 @@ class RutaUdeaApp : Application() {
     /** Cache local del cuestionario de satisfacción (prueba piloto). */
     val encuestaDao by lazy { database.encuestaDao() }
 
+    /** Cache local de los reportes de preguntas. */
+    val reportePreguntaDao by lazy { database.reportePreguntaDao() }
+
+    /** Guardado local-first + sincronización de reportes de preguntas. */
+    val reporteRepository by lazy {
+        ReportePreguntaRepository(
+            auth = FirebaseAuth.getInstance(),
+            firestore = FirebaseFirestore.getInstance(),
+            dao = reportePreguntaDao,
+            appVersionCode = BuildConfig.VERSION_CODE
+        )
+    }
+
     /** Evita repetir la revisión automática en cada cambio de foreground. */
     @Volatile
     private var ultimaRevision = 0L
@@ -73,6 +89,7 @@ class RutaUdeaApp : Application() {
         super.onCreate()
         RecordatorioSync.registrarPrimerUso(this)
         BankSyncScheduler.programar(this)
+        ReporteSyncScheduler.programar(this)
 
         // Cada vez que la app vuelve a primer plano se comprueba el
         // manifiesto (con red y con una ventana mínima para no repetir).
@@ -80,6 +97,7 @@ class RutaUdeaApp : Application() {
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
                     sincronizarSiHayRed()
+                    sincronizarReportesSiHayRed()
                 }
             }
         )
@@ -116,6 +134,18 @@ class RutaUdeaApp : Application() {
             is ResultadoSync.Actualizado, is ResultadoSync.SinCambios ->
                 RecordatorioSync.cancelar(this)
             else -> Unit
+        }
+    }
+
+    /**
+     * Reintenta subir los reportes de preguntas pendientes al volver a la
+     * app. La consulta local es barata y no hace llamadas de red si no hay
+     * nada pendiente.
+     */
+    private fun sincronizarReportesSiHayRed() {
+        appScope.launch {
+            if (!Conectividad.hayRed(this@RutaUdeaApp)) return@launch
+            reporteRepository.sincronizarPendientes()
         }
     }
 
