@@ -216,13 +216,13 @@ class PracticaSesionViewModelTest {
         )
 
         vm.onReportarClick()
-        assertTrue(vm.uiState.value.reporte.visible)
+        assertTrue(vm.reporteEstado.value.visible)
 
         vm.onReporteEnviar(MotivoReporte.OTRA, "  falta la imagen  ")
 
-        assertTrue("q1" in vm.uiState.value.reportadas)
-        assertNotNull(vm.uiState.value.reporte.mensaje)
-        assertFalse(vm.uiState.value.reporte.enviando)
+        assertTrue("q1" in vm.reportadas.value)
+        assertNotNull(vm.reporteEstado.value.mensaje)
+        assertFalse(vm.reporteEstado.value.enviando)
     }
 
     @Test

@@ -52,6 +52,8 @@ fun PracticaSesionScreen(
     onTerminada: () -> Unit
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
+    val reporte = viewModel.reporteEstado.collectAsStateWithLifecycle().value
+    val reportadas = viewModel.reportadas.collectAsStateWithLifecycle().value
 
     // Pausa al cambiar de app (solo background real, no rotación).
     AppBackgroundEffect(
@@ -97,7 +99,7 @@ fun PracticaSesionScreen(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val reportada = question?.id in state.reportadas
+                    val reportada = question?.id in reportadas
                     IconButton(
                         onClick = viewModel::onReportarClick,
                         enabled = question != null && !reportada
@@ -258,12 +260,12 @@ fun PracticaSesionScreen(
             }
         }
 
-        if (state.reporte.visible) {
+        if (reporte.visible) {
             ReportePreguntaDialog(
                 preguntaId = question?.id.orEmpty(),
-                enviando = state.reporte.enviando,
-                mensaje = state.reporte.mensaje,
-                error = state.reporte.error,
+                enviando = reporte.enviando,
+                mensaje = reporte.mensaje,
+                error = reporte.error,
                 onDismiss = viewModel::onReporteDismiss,
                 onEnviar = viewModel::onReporteEnviar
             )

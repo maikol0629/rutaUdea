@@ -51,6 +51,8 @@ fun SimulacroScreen(
     onFinish: (() -> Unit)? = null
 ) {
     val uiState: SimulacroState = viewModel.uiState.collectAsStateWithLifecycle().value
+    val reporte = viewModel.reporteEstado.collectAsStateWithLifecycle().value
+    val reportadas = viewModel.reportadas.collectAsStateWithLifecycle().value
 
     // Si el usuario abandona desde la pausa, la navegación a Resultado por
     // tiempo agotado debe ignorarse: la entrada ya está saliendo de la pila
@@ -79,17 +81,18 @@ fun SimulacroScreen(
         SimulacroContent(
             state = uiState,
             currentQuestion = viewModel.currentQuestion,
+            reportadas = reportadas,
             onOptionSelected = viewModel::onOptionSelected,
             onNextOrFinish = viewModel::onNextOrFinish,
             onReportarClick = viewModel::onReportarClick
         )
 
-        if (uiState.reporte.visible) {
+        if (reporte.visible) {
             ReportePreguntaDialog(
                 preguntaId = viewModel.currentQuestion?.id.orEmpty(),
-                enviando = uiState.reporte.enviando,
-                mensaje = uiState.reporte.mensaje,
-                error = uiState.reporte.error,
+                enviando = reporte.enviando,
+                mensaje = reporte.mensaje,
+                error = reporte.error,
                 onDismiss = viewModel::onReporteDismiss,
                 onEnviar = viewModel::onReporteEnviar
             )
@@ -121,6 +124,7 @@ fun SimulacroScreen(
 private fun SimulacroContent(
     state: SimulacroState,
     currentQuestion: Question?,
+    reportadas: Set<String>,
     onOptionSelected: (String) -> Unit,
     onNextOrFinish: () -> Unit,
     onReportarClick: () -> Unit
@@ -146,7 +150,7 @@ private fun SimulacroContent(
             modifier = Modifier.padding(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                val reportada = currentQuestion?.id in state.reportadas
+                val reportada = currentQuestion?.id in reportadas
                 IconButton(
                     onClick = onReportarClick,
                     enabled = currentQuestion != null && !state.isFinished && !reportada
@@ -273,6 +277,7 @@ private fun SimulacroContentPreview() {
         SimulacroContent(
             state = previewState(),
             currentQuestion = previewQuestion,
+            reportadas = emptySet(),
             onOptionSelected = {},
             onNextOrFinish = {},
             onReportarClick = {}

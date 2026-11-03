@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 /**
  * Punto único de acceso al registro de simulacros.
@@ -50,26 +49,27 @@ class SimulationRepository(
             return Result.failure(Exception("No hay preguntas para registrar"))
         }
 
-        val id = sessionId ?: UUID.randomUUID().toString()
-        val fechaMs = System.currentTimeMillis()
-        val respondidas = userAnswers.size
-        val omitidas = total - respondidas
+        val datos = DatosResumenSesion.crear(
+            total = total,
+            respondidas = userAnswers.size,
+            sessionId = sessionId
+        )
 
         val resumen = SimulationSummaryEntity(
-            id = id,
+            id = datos.id,
             uid = uid,
-            fechaMs = fechaMs,
+            fechaMs = datos.fechaMs,
             score = score,
             total = total,
             tiempoUsedMs = timeUsedMs,
-            respondidas = respondidas,
-            omitidas = omitidas,
+            respondidas = datos.respondidas,
+            omitidas = datos.omitidas,
             synced = false
         )
         val detalles = questions.mapIndexed { index, question ->
             val userAnswer = userAnswers[index].orEmpty()
             SimulationQuestionEntity(
-                sessionId = id,
+                sessionId = datos.id,
                 questionId = question.id,
                 indice = index,
                 area = question.area,
@@ -87,7 +87,7 @@ class SimulationRepository(
                 progressDao.upsertSimulationQuestions(detalles)
                 // Intento de subida a la nube (no bloquea el guardado local).
                 subirSimulacro(resumen, detalles)
-                Result.success(id)
+                Result.success(datos.id)
             } catch (e: Exception) {
                 Log.e(TAG, "No se pudo guardar el simulacro localmente", e)
                 Result.failure(e)

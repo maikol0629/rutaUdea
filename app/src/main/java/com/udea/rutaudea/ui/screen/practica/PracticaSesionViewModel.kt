@@ -8,7 +8,7 @@ import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.domain.model.ModoReporte
 import com.udea.rutaudea.domain.model.MotivoReporte
 import com.udea.rutaudea.domain.model.Question
-import com.udea.rutaudea.domain.model.ReportePregunta
+import com.udea.rutaudea.ui.screen.common.ReportePreguntaSesion
 import com.udea.rutaudea.ui.screen.common.ReporteUiState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -54,10 +54,7 @@ class PracticaSesionViewModel(
         val revealed: Set<Int> = emptySet(),
         val elapsedMs: Long = 0L,
         /** Overlay de pausa visible (app en segundo plano o botón atrás). */
-        val showPauseOverlay: Boolean = false,
-        val reporte: ReporteUiState = ReporteUiState(),
-        /** IDs de preguntas ya reportadas en esta sesión. */
-        val reportadas: Set<String> = emptySet()
+        val showPauseOverlay: Boolean = false
     ) {
         val currentQuestion: Question?
             get() = questions.getOrNull(currentIndex)
@@ -104,6 +101,19 @@ class PracticaSesionViewModel(
     private val sesionId: String = savedStateHandle.get<String>(SESION_ID_KEY)
         ?: UUID.randomUUID().toString().also { savedStateHandle[SESION_ID_KEY] = it }
 
+    private val reporteSesion = ReportePreguntaSesion(
+        repository = reporteRepository,
+        scope = viewModelScope,
+        sesionId = sesionId,
+        modo = ModoReporte.PRACTICA
+    )
+
+    /** Estado del diálogo de reporte de pregunta. */
+    val reporteEstado: StateFlow<ReporteUiState> = reporteSesion.estado
+
+    /** IDs de preguntas ya reportadas en esta sesión. */
+    val reportadas: StateFlow<Set<String>> = reporteSesion.reportadas
+
     /**
      * Marca que la app pasó a segundo plano de verdad (no una rotación),
      * para no mostrar la pausa en el `ON_START` sintético del registro.
@@ -117,22 +127,12 @@ class PracticaSesionViewModel(
             savedStateHandle[START_TIME_KEY] = it
         }
         restoreProgreso()
-        cargarReportadas()
+        reporteSesion.cargarReportadas()
         // Si el proceso muere mientras estaba en pausa, se reanuda en pausa.
         if (savedStateHandle.contains(PAUSED_AT_KEY)) {
             _uiState.value = _uiState.value.copy(showPauseOverlay = true)
         } else {
             iniciarTicker()
-        }
-    }
-
-    /** Restaura el estado del icono de reporte tras rotación/muerte de proceso. */
-    private fun cargarReportadas() {
-        viewModelScope.launch {
-            val ids = reporteRepository.getReportadasDeSesion(sesionId)
-            if (ids.isNotEmpty()) {
-                _uiState.value = _uiState.value.copy(reportadas = ids)
-            }
         }
     }
 
@@ -228,17 +228,12 @@ class PracticaSesionViewModel(
 
     /** Abre el diálogo de reporte para la pregunta actual. */
     fun onReportarClick() {
-        val state = _uiState.value
-        val question = state.currentQuestion ?: return
-        if (question.id in state.reportadas) return
-        _uiState.value = state.copy(reporte = ReporteUiState(visible = true))
+        reporteSesion.abrir(_uiState.value.currentQuestion)
     }
 
     /** Cierra el diálogo (no se puede cerrar mientras se está enviando). */
     fun onReporteDismiss() {
-        val state = _uiState.value
-        if (state.reporte.enviando) return
-        _uiState.value = state.copy(reporte = ReporteUiState())
+        reporteSesion.cerrar()
     }
 
     /**
@@ -247,80 +242,12 @@ class PracticaSesionViewModel(
      */
     fun onReporteEnviar(motivo: MotivoReporte, comentario: String) {
         val state = _uiState.value
-        val question = state.currentQuestion ?: return
-        if (state.reporte.enviando || question.id in state.reportadas) return
-
-        val reporte = ReportePregunta(
-            questionId = question.id,
-            motivo = motivo,
-            comentario = comentario.trim(),
-            modo = ModoReporte.PRACTICA,
-            sesionId = sesionId,
-            area = question.area,
-            subtema = question.subtema,
-            bancoVersion = question.bancoVersion,
+        reporteSesion.enviar(
+            question = state.currentQuestion,
             respuestaUsuario = state.currentAnswer,
-            respuestaCorrecta = question.respuestaCorrecta
+            motivo = motivo,
+            comentario = comentario
         )
-
-        _uiState.value = state.copy(
-            reporte = state.reporte.copy(enviando = true, error = null)
-        )
-
-        viewModelScope.launch {
-            when (val resultado = reporteRepository.guardar(reporte)) {
-                is ReportePreguntaRepository.ResultadoReporte.Guardado -> {
-                    _uiState.value = _uiState.value.copy(
-                        reportadas = _uiState.value.reportadas + question.id,
-                        reporte = ReporteUiState(
-                            visible = true,
-                            mensaje = if (resultado.sincronizada) {
-                                "Reporte enviado. ¡Gracias por ayudarnos a mejorar!"
-                            } else {
-                                "Reporte guardado. Se enviará automáticamente cuando haya conexión."
-                            }
-                        )
-                    )
-                }
-
-                is ReportePreguntaRepository.ResultadoReporte.Invalido -> {
-                    _uiState.value = _uiState.value.copy(
-                        reporte = _uiState.value.reporte.copy(
-                            enviando = false,
-                            error = resultado.errores.joinToString(" ")
-                        )
-                    )
-                }
-
-                ReportePreguntaRepository.ResultadoReporte.Duplicado -> {
-                    _uiState.value = _uiState.value.copy(
-                        reportadas = _uiState.value.reportadas + question.id,
-                        reporte = ReporteUiState(
-                            visible = true,
-                            mensaje = "Ya reportaste esta pregunta en esta sesión."
-                        )
-                    )
-                }
-
-                ReportePreguntaRepository.ResultadoReporte.SinSesion -> {
-                    _uiState.value = _uiState.value.copy(
-                        reporte = _uiState.value.reporte.copy(
-                            enviando = false,
-                            error = "Inicia sesión para enviar el reporte."
-                        )
-                    )
-                }
-
-                ReportePreguntaRepository.ResultadoReporte.ErrorLocal -> {
-                    _uiState.value = _uiState.value.copy(
-                        reporte = _uiState.value.reporte.copy(
-                            enviando = false,
-                            error = "No se pudo guardar el reporte. Intenta de nuevo."
-                        )
-                    )
-                }
-            }
-        }
     }
 
     fun onNext() {
@@ -330,10 +257,8 @@ class PracticaSesionViewModel(
         } else {
             val newIndex = state.currentIndex + 1
             savedStateHandle[CURRENT_INDEX_KEY] = newIndex
-            _uiState.value = state.copy(
-                currentIndex = newIndex,
-                reporte = ReporteUiState()
-            )
+            _uiState.value = state.copy(currentIndex = newIndex)
+            reporteSesion.limpiar()
         }
     }
 
@@ -342,10 +267,8 @@ class PracticaSesionViewModel(
         if (state.currentIndex > 0) {
             val newIndex = state.currentIndex - 1
             savedStateHandle[CURRENT_INDEX_KEY] = newIndex
-            _uiState.value = state.copy(
-                currentIndex = newIndex,
-                reporte = ReporteUiState()
-            )
+            _uiState.value = state.copy(currentIndex = newIndex)
+            reporteSesion.limpiar()
         }
     }
 
