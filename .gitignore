@@ -58,6 +58,8 @@ app/debug/
 app/release/
 
 # El wrapper SÍ se versiona: gradlew, gradlew.bat, gradle/wrapper/*
+# Distribuciones locales de Gradle (se usa ./gradlew)
+/gradle-[0-9]*/
 
 # ---------- Node (Firebase CLI y scripts de migración) ----------
 node_modules/

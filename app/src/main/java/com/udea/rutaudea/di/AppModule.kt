@@ -9,6 +9,7 @@ import com.udea.rutaudea.data.repository.PracticeRepository
 import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.repository.RachaRepository
+import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.services.PracticeSelector
 import com.udea.rutaudea.domain.services.QuestionSelector
@@ -68,6 +69,10 @@ object AppModule {
             firestore = FirebaseFirestore.getInstance(),
             encuestaDao = (app as RutaUdeaApp).encuestaDao
         )
+    }
+
+    fun provideReportePreguntaRepository(app: Application): ReportePreguntaRepository {
+        return (app as RutaUdeaApp).reporteRepository
     }
 
     fun provideSimulationRepository(app: Application): SimulationRepository {

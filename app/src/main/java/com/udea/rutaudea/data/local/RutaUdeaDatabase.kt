@@ -10,11 +10,13 @@ import com.udea.rutaudea.data.local.dao.EncuestaDao
 import com.udea.rutaudea.data.local.dao.ProgressDao
 import com.udea.rutaudea.data.local.dao.QuestionDao
 import com.udea.rutaudea.data.local.dao.RachaDao
+import com.udea.rutaudea.data.local.dao.ReportePreguntaDao
 import com.udea.rutaudea.data.local.entity.EncuestaEntity
 import com.udea.rutaudea.data.local.entity.PracticeQuestionEntity
 import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
 import com.udea.rutaudea.data.local.entity.QuestionEntity
 import com.udea.rutaudea.data.local.entity.RachaEntity
+import com.udea.rutaudea.data.local.entity.ReportePreguntaEntity
 import com.udea.rutaudea.data.local.entity.SimulationQuestionEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
 
@@ -34,9 +36,10 @@ import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
         SimulationQuestionEntity::class,
         PracticeQuestionEntity::class,
         RachaEntity::class,
-        EncuestaEntity::class
+        EncuestaEntity::class,
+        ReportePreguntaEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class RutaUdeaDatabase : RoomDatabase() {
@@ -48,6 +51,8 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
     abstract fun rachaDao(): RachaDao
 
     abstract fun encuestaDao(): EncuestaDao
+
+    abstract fun reportePreguntaDao(): ReportePreguntaDao
 
     companion object {
         @Volatile
@@ -249,6 +254,47 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v6 → v7: agrega la tabla de cache de los reportes de preguntas.
+         * No borra ningún dato existente.
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `reportes_preguntas_cache` (
+                        `id` TEXT NOT NULL,
+                        `uid` TEXT NOT NULL,
+                        `question_id` TEXT NOT NULL,
+                        `motivo` TEXT NOT NULL,
+                        `comentario` TEXT NOT NULL,
+                        `modo` TEXT NOT NULL,
+                        `sesion_id` TEXT NOT NULL,
+                        `area` TEXT NOT NULL,
+                        `subtema` TEXT NOT NULL,
+                        `banco_version` TEXT,
+                        `respuesta_usuario` TEXT,
+                        `respuesta_correcta` TEXT,
+                        `fecha_ms` INTEGER NOT NULL,
+                        `app_version_code` INTEGER NOT NULL,
+                        `estado` TEXT NOT NULL,
+                        `synced` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_reportes_preguntas_cache_uid_synced` ON `reportes_preguntas_cache` (`uid`, `synced`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_reportes_preguntas_cache_question_id` ON `reportes_preguntas_cache` (`question_id`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_reportes_preguntas_cache_fecha_ms` ON `reportes_preguntas_cache` (`fecha_ms`)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): RutaUdeaDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -261,7 +307,8 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
                         MIGRATION_2_3,
                         MIGRATION_3_4,
                         MIGRATION_4_5,
-                        MIGRATION_5_6
+                        MIGRATION_5_6,
+                        MIGRATION_6_7
                     )
                     .build()
                     .also { INSTANCE = it }

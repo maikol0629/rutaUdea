@@ -138,6 +138,24 @@ service cloud.firestore {
       }
     }
 
+    // ---------- reportesPreguntas ----------
+    // Reportes de inconsistencias enviados por los aspirantes desde el
+    // simulacro o la práctica. El dueño crea el reporte en estado
+    // `pendiente` y puede leer los suyos; el admin los revisa, actualiza
+    // el estado (`revisado`/`descartado`) y los usa para priorizar
+    // mejoras del banco.
+    match /reportesPreguntas/{reporteId} {
+      allow read: if isOwner(resource.data.uid) || isAdmin();
+      allow create: if request.auth != null
+        && isOwner(request.resource.data.uid)
+        && request.resource.data.estado == 'pendiente'
+        && request.resource.data.questionId is string
+        && request.resource.data.motivo is string
+        && request.resource.data.modo in ['simulacro', 'practica']
+        && request.resource.data.sesionId is string;
+      allow update, delete: if isAdmin();
+    }
+
     // ---------- recommendations ----------
     // Generadas por el sistema; el usuario solo las lee.
     match /recommendations/{recommendationId} {

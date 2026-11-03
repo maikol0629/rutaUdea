@@ -9,6 +9,7 @@ import com.udea.rutaudea.data.repository.PracticeRepository
 import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.repository.RachaRepository
+import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.domain.services.PracticeSelector
@@ -51,11 +52,18 @@ object ViewModelFactories {
         private val selector: QuestionSelector,
         private val repository: QuestionRepository,
         private val simulationRepository: SimulationRepository,
+        private val reporteRepository: ReportePreguntaRepository,
         private val savedStateHandle: SavedStateHandle
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            SimulacroViewModel(selector, repository, simulationRepository, savedStateHandle) as T
+            SimulacroViewModel(
+                selector,
+                repository,
+                simulationRepository,
+                reporteRepository,
+                savedStateHandle
+            ) as T
     }
 
     class ResultadoFactory(
@@ -65,13 +73,14 @@ object ViewModelFactories {
         private val userAnswers: Map<Int, String>,
         private val score: Int,
         private val total: Int,
-        private val timeUsedMs: Long
+        private val timeUsedMs: Long,
+        private val sesionId: String?
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             ResultadoViewModel(
                 questions, simulationRepository, rachaRepository,
-                userAnswers, score, total, timeUsedMs
+                userAnswers, score, total, timeUsedMs, sesionId
             ) as T
     }
 
@@ -107,11 +116,18 @@ object ViewModelFactories {
         private val questions: List<Question>,
         private val area: String,
         private val subtema: String?,
+        private val reporteRepository: ReportePreguntaRepository,
         private val savedStateHandle: SavedStateHandle
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            PracticaSesionViewModel(questions, area, subtema, savedStateHandle) as T
+            PracticaSesionViewModel(
+                questions,
+                area,
+                subtema,
+                reporteRepository,
+                savedStateHandle
+            ) as T
     }
 
     class PracticaResultadoFactory(
@@ -123,13 +139,14 @@ object ViewModelFactories {
         private val subtema: String?,
         private val score: Int,
         private val total: Int,
-        private val timeUsedMs: Long
+        private val timeUsedMs: Long,
+        private val sesionId: String?
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             PracticaResultadoViewModel(
                 questions, practiceRepository, rachaRepository, userAnswers,
-                area, subtema, score, total, timeUsedMs
+                area, subtema, score, total, timeUsedMs, sesionId
             ) as T
     }
 

@@ -4,7 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.udea.rutaudea.data.repository.ReportePreguntaRepository
+import com.udea.rutaudea.domain.model.ModoReporte
+import com.udea.rutaudea.domain.model.MotivoReporte
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.ui.screen.common.ReportePreguntaSesion
+import com.udea.rutaudea.ui.screen.common.ReporteUiState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -14,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 /**
  * Sesión de práctica: sin cronómetro límite, con retroalimentación
@@ -28,6 +34,7 @@ class PracticaSesionViewModel(
     questions: List<Question>,
     val area: String,
     val subtema: String?,
+    private val reporteRepository: ReportePreguntaRepository,
     private val savedStateHandle: SavedStateHandle,
     /** Desactivable en pruebas: el reloj es un bucle infinito. */
     private val relojActivo: Boolean = true
@@ -87,6 +94,27 @@ class PracticaSesionViewModel(
     private var startTimeMs: Long
 
     /**
+     * Identificador del intento. Se genera al iniciar y se conserva en el
+     * SavedStateHandle para que los reportes de la sesión apunten a la
+     * misma práctica que se guardará al finalizar.
+     */
+    private val sesionId: String = savedStateHandle.get<String>(SESION_ID_KEY)
+        ?: UUID.randomUUID().toString().also { savedStateHandle[SESION_ID_KEY] = it }
+
+    private val reporteSesion = ReportePreguntaSesion(
+        repository = reporteRepository,
+        scope = viewModelScope,
+        sesionId = sesionId,
+        modo = ModoReporte.PRACTICA
+    )
+
+    /** Estado del diálogo de reporte de pregunta. */
+    val reporteEstado: StateFlow<ReporteUiState> = reporteSesion.estado
+
+    /** IDs de preguntas ya reportadas en esta sesión. */
+    val reportadas: StateFlow<Set<String>> = reporteSesion.reportadas
+
+    /**
      * Marca que la app pasó a segundo plano de verdad (no una rotación),
      * para no mostrar la pausa en el `ON_START` sintético del registro.
      */
@@ -99,6 +127,7 @@ class PracticaSesionViewModel(
             savedStateHandle[START_TIME_KEY] = it
         }
         restoreProgreso()
+        reporteSesion.cargarReportadas()
         // Si el proceso muere mientras estaba en pausa, se reanuda en pausa.
         if (savedStateHandle.contains(PAUSED_AT_KEY)) {
             _uiState.value = _uiState.value.copy(showPauseOverlay = true)
@@ -195,6 +224,32 @@ class PracticaSesionViewModel(
         _uiState.value = state.copy(answers = answers, revealed = revealed)
     }
 
+    // ----- Reporte de pregunta -----
+
+    /** Abre el diálogo de reporte para la pregunta actual. */
+    fun onReportarClick() {
+        reporteSesion.abrir(_uiState.value.currentQuestion)
+    }
+
+    /** Cierra el diálogo (no se puede cerrar mientras se está enviando). */
+    fun onReporteDismiss() {
+        reporteSesion.cerrar()
+    }
+
+    /**
+     * Guarda el reporte local-first. La UI muestra si se envió ya o si
+     * queda pendiente de sincronizar cuando haya conexión.
+     */
+    fun onReporteEnviar(motivo: MotivoReporte, comentario: String) {
+        val state = _uiState.value
+        reporteSesion.enviar(
+            question = state.currentQuestion,
+            respuestaUsuario = state.currentAnswer,
+            motivo = motivo,
+            comentario = comentario
+        )
+    }
+
     fun onNext() {
         val state = _uiState.value
         if (state.isLastQuestion) {
@@ -203,6 +258,7 @@ class PracticaSesionViewModel(
             val newIndex = state.currentIndex + 1
             savedStateHandle[CURRENT_INDEX_KEY] = newIndex
             _uiState.value = state.copy(currentIndex = newIndex)
+            reporteSesion.limpiar()
         }
     }
 
@@ -212,6 +268,7 @@ class PracticaSesionViewModel(
             val newIndex = state.currentIndex - 1
             savedStateHandle[CURRENT_INDEX_KEY] = newIndex
             _uiState.value = state.copy(currentIndex = newIndex)
+            reporteSesion.limpiar()
         }
     }
 
@@ -249,6 +306,7 @@ class PracticaSesionViewModel(
         const val QUESTIONS_JSON_KEY = "practica_questions_json"
         const val AREA_KEY = "practica_area"
         const val SUBTEMA_KEY = "practica_subtema"
+        const val SESION_ID_KEY = "practica_session_id"
         private const val START_TIME_KEY = "practica_start_time_ms"
         private const val PAUSED_AT_KEY = "practica_paused_at_ms"
         private const val CURRENT_INDEX_KEY = "practica_current_index"

@@ -26,7 +26,9 @@ class PracticaResultadoViewModel(
     private val subtema: String?,
     score: Int,
     total: Int,
-    timeUsedMs: Long
+    timeUsedMs: Long,
+    /** Id del intento, compartido con los reportes de pregunta. */
+    private val sesionId: String? = null
 ) : ViewModel() {
 
     data class PracticaResult(
@@ -107,7 +109,8 @@ class PracticaResultadoViewModel(
                 userAnswers = userAnswers,
                 score = _score.value,
                 total = _total.value,
-                timeUsedMs = _timeUsedMs.value
+                timeUsedMs = _timeUsedMs.value,
+                sessionId = sesionId
             )
             // La práctica completada cuenta para la racha diaria del usuario.
             if (resultado.isSuccess) rachaRepository.registrarActividad()

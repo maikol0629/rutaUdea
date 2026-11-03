@@ -11,7 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 /**
  * Punto único de acceso al registro de sesiones de práctica.
@@ -38,7 +37,9 @@ class PracticeRepository(
         userAnswers: Map<Int, String>,
         score: Int,
         total: Int,
-        timeUsedMs: Long
+        timeUsedMs: Long,
+        /** Reutiliza el id de la sesión para enlazar los reportes de pregunta. */
+        sessionId: String? = null
     ): Result<String> {
         val uid = auth.currentUser?.uid
             ?: return Result.failure(Exception("Sesión no iniciada: la práctica no se guarda"))
@@ -46,28 +47,29 @@ class PracticeRepository(
             return Result.failure(Exception("No hay preguntas para registrar"))
         }
 
-        val id = UUID.randomUUID().toString()
-        val fechaMs = System.currentTimeMillis()
-        val respondidas = userAnswers.size
-        val omitidas = total - respondidas
+        val datos = DatosResumenSesion.crear(
+            total = total,
+            respondidas = userAnswers.size,
+            sessionId = sessionId
+        )
 
         val resumen = PracticeSummaryEntity(
-            id = id,
+            id = datos.id,
             uid = uid,
-            fechaMs = fechaMs,
+            fechaMs = datos.fechaMs,
             area = area ?: "",
             subtema = subtema?.ifBlank { null },
             score = score,
             total = total,
             tiempoUsedMs = timeUsedMs,
-            respondidas = respondidas,
-            omitidas = omitidas,
+            respondidas = datos.respondidas,
+            omitidas = datos.omitidas,
             synced = false
         )
         val detalles = questions.mapIndexed { index, question ->
             val userAnswer = userAnswers[index].orEmpty()
             PracticeQuestionEntity(
-                sessionId = id,
+                sessionId = datos.id,
                 questionId = question.id,
                 indice = index,
                 subtema = question.subtema,
@@ -83,7 +85,7 @@ class PracticeRepository(
                 progressDao.upsertPracticas(listOf(resumen))
                 progressDao.upsertPracticeQuestions(detalles)
                 subirPractica(resumen, detalles)
-                Result.success(id)
+                Result.success(datos.id)
             } catch (e: Exception) {
                 Log.e(TAG, "No se pudo guardar la práctica localmente", e)
                 Result.failure(e)

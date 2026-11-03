@@ -5,15 +5,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.udea.rutaudea.data.repository.QuestionRepository
+import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.DistribucionDificultad
+import com.udea.rutaudea.domain.model.ModoReporte
+import com.udea.rutaudea.domain.model.MotivoReporte
 import com.udea.rutaudea.domain.model.Question
 import com.udea.rutaudea.domain.model.SimulacroConfig
 import com.udea.rutaudea.domain.services.QuestionSelector
+import com.udea.rutaudea.ui.screen.common.ReportePreguntaSesion
+import com.udea.rutaudea.ui.screen.common.ReporteUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 data class SimulacroState(
     val questions: List<Question> = emptyList(),
@@ -37,6 +43,7 @@ class SimulacroViewModel(
     private val selector: QuestionSelector,
     private val repository: QuestionRepository,
     private val simulationRepository: SimulationRepository,
+    private val reporteRepository: ReportePreguntaRepository,
     private val savedStateHandle: SavedStateHandle,
     /** Desactivable en pruebas: el cronómetro es un bucle infinito. */
     private val relojActivo: Boolean = true
@@ -47,6 +54,7 @@ class SimulacroViewModel(
         private const val USER_ANSWERS_KEY = "user_answers"
         private const val CURRENT_INDEX_KEY = "current_index"
         private const val SELECTION_KEY = "selection_ids_json"
+        const val SESION_ID_KEY = "simulation_session_id"
         private val gson = Gson()
     }
 
@@ -60,6 +68,27 @@ class SimulacroViewModel(
     private var pendingRestoredIndex: Int = 0
 
     /**
+     * Identificador del intento. Se genera al iniciar y se conserva en el
+     * SavedStateHandle para que los reportes de la sesión apunten al mismo
+     * simulacro que se guardará al finalizar.
+     */
+    private val sesionId: String = savedStateHandle.get<String>(SESION_ID_KEY)
+        ?: UUID.randomUUID().toString().also { savedStateHandle[SESION_ID_KEY] = it }
+
+    private val reporteSesion = ReportePreguntaSesion(
+        repository = reporteRepository,
+        scope = viewModelScope,
+        sesionId = sesionId,
+        modo = ModoReporte.SIMULACRO
+    )
+
+    /** Estado del diálogo de reporte de pregunta. */
+    val reporteEstado: StateFlow<ReporteUiState> = reporteSesion.estado
+
+    /** IDs de preguntas ya reportadas en esta sesión. */
+    val reportadas: StateFlow<Set<String>> = reporteSesion.reportadas
+
+    /**
      * Marca que la app pasó a segundo plano de verdad (no una rotación).
      * Se usa para no mostrar la pausa en el `ON_START` sintético que
      * dispara el registro del observador de ciclo de vida.
@@ -69,6 +98,7 @@ class SimulacroViewModel(
     init {
         restoreState()
         loadQuestions()
+        reporteSesion.cargarReportadas()
     }
 
     private fun restoreState() {
@@ -224,6 +254,31 @@ class SimulacroViewModel(
         _uiState.value = currentState.copy(userAnswers = newAnswers.toMap())
     }
 
+    // ----- Reporte de pregunta -----
+
+    /** Abre el diálogo de reporte para la pregunta actual. */
+    fun onReportarClick() {
+        reporteSesion.abrir(currentQuestion, bloqueado = _uiState.value.isFinished)
+    }
+
+    /** Cierra el diálogo (no se puede cerrar mientras se está enviando). */
+    fun onReporteDismiss() {
+        reporteSesion.cerrar()
+    }
+
+    /**
+     * Guarda el reporte local-first. La UI muestra si se envió ya o si
+     * queda pendiente de sincronizar cuando haya conexión.
+     */
+    fun onReporteEnviar(motivo: MotivoReporte, comentario: String) {
+        reporteSesion.enviar(
+            question = currentQuestion,
+            respuestaUsuario = _uiState.value.currentAnswer,
+            motivo = motivo,
+            comentario = comentario
+        )
+    }
+
     fun onNextOrFinish() {
         val currentState = _uiState.value
         if (currentState.isLastQuestion) {
@@ -233,6 +288,7 @@ class SimulacroViewModel(
             val newIndex = currentState.currentIndex + 1
             savedStateHandle[CURRENT_INDEX_KEY] = newIndex
             _uiState.value = currentState.copy(currentIndex = newIndex)
+            reporteSesion.limpiar()
         }
     }
 
