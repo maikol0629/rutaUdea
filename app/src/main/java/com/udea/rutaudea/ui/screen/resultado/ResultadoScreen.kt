@@ -1,5 +1,6 @@
 package com.udea.rutaudea.ui.screen.resultado
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +32,9 @@ fun ResultadoScreen(
     val total = viewModel.total.collectAsStateWithLifecycle().value
     val timeUsedMs = viewModel.timeUsedMs.collectAsStateWithLifecycle().value
     val questionResults = viewModel.questionResults.collectAsStateWithLifecycle().value
+
+    // El gesto atrás no debe volver a la sesión ya finalizada: sale al Home.
+    BackHandler { onFinish() }
 
     ResultadoContent(
         score = score,

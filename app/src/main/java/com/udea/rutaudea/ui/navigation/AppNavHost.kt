@@ -50,6 +50,18 @@ fun AppNavHost() {
     val rachaRepository = AppModule.provideRachaRepository(app)
     val reporteRepository = AppModule.provideReportePreguntaRepository(app)
 
+    // Salida segura al Home desde cualquier pantalla. `popBackStack` cubre
+    // el caso normal (Home ya está en la pila); el fallback evita quedarse
+    // atrapado si la app se abrió directamente en una ruta profunda.
+    val volverAlHome: () -> Unit = {
+        if (!navController.popBackStack(AppNavGraph.HOME, inclusive = false)) {
+            navController.navigate(AppNavGraph.HOME) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
     NavHost(navController, startDestination = AppNavGraph.SPLASH) {
         composable(AppNavGraph.SPLASH) {
             SplashScreen(
@@ -173,11 +185,8 @@ fun AppNavHost() {
             )
             ResultadoScreen(
                 viewModel = resultadoViewModel,
-                onFinish = {
-                    // HOME is already in the back stack below SIMULACRO/RESULTADO,
-                    // so simply pop back to it (avoids re-pushing HOME and crashes).
-                    navController.popBackStack(AppNavGraph.HOME, inclusive = false)
-                }
+                // También se usa para el gesto atrás: no vuelve a la sesión.
+                onFinish = volverAlHome
             )
         }
 
@@ -270,9 +279,8 @@ fun AppNavHost() {
                 onRepetir = {
                     navController.popBackStack(AppNavGraph.PRACTICA, inclusive = false)
                 },
-                onVolverInicio = {
-                    navController.popBackStack(AppNavGraph.HOME, inclusive = false)
-                }
+                // También se usa para el gesto atrás: no vuelve a la sesión.
+                onVolverInicio = volverAlHome
             )
         }
 

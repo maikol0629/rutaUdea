@@ -59,6 +59,16 @@ interface ProgressDao {
     @Query("SELECT id FROM practice_sessions_cache WHERE uid = :uid")
     suspend fun getPracticaIds(uid: String): List<String>
 
+    /** Evita registrar dos veces la misma sesión si se reentra al resultado. */
+    @Query("SELECT COUNT(*) FROM simulations_cache WHERE id = :id")
+    suspend fun countSimulacrosById(id: String): Int
+
+    @Query("SELECT COUNT(*) FROM pruebas_cache WHERE id = :id")
+    suspend fun countPruebasById(id: String): Int
+
+    @Query("SELECT COUNT(*) FROM practice_sessions_cache WHERE id = :id")
+    suspend fun countPracticasById(id: String): Int
+
     @Query("UPDATE simulations_cache SET synced = 1 WHERE id IN (:ids)")
     suspend fun marcarSimulacrosSincronizados(ids: List<String>)
 
