@@ -81,6 +81,11 @@ class PracticeRepository(
         }
 
         return withContext(Dispatchers.IO + NonCancellable) {
+            // Idempotencia: si la práctica ya se registró (por ejemplo, al
+            // reentrar a Resultado), no se vuelve a guardar ni a subir.
+            if (sessionId != null && progressDao.countPracticasById(sessionId) > 0) {
+                return@withContext Result.success(sessionId)
+            }
             try {
                 progressDao.upsertPracticas(listOf(resumen))
                 progressDao.upsertPracticeQuestions(detalles)

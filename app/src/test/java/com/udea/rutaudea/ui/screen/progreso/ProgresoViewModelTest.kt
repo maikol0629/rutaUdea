@@ -4,6 +4,8 @@ import com.udea.rutaudea.data.repository.ProgressRepository
 import com.udea.rutaudea.domain.model.PracticaResumen
 import com.udea.rutaudea.domain.model.SimulacroResumen
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
+import com.udea.rutaudea.domain.model.TipoActividad
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -44,6 +46,13 @@ class ProgresoViewModelTest {
             tiempoUsedMs = 1000L, respondidas = total, omitidas = 0
         )
 
+    private fun prueba(id: String, fechaMs: Long, score: Int = 15, total: Int = 20) =
+        SimulacroResumen(
+            id = id, fechaMs = fechaMs, score = score, total = total,
+            tiempoUsedMs = 500L, respondidas = total, omitidas = 0,
+            tipo = TipoSimulacro.PRUEBA
+        )
+
     private fun practica(id: String, fechaMs: Long, score: Int = 8, total: Int = 10) =
         PracticaResumen(
             id = id, fechaMs = fechaMs, area = "razonamiento_logico",
@@ -60,8 +69,9 @@ class ProgresoViewModelTest {
         )
         val repository = mockk<ProgressRepository>(relaxed = true) {
             coEvery { cargarSimulacros(any()) } returns simulacros
+            coEvery { cargarPruebas(any()) } returns emptyList()
             coEvery { cargarPracticas(any()) } returns practicas
-            coEvery { cargarEstadisticasPorSubtema(any(), any()) } returns stats
+            coEvery { cargarEstadisticasPorSubtema(any(), any(), any()) } returns stats
             coEvery { sincronizar() } returns true
         }
 
@@ -71,6 +81,7 @@ class ProgresoViewModelTest {
         assertFalse(state.isLoading)
         assertFalse(state.sinDatos)
         assertEquals(2, state.simulacros.size)
+        assertEquals(0, state.pruebas.size)
         assertEquals(1, state.practicas.size)
         assertEquals(3, state.historial.size)
         assertEquals(listOf(50, 75), state.evolucion)
@@ -83,11 +94,45 @@ class ProgresoViewModelTest {
     }
 
     @Test
+    fun `separa las pruebas de los simulacros y las suma a las estadisticas`() = runTest {
+        val simulacros = listOf(
+            simulacro("s1", 1000L, 40, 80),
+            simulacro("s2", 2000L, 60, 80)
+        )
+        val pruebas = listOf(prueba("pr1", 3000L, 15, 20))
+        val practicas = listOf(practica("p1", 1500L))
+        val repository = mockk<ProgressRepository>(relaxed = true) {
+            coEvery { cargarSimulacros(any()) } returns simulacros
+            coEvery { cargarPruebas(any()) } returns pruebas
+            coEvery { cargarPracticas(any()) } returns practicas
+            coEvery { cargarEstadisticasPorSubtema(any(), any(), any()) } returns emptyList()
+            coEvery { sincronizar() } returns true
+        }
+
+        val vm = ProgresoViewModel(repository)
+        val state = vm.uiState.value
+
+        assertEquals(2, state.simulacros.size)
+        assertEquals(1, state.pruebas.size)
+        // Promedio, mejor y evolución solo consideran simulacros completos.
+        assertEquals(listOf(50, 75), state.evolucion)
+        assertEquals(62, state.promedioGlobal)
+        assertEquals(75, state.mejorPuntaje)
+        // El historial incluye la prueba con su propia etiqueta.
+        assertEquals(4, state.historial.size)
+        assertEquals(TipoActividad.PRUEBA, state.historial.first().tipo)
+        coVerify {
+            repository.cargarEstadisticasPorSubtema(simulacros, practicas, pruebas)
+        }
+    }
+
+    @Test
     fun `sin actividad local el estado queda vacio`() = runTest {
         val repository = mockk<ProgressRepository>(relaxed = true) {
             coEvery { cargarSimulacros(any()) } returns emptyList()
+            coEvery { cargarPruebas(any()) } returns emptyList()
             coEvery { cargarPracticas(any()) } returns emptyList()
-            coEvery { cargarEstadisticasPorSubtema(any(), any()) } returns emptyList()
+            coEvery { cargarEstadisticasPorSubtema(any(), any(), any()) } returns emptyList()
             coEvery { sincronizar() } returns true
         }
 
@@ -101,8 +146,9 @@ class ProgresoViewModelTest {
     fun `refrescar relanza la sincronizacion con la nube`() = runTest {
         val repository = mockk<ProgressRepository>(relaxed = true) {
             coEvery { cargarSimulacros(any()) } returns emptyList()
+            coEvery { cargarPruebas(any()) } returns emptyList()
             coEvery { cargarPracticas(any()) } returns emptyList()
-            coEvery { cargarEstadisticasPorSubtema(any(), any()) } returns emptyList()
+            coEvery { cargarEstadisticasPorSubtema(any(), any(), any()) } returns emptyList()
             coEvery { sincronizar() } returns true
         }
 

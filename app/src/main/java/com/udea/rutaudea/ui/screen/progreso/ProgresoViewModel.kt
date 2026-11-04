@@ -30,6 +30,7 @@ class ProgresoViewModel(
         val isLoading: Boolean = true,
         val isRefreshing: Boolean = false,
         val simulacros: List<SimulacroResumen> = emptyList(),
+        val pruebas: List<SimulacroResumen> = emptyList(),
         val practicas: List<PracticaResumen> = emptyList(),
         val evolucion: List<Int> = emptyList(),
         val areasDeMejora: List<SubtemaEstadistica> = emptyList(),
@@ -39,7 +40,7 @@ class ProgresoViewModel(
         val racha: Racha = Racha()
     ) {
         val sinDatos: Boolean
-            get() = simulacros.isEmpty() && practicas.isEmpty()
+            get() = simulacros.isEmpty() && pruebas.isEmpty() && practicas.isEmpty()
 
         val promedioGlobal: Int
             get() = AnalizadorProgreso.promedio(simulacros)
@@ -105,19 +106,22 @@ class ProgresoViewModel(
     /** Recalcula el estado a partir de la cache local. */
     private suspend fun aplicarLocal() {
         val simulacros = repository.cargarSimulacros()
+        val pruebas = repository.cargarPruebas()
         val practicas = repository.cargarPracticas()
-        val stats = repository.cargarEstadisticasPorSubtema(simulacros, practicas)
+        // Las estadísticas por subtema suman simulacros, pruebas y prácticas.
+        val stats = repository.cargarEstadisticasPorSubtema(simulacros, practicas, pruebas)
         val racha = repository.cargarRacha()
 
         _uiState.update { current ->
             current.copy(
                 isLoading = false,
                 simulacros = simulacros,
+                pruebas = pruebas,
                 practicas = practicas,
                 evolucion = AnalizadorProgreso.evolucion(simulacros),
                 areasDeMejora = AnalizadorProgreso.areasDeMejora(stats),
                 fortalezas = AnalizadorProgreso.fortalezas(stats),
-                historial = AnalizadorProgreso.historial(simulacros, practicas),
+                historial = AnalizadorProgreso.historial(simulacros, practicas, pruebas),
                 recomendaciones = AnalizadorProgreso.areasDeMejora(stats)
                     .take(AnalizadorProgreso.RECOMENDACIONES),
                 racha = racha

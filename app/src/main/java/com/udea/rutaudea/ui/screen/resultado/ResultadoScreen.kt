@@ -1,5 +1,6 @@
 package com.udea.rutaudea.ui.screen.resultado
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.ui.screen.common.EstadoRespuesta
 import com.udea.rutaudea.ui.screen.common.RepasoPreguntaCard
 import com.udea.rutaudea.ui.screen.common.ResumenScoreCard
@@ -31,11 +33,19 @@ fun ResultadoScreen(
     val timeUsedMs = viewModel.timeUsedMs.collectAsStateWithLifecycle().value
     val questionResults = viewModel.questionResults.collectAsStateWithLifecycle().value
 
+    // El gesto atrás no debe volver a la sesión ya finalizada: sale al Home.
+    BackHandler { onFinish() }
+
     ResultadoContent(
         score = score,
         total = total,
         timeUsedMs = timeUsedMs,
         questionResults = questionResults,
+        titulo = if (viewModel.tipo == TipoSimulacro.PRUEBA) {
+            "Resultado de la Prueba"
+        } else {
+            "Resultado del Simulacro"
+        },
         onFinish = onFinish
     )
 }
@@ -52,6 +62,7 @@ private fun ResultadoContent(
     total: Int,
     timeUsedMs: Long,
     questionResults: List<QuestionResult>,
+    titulo: String,
     onFinish: () -> Unit
 ) {
     LazyColumn(
@@ -61,7 +72,7 @@ private fun ResultadoContent(
     ) {
         item {
             ResumenScoreCard(
-                titulo = "Resultado del Simulacro",
+                titulo = titulo,
                 score = score,
                 total = total,
                 timeUsedMs = timeUsedMs
@@ -154,6 +165,7 @@ private fun ResultadoContentPreview() {
             total = 2,
             timeUsedMs = 42 * 60 * 1000L,
             questionResults = previewResults,
+            titulo = "Resultado del Simulacro",
             onFinish = {}
         )
     }

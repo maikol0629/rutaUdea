@@ -1,5 +1,6 @@
 package com.udea.rutaudea.ui.screen.practica
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -37,6 +38,9 @@ fun PracticaResultadoScreen(
     val total = viewModel.total.collectAsStateWithLifecycle().value
     val timeUsedMs = viewModel.timeUsedMs.collectAsStateWithLifecycle().value
     val results = viewModel.results.collectAsStateWithLifecycle().value
+
+    // El gesto atrás no debe volver a la sesión ya finalizada: sale al Home.
+    BackHandler { onVolverInicio() }
 
     PracticaResultadoContent(
         score = score,

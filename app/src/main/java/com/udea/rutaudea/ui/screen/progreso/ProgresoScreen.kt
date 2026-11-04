@@ -110,6 +110,7 @@ fun ProgresoScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Metrica("Simulacros", "${state.simulacros.size}")
+                            Metrica("Pruebas", "${state.pruebas.size}")
                             Metrica("Prácticas", "${state.practicas.size}")
                             Metrica("Promedio", "${state.promedioGlobal}%")
                             Metrica("Mejor", "${state.mejorPuntaje}%")
@@ -358,7 +359,11 @@ private fun FilaHistorial(item: ItemHistorial, modifier: Modifier = Modifier) {
                 modifier = Modifier.weight(1f, fill = false)
             ) {
                 Text(
-                    text = if (item.tipo == TipoActividad.SIMULACRO) "🧪" else "📝",
+                    text = when (item.tipo) {
+                        TipoActividad.SIMULACRO -> "🧪"
+                        TipoActividad.PRUEBA -> "⚡"
+                        TipoActividad.PRACTICA -> "📝"
+                    },
                     fontSize = 20.sp
                 )
                 Column {

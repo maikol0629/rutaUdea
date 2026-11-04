@@ -2,9 +2,11 @@ package com.udea.rutaudea.ui.screen.resultado
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.udea.rutaudea.data.repository.PruebaRepository
 import com.udea.rutaudea.data.repository.RachaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.ui.screen.common.textoApoyoDe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,13 +15,16 @@ import kotlinx.coroutines.launch
 class ResultadoViewModel(
     private val questions: List<Question>,
     private val simulationRepository: SimulationRepository,
+    private val pruebaRepository: PruebaRepository,
     private val rachaRepository: RachaRepository,
     private val userAnswers: Map<Int, String>,
     score: Int,
     total: Int,
     timeUsedMs: Long,
     /** Id del intento, compartido con los reportes de pregunta. */
-    private val sesionId: String? = null
+    private val sesionId: String? = null,
+    /** Examen completo o prueba corta "Pruébate". */
+    val tipo: TipoSimulacro = TipoSimulacro.COMPLETO
 ) : ViewModel() {
 
     private val _questionResults = MutableStateFlow<List<QuestionResult>>(emptyList())
@@ -64,14 +69,25 @@ class ResultadoViewModel(
     }
 
     private suspend fun persistSimulation(questions: List<Question>) {
-        val resultado = simulationRepository.saveSimulation(
-            questions = questions,
-            userAnswers = userAnswers,
-            score = _score.value,
-            total = _total.value,
-            timeUsedMs = _timeUsedMs.value,
-            sessionId = sesionId
-        )
+        val resultado = if (tipo == TipoSimulacro.PRUEBA) {
+            pruebaRepository.savePrueba(
+                questions = questions,
+                userAnswers = userAnswers,
+                score = _score.value,
+                total = _total.value,
+                timeUsedMs = _timeUsedMs.value,
+                sessionId = sesionId
+            )
+        } else {
+            simulationRepository.saveSimulation(
+                questions = questions,
+                userAnswers = userAnswers,
+                score = _score.value,
+                total = _total.value,
+                timeUsedMs = _timeUsedMs.value,
+                sessionId = sesionId
+            )
+        }
         // La actividad completada cuenta para la racha diaria del usuario.
         if (resultado.isSuccess) rachaRepository.registrarActividad()
     }

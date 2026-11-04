@@ -14,6 +14,8 @@ import com.udea.rutaudea.data.local.dao.ReportePreguntaDao
 import com.udea.rutaudea.data.local.entity.EncuestaEntity
 import com.udea.rutaudea.data.local.entity.PracticeQuestionEntity
 import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
+import com.udea.rutaudea.data.local.entity.PruebaQuestionEntity
+import com.udea.rutaudea.data.local.entity.PruebaSummaryEntity
 import com.udea.rutaudea.data.local.entity.QuestionEntity
 import com.udea.rutaudea.data.local.entity.RachaEntity
 import com.udea.rutaudea.data.local.entity.ReportePreguntaEntity
@@ -32,14 +34,16 @@ import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
     entities = [
         QuestionEntity::class,
         SimulationSummaryEntity::class,
+        PruebaSummaryEntity::class,
         PracticeSummaryEntity::class,
         SimulationQuestionEntity::class,
+        PruebaQuestionEntity::class,
         PracticeQuestionEntity::class,
         RachaEntity::class,
         EncuestaEntity::class,
         ReportePreguntaEntity::class
     ],
-    version = 7,
+    version = 9,
     exportSchema = false
 )
 abstract class RutaUdeaDatabase : RoomDatabase() {
@@ -295,6 +299,121 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v7 → v8: agrega `tipo` al resumen de simulacros para distinguir
+         * el examen completo de la prueba corta "Pruébate". Las filas
+         * existentes quedan como `completo`.
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `simulations_cache` ADD COLUMN `tipo` TEXT NOT NULL DEFAULT 'completo'"
+                )
+            }
+        }
+
+        /**
+         * v8 → v9: separa las pruebas cortas "Pruébate" en sus propias
+         * tablas (`pruebas_cache` y `prueba_questions_cache`).
+         *
+         * Las pruebas guardadas por el build intermedio (filas con
+         * `tipo = 'prueba'`) se descartan: no se migran a las nuevas
+         * tablas. Los simulacros completos se conservan y
+         * `simulations_cache` se recrea sin la columna `tipo`.
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `pruebas_cache` (
+                        `id` TEXT NOT NULL,
+                        `uid` TEXT NOT NULL,
+                        `fecha_ms` INTEGER NOT NULL,
+                        `score` INTEGER NOT NULL,
+                        `total` INTEGER NOT NULL,
+                        `tiempo_used_ms` INTEGER NOT NULL,
+                        `respondidas` INTEGER NOT NULL,
+                        `omitidas` INTEGER NOT NULL,
+                        `synced` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_pruebas_cache_uid_fecha_ms` ON `pruebas_cache` (`uid`, `fecha_ms`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_pruebas_cache_synced` ON `pruebas_cache` (`synced`)"
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `prueba_questions_cache` (
+                        `session_id` TEXT NOT NULL,
+                        `question_id` TEXT NOT NULL,
+                        `indice` INTEGER NOT NULL,
+                        `area` TEXT NOT NULL,
+                        `subtema` TEXT NOT NULL,
+                        `dificultad` TEXT NOT NULL,
+                        `respuesta_usuario` TEXT NOT NULL,
+                        `respuesta_correcta` TEXT NOT NULL,
+                        `es_correcta` INTEGER NOT NULL,
+                        PRIMARY KEY(`session_id`, `question_id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_prueba_questions_cache_session_id` ON `prueba_questions_cache` (`session_id`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_prueba_questions_cache_subtema` ON `prueba_questions_cache` (`subtema`)"
+                )
+
+                // Descarta el detalle de las pruebas del build intermedio.
+                db.execSQL(
+                    "DELETE FROM `simulation_questions_cache` WHERE `session_id` IN (SELECT `id` FROM `simulations_cache` WHERE `tipo` = 'prueba')"
+                )
+
+                // Recrea simulations_cache sin `tipo`, conservando solo los
+                // simulacros completos.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `simulations_cache_new` (
+                        `id` TEXT NOT NULL,
+                        `uid` TEXT NOT NULL,
+                        `fecha_ms` INTEGER NOT NULL,
+                        `score` INTEGER NOT NULL,
+                        `total` INTEGER NOT NULL,
+                        `tiempo_used_ms` INTEGER NOT NULL,
+                        `respondidas` INTEGER NOT NULL,
+                        `omitidas` INTEGER NOT NULL,
+                        `synced` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT OR REPLACE INTO `simulations_cache_new`
+                        (`id`, `uid`, `fecha_ms`, `score`, `total`, `tiempo_used_ms`,
+                         `respondidas`, `omitidas`, `synced`)
+                    SELECT `id`, `uid`, `fecha_ms`, `score`, `total`, `tiempo_used_ms`,
+                           `respondidas`, `omitidas`, `synced`
+                    FROM `simulations_cache`
+                    WHERE `tipo` != 'prueba'
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `simulations_cache`")
+                db.execSQL("ALTER TABLE `simulations_cache_new` RENAME TO `simulations_cache`")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_simulations_cache_uid_fecha_ms` ON `simulations_cache` (`uid`, `fecha_ms`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_simulations_cache_synced` ON `simulations_cache` (`synced`)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): RutaUdeaDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -308,7 +427,9 @@ abstract class RutaUdeaDatabase : RoomDatabase() {
                         MIGRATION_3_4,
                         MIGRATION_4_5,
                         MIGRATION_5_6,
-                        MIGRATION_6_7
+                        MIGRATION_6_7,
+                        MIGRATION_7_8,
+                        MIGRATION_8_9
                     )
                     .build()
                     .also { INSTANCE = it }

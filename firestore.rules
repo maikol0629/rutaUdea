@@ -117,6 +117,27 @@ service cloud.firestore {
       }
     }
 
+    // ---------- pruebas / pruebaQuestions ----------
+    // Pruebas cortas "Pruébate". Viven en colecciones propias para que
+    // las métricas de Progreso no se mezclen con `simulations`.
+    match /pruebas/{pruebaId} {
+      allow read: if isOwner(resource.data.uid) || isAdmin();
+      allow create: if request.auth != null && isOwner(request.resource.data.uid);
+      allow update, delete: if false;
+
+      match /pruebaQuestions/{questionId} {
+        allow read: if isAdmin() || isPruebaOwner(pruebaId);
+        allow create: if request.auth != null;
+        allow update, delete: if false;
+      }
+
+      function isPruebaOwner(pruebaId) {
+        return request.auth != null
+          && exists(/databases/$(database)/documents/pruebas/$(pruebaId))
+          && get(/databases/$(database)/documents/pruebas/$(pruebaId)).data.uid == request.auth.uid;
+      }
+    }
+
     // ---------- practiceSessions / practiceQuestions ----------
     // Cada usuario crea y lee sus propias sesiones de práctica; admin lee
     // todos (indicadores de uso y futura analítica de progreso).

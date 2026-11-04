@@ -7,11 +7,13 @@ import com.udea.rutaudea.data.repository.AuthRepository
 import com.udea.rutaudea.data.repository.EncuestaRepository
 import com.udea.rutaudea.data.repository.PracticeRepository
 import com.udea.rutaudea.data.repository.ProgressRepository
+import com.udea.rutaudea.data.repository.PruebaRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.repository.RachaRepository
 import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.domain.services.PracticeSelector
 import com.udea.rutaudea.domain.services.QuestionSelector
 import com.udea.rutaudea.ui.screen.encuesta.EncuestaViewModel
@@ -52,35 +54,41 @@ object ViewModelFactories {
         private val selector: QuestionSelector,
         private val repository: QuestionRepository,
         private val simulationRepository: SimulationRepository,
+        private val pruebaRepository: PruebaRepository,
         private val reporteRepository: ReportePreguntaRepository,
-        private val savedStateHandle: SavedStateHandle
+        private val savedStateHandle: SavedStateHandle,
+        private val tipo: TipoSimulacro
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             SimulacroViewModel(
-                selector,
-                repository,
-                simulationRepository,
-                reporteRepository,
-                savedStateHandle
+                selector = selector,
+                repository = repository,
+                simulationRepository = simulationRepository,
+                pruebaRepository = pruebaRepository,
+                reporteRepository = reporteRepository,
+                savedStateHandle = savedStateHandle,
+                tipo = tipo
             ) as T
     }
 
     class ResultadoFactory(
         private val questions: List<Question>,
         private val simulationRepository: SimulationRepository,
+        private val pruebaRepository: PruebaRepository,
         private val rachaRepository: RachaRepository,
         private val userAnswers: Map<Int, String>,
         private val score: Int,
         private val total: Int,
         private val timeUsedMs: Long,
-        private val sesionId: String?
+        private val sesionId: String?,
+        private val tipo: TipoSimulacro
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             ResultadoViewModel(
-                questions, simulationRepository, rachaRepository,
-                userAnswers, score, total, timeUsedMs, sesionId
+                questions, simulationRepository, pruebaRepository, rachaRepository,
+                userAnswers, score, total, timeUsedMs, sesionId, tipo
             ) as T
     }
 

@@ -1,11 +1,13 @@
 package com.udea.rutaudea.domain.services
 
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import kotlin.random.Random
 
 /**
- * Motor de selección de las 80 preguntas del simulacro
- * (plan de desarrollo, sección 8).
+ * Motor de selección de preguntas de simulacro (plan de desarrollo,
+ * sección 8): 80 para el examen completo (40 RL + 40 CL) y 20 para la
+ * prueba corta "Pruébate" (10 RL + 10 CL).
  *
  * Reglas de selección:
  * 1. Distribución proporcional al banco: 40 RL + 40 CL, con dificultad
@@ -33,36 +35,60 @@ class QuestionSelector(
     // ----- API pública -----
 
     /**
-     * Selecciona las [TOTAL_PREGUNTAS] preguntas del simulacro a partir
-     * del banco aprobado, excluyendo [idsExcluidos] (preguntas de los
-     * últimos simulacros) cuando el banco lo permite.
+     * Selecciona las preguntas del simulacro completo
+     * ([TipoSimulacro.COMPLETO]) a partir del banco aprobado, excluyendo
+     * [idsExcluidos] (preguntas de los últimos simulacros) cuando el banco
+     * lo permite.
      */
-    fun select(bank: List<Question>, idsExcluidos: Set<String> = emptySet()): Result<List<Question>> {
+    fun select(bank: List<Question>, idsExcluidos: Set<String> = emptySet()): Result<List<Question>> =
+        select(bank, idsExcluidos, TipoSimulacro.COMPLETO)
+
+    /**
+     * Selecciona las preguntas de [tipo] a partir del banco aprobado,
+     * excluyendo [idsExcluidos] cuando el banco lo permite.
+     *
+     * El simulacro completo usa 40 RL + 40 CL; la prueba corta usa
+     * 10 RL + 10 CL. Las reglas de dificultad, subtemas y cuotas flexibles
+     * son las mismas para ambos tipos.
+     */
+    fun select(
+        bank: List<Question>,
+        idsExcluidos: Set<String>,
+        tipo: TipoSimulacro
+    ): Result<List<Question>> {
         val validas = bank.filter { esValida(it) }
-        if (validas.size < TOTAL_PREGUNTAS) {
+        if (validas.size < tipo.totalPreguntas) {
             return Result.failure(
                 Exception(
-                    "El banco válido tiene ${validas.size} preguntas y se necesitan $TOTAL_PREGUNTAS"
+                    "El banco válido tiene ${validas.size} preguntas y se necesitan ${tipo.totalPreguntas}"
                 )
             )
         }
 
         // Intento 1: respetando la exclusión de simulacros recientes.
         // Intento 2 (relajación): sin exclusión, si el banco excluido no alcanza.
-        val seleccion = seleccionar(validas, idsExcluidos)
-        val final = if (seleccion.size >= TOTAL_PREGUNTAS) seleccion else seleccionar(validas, emptySet())
+        val seleccion = seleccionar(validas, idsExcluidos, tipo)
+        val final = if (seleccion.size >= tipo.totalPreguntas) {
+            seleccion
+        } else {
+            seleccionar(validas, emptySet(), tipo)
+        }
         return Result.success(final.distinctBy { it.id })
     }
 
     // ----- NÚCLEO DEL ALGORITMO -----
 
-    private fun seleccionar(validas: List<Question>, idsExcluidos: Set<String>): List<Question> {
+    private fun seleccionar(
+        validas: List<Question>,
+        idsExcluidos: Set<String>,
+        tipo: TipoSimulacro
+    ): List<Question> {
         val porArea = validas.groupBy { it.area }
-        val rl = seleccionarArea(porArea[AREA_RL].orEmpty(), PREGUNTAS_POR_AREA, idsExcluidos)
-        val cl = seleccionarArea(porArea[AREA_CL].orEmpty(), PREGUNTAS_POR_AREA, idsExcluidos)
+        val rl = seleccionarArea(porArea[AREA_RL].orEmpty(), tipo.preguntasPorArea, idsExcluidos)
+        val cl = seleccionarArea(porArea[AREA_CL].orEmpty(), tipo.preguntasPorArea, idsExcluidos)
 
         val seleccion = (rl + cl).toMutableList()
-        val faltantes = TOTAL_PREGUNTAS - seleccion.size
+        val faltantes = tipo.totalPreguntas - seleccion.size
         if (faltantes > 0) {
             val usados = seleccion.map { it.id }.toSet()
             val sobrantes = validas

@@ -38,8 +38,9 @@ class ProgresoRachaTest {
         val racha = Racha(actual = 3, mejor = 7, ultimoDia = 20_000L, ultimaActividadMs = 1L)
         val repository = mockk<ProgressRepository>(relaxed = true) {
             coEvery { cargarSimulacros(any()) } returns emptyList()
+            coEvery { cargarPruebas(any()) } returns emptyList()
             coEvery { cargarPracticas(any()) } returns emptyList()
-            coEvery { cargarEstadisticasPorSubtema(any(), any()) } returns emptyList()
+            coEvery { cargarEstadisticasPorSubtema(any(), any(), any()) } returns emptyList()
             coEvery { cargarRacha() } returns racha
             coEvery { sincronizar() } returns true
         }
@@ -54,8 +55,9 @@ class ProgresoRachaTest {
     fun `sin actividad la racha del estado queda en cero`() = runTest {
         val repository = mockk<ProgressRepository>(relaxed = true) {
             coEvery { cargarSimulacros(any()) } returns emptyList()
+            coEvery { cargarPruebas(any()) } returns emptyList()
             coEvery { cargarPracticas(any()) } returns emptyList()
-            coEvery { cargarEstadisticasPorSubtema(any(), any()) } returns emptyList()
+            coEvery { cargarEstadisticasPorSubtema(any(), any(), any()) } returns emptyList()
             coEvery { cargarRacha() } returns Racha()
             coEvery { sincronizar() } returns true
         }
@@ -69,8 +71,9 @@ class ProgresoRachaTest {
     fun `alReanudar omite la primera llamada y refresca en las siguientes`() = runTest {
         val repository = mockk<ProgressRepository>(relaxed = true) {
             coEvery { cargarSimulacros(any()) } returns emptyList()
+            coEvery { cargarPruebas(any()) } returns emptyList()
             coEvery { cargarPracticas(any()) } returns emptyList()
-            coEvery { cargarEstadisticasPorSubtema(any(), any()) } returns emptyList()
+            coEvery { cargarEstadisticasPorSubtema(any(), any(), any()) } returns emptyList()
             coEvery { cargarRacha() } returnsMany listOf(Racha(), Racha(actual = 1, mejor = 1))
             coEvery { sincronizar() } returns true
         }

@@ -1,6 +1,7 @@
 package com.udea.rutaudea.domain.services
 
 import com.udea.rutaudea.domain.model.Question
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -36,6 +37,39 @@ class QuestionSelectorTest {
             cl += pregunta("cl_$i", QuestionSelector.AREA_CL, "CL${(i % 5) + 1}", dificultadCl[i % 3])
         }
         return rl + cl
+    }
+
+    @Test
+    fun `la prueba corta selecciona 10 preguntas por area y 20 en total`() {
+        val resultado = selector.select(bancoValido(), emptySet(), TipoSimulacro.PRUEBA)
+        assertTrue(resultado.isSuccess)
+        val seleccion = resultado.getOrThrow()
+        assertEquals(TipoSimulacro.PRUEBA.totalPreguntas, seleccion.size)
+        assertEquals(20, seleccion.size)
+        assertEquals(10, seleccion.count { it.area == QuestionSelector.AREA_RL })
+        assertEquals(10, seleccion.count { it.area == QuestionSelector.AREA_CL })
+        assertEquals(seleccion.size, seleccion.map { it.id }.distinct().size)
+    }
+
+    @Test
+    fun `la prueba corta respeta la exclusion de preguntas recientes`() {
+        val banco = bancoValido()
+        val excluidas = (
+            banco.filter { it.area == QuestionSelector.AREA_RL }.take(40) +
+                banco.filter { it.area == QuestionSelector.AREA_CL }.take(40)
+            ).map { it.id }.toSet()
+
+        val seleccion = selector.select(banco, excluidas, TipoSimulacro.PRUEBA).getOrThrow()
+
+        assertTrue(seleccion.none { it.id in excluidas })
+        assertEquals(20, seleccion.size)
+    }
+
+    @Test
+    fun `la prueba corta falla si el banco valido no alcanza 20`() {
+        val banco = (1..10).map { pregunta("q_$it", QuestionSelector.AREA_RL, "RL1", "media") }
+        val resultado = selector.select(banco, emptySet(), TipoSimulacro.PRUEBA)
+        assertTrue(resultado.isFailure)
     }
 
     @Test

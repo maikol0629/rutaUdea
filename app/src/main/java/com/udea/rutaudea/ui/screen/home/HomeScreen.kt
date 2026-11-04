@@ -1,5 +1,6 @@
 package com.udea.rutaudea.ui.screen.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,6 +50,7 @@ import com.udea.rutaudea.ui.theme.RutaUdeaTheme
 fun HomeScreen(
     viewModel: HomeViewModel,
     onSimulacroClick: () -> Unit,
+    onPruebaClick: () -> Unit,
     onPracticaClick: () -> Unit,
     onProgresoClick: () -> Unit,
     onInfoClick: () -> Unit,
@@ -70,6 +72,7 @@ fun HomeScreen(
         racha = state.racha,
         encuestaRespondida = state.encuestaRespondida,
         onSimulacroClick = onSimulacroClick,
+        onPruebaClick = onPruebaClick,
         onPracticaClick = onPracticaClick,
         onProgresoClick = onProgresoClick,
         onInfoClick = onInfoClick,
@@ -84,6 +87,7 @@ private fun HomeContenido(
     racha: Racha,
     encuestaRespondida: Boolean,
     onSimulacroClick: () -> Unit,
+    onPruebaClick: () -> Unit,
     onPracticaClick: () -> Unit,
     onProgresoClick: () -> Unit,
     onInfoClick: () -> Unit,
@@ -179,6 +183,15 @@ private fun HomeContenido(
             }
         }
 
+        // Acción secundaria: prueba corta "Pruébate". Mismo tamaño que las
+        // cards de "Explora la app", con borde de color para distinguirla.
+        item {
+            PruebaHomeCard(
+                onClick = onPruebaClick,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+
         // Acceso al resto de secciones.
         item {
             Text(
@@ -238,6 +251,57 @@ private fun HomeContenido(
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
         }
+    }
+}
+
+/**
+ * Acceso a la prueba corta "Pruébate". Usa el mismo tamaño que las cards
+ * de "Explora la app" para no competir con el simulacro completo, y un
+ * borde azul que la identifica como acción secundaria.
+ */
+@Composable
+private fun PruebaHomeCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.secondary),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        ListItem(
+            headlineContent = {
+                Text("Pruébate", fontWeight = FontWeight.Medium)
+            },
+            supportingContent = {
+                Text("20 preguntas · 30 min", fontSize = 14.sp)
+            },
+            leadingContent = {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.size(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "⚡", fontSize = 24.sp)
+                    }
+                }
+            },
+            trailingContent = {
+                Text(
+                    text = "›",
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            },
+            colors = ListItemDefaults.colors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -561,6 +625,7 @@ private fun HomeScreenPreview() {
             racha = Racha(actual = 4, mejor = 9),
             encuestaRespondida = false,
             onSimulacroClick = {},
+            onPruebaClick = {},
             onPracticaClick = {},
             onProgresoClick = {},
             onInfoClick = {},

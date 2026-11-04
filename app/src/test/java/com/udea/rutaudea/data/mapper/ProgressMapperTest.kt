@@ -1,7 +1,9 @@
 package com.udea.rutaudea.data.mapper
 
 import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
+import com.udea.rutaudea.data.local.entity.PruebaSummaryEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
+import com.udea.rutaudea.domain.model.TipoSimulacro
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -33,6 +35,29 @@ class ProgressMapperTest {
         assertEquals(78, dominio.respondidas)
         assertEquals(2, dominio.omitidas)
         assertEquals(75, dominio.porcentaje)
+        assertEquals(TipoSimulacro.COMPLETO, dominio.tipo)
+    }
+
+    @Test
+    fun `mapea una prueba corta desde su tabla propia`() {
+        val entity = PruebaSummaryEntity(
+            id = "prueba-1",
+            uid = "u1",
+            fechaMs = 1_000L,
+            score = 15,
+            total = 20,
+            tiempoUsedMs = 5_000L,
+            respondidas = 20,
+            omitidas = 0
+        )
+
+        val dominio = ProgressMapper.pruebaToDomain(entity)
+
+        assertEquals("prueba-1", dominio.id)
+        assertEquals(15, dominio.score)
+        assertEquals(20, dominio.total)
+        assertEquals(75, dominio.porcentaje)
+        assertEquals(TipoSimulacro.PRUEBA, dominio.tipo)
     }
 
     @Test

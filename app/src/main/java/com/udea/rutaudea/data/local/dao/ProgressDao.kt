@@ -5,15 +5,18 @@ import androidx.room.Query
 import androidx.room.Upsert
 import com.udea.rutaudea.data.local.entity.PracticeQuestionEntity
 import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
+import com.udea.rutaudea.data.local.entity.PruebaQuestionEntity
+import com.udea.rutaudea.data.local.entity.PruebaSummaryEntity
 import com.udea.rutaudea.data.local.entity.SimulationQuestionEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
 
 /**
  * DAO de la cache local del módulo de Progreso.
  *
- * Almacena el historial de simulacros y prácticas (resumen + detalle por
- * pregunta) para que el dashboard funcione offline y sin depender de
- * índices de Firestore. La nube se usa como respaldo/sincronización.
+ * Almacena el historial de simulacros, pruebas cortas y prácticas
+ * (resumen + detalle por pregunta) para que el dashboard funcione offline
+ * y sin depender de índices de Firestore. La nube se usa como
+ * respaldo/sincronización.
  */
 @Dao
 interface ProgressDao {
@@ -24,10 +27,16 @@ interface ProgressDao {
     suspend fun upsertSimulacros(items: List<SimulationSummaryEntity>)
 
     @Upsert
+    suspend fun upsertPruebas(items: List<PruebaSummaryEntity>)
+
+    @Upsert
     suspend fun upsertPracticas(items: List<PracticeSummaryEntity>)
 
     @Query("SELECT * FROM simulations_cache WHERE uid = :uid ORDER BY fecha_ms DESC LIMIT :limit")
     suspend fun getSimulacros(uid: String, limit: Int): List<SimulationSummaryEntity>
+
+    @Query("SELECT * FROM pruebas_cache WHERE uid = :uid ORDER BY fecha_ms DESC LIMIT :limit")
+    suspend fun getPruebas(uid: String, limit: Int): List<PruebaSummaryEntity>
 
     @Query("SELECT * FROM practice_sessions_cache WHERE uid = :uid ORDER BY fecha_ms DESC LIMIT :limit")
     suspend fun getPracticas(uid: String, limit: Int): List<PracticeSummaryEntity>
@@ -35,17 +44,36 @@ interface ProgressDao {
     @Query("SELECT * FROM simulations_cache WHERE uid = :uid AND synced = 0")
     suspend fun getSimulacrosPendientes(uid: String): List<SimulationSummaryEntity>
 
+    @Query("SELECT * FROM pruebas_cache WHERE uid = :uid AND synced = 0")
+    suspend fun getPruebasPendientes(uid: String): List<PruebaSummaryEntity>
+
     @Query("SELECT * FROM practice_sessions_cache WHERE uid = :uid AND synced = 0")
     suspend fun getPracticasPendientes(uid: String): List<PracticeSummaryEntity>
 
     @Query("SELECT id FROM simulations_cache WHERE uid = :uid")
     suspend fun getSimulacroIds(uid: String): List<String>
 
+    @Query("SELECT id FROM pruebas_cache WHERE uid = :uid")
+    suspend fun getPruebaIds(uid: String): List<String>
+
     @Query("SELECT id FROM practice_sessions_cache WHERE uid = :uid")
     suspend fun getPracticaIds(uid: String): List<String>
 
+    /** Evita registrar dos veces la misma sesión si se reentra al resultado. */
+    @Query("SELECT COUNT(*) FROM simulations_cache WHERE id = :id")
+    suspend fun countSimulacrosById(id: String): Int
+
+    @Query("SELECT COUNT(*) FROM pruebas_cache WHERE id = :id")
+    suspend fun countPruebasById(id: String): Int
+
+    @Query("SELECT COUNT(*) FROM practice_sessions_cache WHERE id = :id")
+    suspend fun countPracticasById(id: String): Int
+
     @Query("UPDATE simulations_cache SET synced = 1 WHERE id IN (:ids)")
     suspend fun marcarSimulacrosSincronizados(ids: List<String>)
+
+    @Query("UPDATE pruebas_cache SET synced = 1 WHERE id IN (:ids)")
+    suspend fun marcarPruebasSincronizadas(ids: List<String>)
 
     @Query("UPDATE practice_sessions_cache SET synced = 1 WHERE id IN (:ids)")
     suspend fun marcarPracticasSincronizadas(ids: List<String>)
@@ -56,16 +84,25 @@ interface ProgressDao {
     suspend fun upsertSimulationQuestions(items: List<SimulationQuestionEntity>)
 
     @Upsert
+    suspend fun upsertPruebaQuestions(items: List<PruebaQuestionEntity>)
+
+    @Upsert
     suspend fun upsertPracticeQuestions(items: List<PracticeQuestionEntity>)
 
     @Query("SELECT * FROM simulation_questions_cache WHERE session_id IN (:sessionIds)")
     suspend fun getSimulationQuestions(sessionIds: List<String>): List<SimulationQuestionEntity>
+
+    @Query("SELECT * FROM prueba_questions_cache WHERE session_id IN (:sessionIds)")
+    suspend fun getPruebaQuestions(sessionIds: List<String>): List<PruebaQuestionEntity>
 
     @Query("SELECT * FROM practice_questions_cache WHERE session_id IN (:sessionIds)")
     suspend fun getPracticeQuestions(sessionIds: List<String>): List<PracticeQuestionEntity>
 
     @Query("SELECT COUNT(*) FROM simulation_questions_cache WHERE session_id = :sessionId")
     suspend fun countSimulationQuestions(sessionId: String): Int
+
+    @Query("SELECT COUNT(*) FROM prueba_questions_cache WHERE session_id = :sessionId")
+    suspend fun countPruebaQuestions(sessionId: String): Int
 
     @Query("SELECT COUNT(*) FROM practice_questions_cache WHERE session_id = :sessionId")
     suspend fun countPracticeQuestions(sessionId: String): Int
@@ -75,11 +112,17 @@ interface ProgressDao {
     @Query("DELETE FROM simulations_cache WHERE uid = :uid")
     suspend fun limpiarSimulacros(uid: String)
 
+    @Query("DELETE FROM pruebas_cache WHERE uid = :uid")
+    suspend fun limpiarPruebas(uid: String)
+
     @Query("DELETE FROM practice_sessions_cache WHERE uid = :uid")
     suspend fun limpiarPracticas(uid: String)
 
     @Query("DELETE FROM simulation_questions_cache WHERE session_id IN (:sessionIds)")
     suspend fun limpiarSimulationQuestions(sessionIds: List<String>)
+
+    @Query("DELETE FROM prueba_questions_cache WHERE session_id IN (:sessionIds)")
+    suspend fun limpiarPruebaQuestions(sessionIds: List<String>)
 
     @Query("DELETE FROM practice_questions_cache WHERE session_id IN (:sessionIds)")
     suspend fun limpiarPracticeQuestions(sessionIds: List<String>)
