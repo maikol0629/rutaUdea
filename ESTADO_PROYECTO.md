@@ -3,7 +3,7 @@
 ## Resumen General
 El proyecto implementa un MVP para una app de preparación de examen de admisión UdeA con arquitectura MVVM + Jetpack Compose + Room + KSP + Firebase.
 
-**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO + BANCO V2 (FASE 7)** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); autenticación manual + Google Sign-In, onboarding obligatorio, motor de 80 preguntas, práctica con feedback inmediato, dashboard de progreso offline-first con analítica, contenido educativo por componente, pausa con overlay al cambiar de app, racha diaria de actividad, Home renovado y cuestionario de satisfacción para la prueba piloto. **Banco v2 (`udea-2026-10-v1`)**: 400 preguntas, imágenes con rol/alt, contextos compartidos, `opciones_en_imagen` y sincronización híbrida con Firestore (D-02). Build SUCCESS, tests PASS (225).
+**Estado actual: ✅ MVP DEL ASPIRANTE COMPLETO + BANCO V2 (FASE 7) + PRUÉBATE** - Todas las pestañas operativas (Simulacro, Práctica, Progreso, Info, Perfil); autenticación manual + Google Sign-In, onboarding obligatorio, motor de 80 preguntas, **prueba corta "Pruébate" (20 preguntas: 10 RL + 10 CL, 30 min configurables)**, práctica con feedback inmediato, dashboard de progreso offline-first con analítica, contenido educativo por componente, pausa con overlay al cambiar de app, racha diaria de actividad, Home renovado y cuestionario de satisfacción para la prueba piloto. **Banco v2 (`udea-2026-10-v1`)**: 400 preguntas, imágenes con rol/alt, contextos compartidos, `opciones_en_imagen` y sincronización híbrida con Firestore (D-02). Build SUCCESS, tests PASS (288).
 
 ## 🌿 Ramas
 | Rama | Estado | Contenido |
@@ -22,7 +22,8 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | `feat/racha-usuario` | ✅ En main (PR #12) | Racha diaria de actividad por usuario (Room + sync Firebase), tarjeta en Home y Progreso |
 | `feat/home-visual` | ✅ En origin | Home renovado: marca bitono + logosímbolo UdeA, saludo personalizado por momento del día, hero de simulacro, tarjeta de racha |
 | `feat/encuesta-satisfaccion` | ✅ En main | Cuestionario de satisfacción de la prueba piloto (Room local-first + sync Firestore, accesos en Home y Perfil) |
-| `feat/auth-google-onboarding` | 🔨 Rama actual | Registro manual + Google Sign-In (Credential Manager) + onboarding obligatorio + edición de perfil + recuperación de contraseña |
+| `feat/auth-google-onboarding` | ✅ En main | Registro manual + Google Sign-In (Credential Manager) + onboarding obligatorio + edición de perfil + recuperación de contraseña |
+| `feat/pruebate` | 🔨 Rama actual | Prueba corta "Pruébate" (20 preguntas, 30 min configurables), colecciones/tablas propias, métricas separadas, salida de resultados al Home y guardado idempotente |
 
 ---
 
@@ -53,6 +54,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 | **SplashScreen** | ✅ Funciona | `SplashScreen.kt` + `SplashViewModel` (espera DB seed ≤3s) |
 | **HomeScreen** | ✅ Funciona | `HomeScreen.kt` - 5 tabs con botón "Iniciar Simulacro" |
 | **SimulacroScreen** | ✅ Funciona | `SimulacroScreen.kt` + `SimulacroViewModel` (80 preguntas motor de selección, timer 120min) |
+| **Pruébate** | ✅ Funciona | Misma pantalla que el simulacro con `TipoSimulacro.PRUEBA`: 20 preguntas (10 RL + 10 CL), timer 30 min configurable |
 | **ResultadoScreen** | ✅ Funciona | `ResultadoScreen.kt` + `ResultadoViewModel` (score, %, tiempo, detalle ✓/✗ + 💡) |
 | **PerfilScreen** | ✅ Funciona | `PerfilScreen.kt` + `PerfilViewModel` (login/registro Firebase, perfil, logout) |
 | **PracticaFiltrosScreen** | ✅ Funciona | `PracticaFiltrosScreen.kt` + `PracticaFiltrosViewModel` (área → subtema → cantidad 5/10/20) |
@@ -109,7 +111,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Pendiente**: vinculación manual de una cuenta Google desde el perfil y tests de instrumentación del flujo.
 
 ### 5.2 Sincronización y persistencia (Firestore) — IMPLEMENTADO
-- **`google-services.json`** presente en `app/` (reglas completas en `firestore.rules`: users, questions legacy, questions_v2, contexts_v2, bank_manifest, simulations, simulationQuestions, practiceSessions + practiceQuestions, contexts, components, subtopics, educationalContent, settings; roles aspirante/admin).
+- **`google-services.json`** presente en `app/` (reglas completas en `firestore.rules`: users, questions legacy, questions_v2, contexts_v2, bank_manifest, simulations, simulationQuestions, pruebas + pruebaQuestions, practiceSessions + practiceQuestions, contexts, components, subtopics, educationalContent, settings; roles aspirante/admin).
 - **Fix `firestore.rules`** (rama feat/practica): `isOwner()` estaba definido dentro del bloque `users` pero se usaba en `simulations`/`practiceSessions`/`recommendations` — las funciones dentro de un `match` son locales a ese bloque, el deploy habría fallado. Movida a scope global; añadida subcolección `practiceQuestions` (legible por el dueño de la sesión). **✅ Verificado desplegado en producción (oct 2026): las reglas del proyecto coinciden byte a byte con el repo.**
 - **`QuestionRepository.updateBankFromFirestore()`**: sincronización híbrida D-02: lee `bank_manifest/active`, descarga `questions_v2` con estados publicables, valida el lote y reemplaza Room de forma atómica. Sin manifiesto conserva el asset empaquetado.
 - **`SimulationRepository.saveSimulation()`**: guarda simulacro completado (resumen + detalle por pregunta); requiere sesión (si no hay, se omite el guardado).
@@ -210,7 +212,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Índice Firestore**: `questions_v2(bank_version ASC, estado ASC)` en `firestore.indexes.json` para la consulta de sincronización.
 - **UI de imágenes**: `FiguraPregunta` (varias imágenes ordenadas, `alt`, zoom, placeholder) y `OpcionesPreguntaCard` con `opcionesEnImagen` (figura destacada + botones A–D, D-06); simulacro, práctica y resultados comparten los componentes.
 - **Reglas**: `questions_v2`, `contexts_v2` y `bank_manifest` con lectura autenticada y escritura solo admin; `questions` legacy queda congelado para rollback.
-- **Tests nuevos**: `QuestionJsonlLoaderTest`, `BancoIntegridadTest`, `QuestionMapperTest` y `BankSyncTest`; total **225 tests**.
+- **Tests nuevos**: `QuestionJsonlLoaderTest`, `BancoIntegridadTest`, `QuestionMapperTest` y `BankSyncTest`; total **225 tests** en ese hito (hoy **288**).
 - **Salvedad**: la prueba en dispositivo/emulador y la primera publicación real de `bank_manifest/active` quedan para Fase 8 (no hay KVM/ADB en la máquina de desarrollo).
 
 ### 5.14 Reporte de preguntas inconsistentes (rama `feat/reporte-preguntas`)
@@ -224,6 +226,18 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - **Revisión del equipo**: consultar `reportesPreguntas` con `estado == 'pendiente'` ordenado por `fechaMs desc`, o agrupar por `questionId` para priorizar el banco; el admin cambia `estado` a `revisado` o `descartado`.
 - **Tests**: `ReportePreguntaTest` (6), `ReportePreguntaMapperTest` (4), `ReportePreguntaRepositoryTest` (7) y casos de reporte en `SimulacroViewModelTest` / `PracticaSesionViewModelTest`.
 
+### 5.15 Prueba corta "Pruébate" (rama `feat/pruebate`)
+- **Qué es**: modo corto del simulacro con **20 preguntas (10 RL + 10 CL)** y **30 min por defecto**, pensado para sesiones rápidas. Se inicia desde la card **⚡ Pruébate** del Home, con el mismo tamaño que las cards de "Explora la app" y borde azul (acción secundaria frente al simulacro completo).
+- **Configuración**: la duración se lee de `settings/config` (`tiempo_prueba_minutos`, default 30) junto con `tiempo_simulacro_minutos` (default 120) en `QuestionRepository.leerConfiguracionSimulacro()`. Si el documento no existe o falla la lectura, se usan los valores por defecto.
+- **Selección**: `QuestionSelector.select(..., tipo)` usa las mismas reglas que el simulacro completo (dificultad proporcional, subtemas, cuotas flexibles y validación del total). La exclusión de preguntas recientes es **por tipo**: `PRUEBA` consulta `PruebaRepository.getQuestionIdsFromRecentPruebas()` y `COMPLETO` los simulacros recientes, de modo que una prueba no consume el historial del simulacro ni viceversa.
+- **Persistencia separada** (decisión de diseño): las pruebas viven en Firestore `pruebas` + subcolección `pruebaQuestions` y en Room `pruebas_cache` + `prueba_questions_cache`; los simulacros completos siguen en `simulations` / `simulationQuestions` y `simulations_cache` / `simulation_questions_cache`. `PruebaRepository` replica el patrón local-first de `SimulationRepository` (guardado local, subida best-effort, reintento de pendientes y consulta de preguntas recientes).
+- **Room v9**: `MIGRATION_8_9` crea las tablas de pruebas y **recrea `simulations_cache` sin la columna `tipo`**. Las filas con `tipo='prueba'` del build intermedio se descartan (no se migran) junto con su detalle; los simulacros completos se conservan. La columna `tipo` se había añadido en v8 (`MIGRATION_7_8`) solo para esa transición.
+- **Progreso y racha**: `SimulacroResumen.tipo` distingue `COMPLETO` / `PRUEBA`; el dashboard muestra métricas separadas ("Simulacros" y "Pruebas"), el historial etiqueta cada actividad (`🧪` / `⚡` / `📝`) y las estadísticas por subtema suman simulacros, pruebas y prácticas. Ambas cuentan para la racha diaria.
+- **Descarga y legado**: `ProgressRepository.descargarSimulacros()` ignora documentos de `simulations` con `tipo='prueba'`; `descargarPruebas()` lee la colección nueva. El resultado de una prueba usa `PruebaRepository` y se titula "Resultado de la Prueba".
+- **Navegación y doble registro**: el gesto atrás en ambos resultados (`ResultadoScreen` y `PracticaResultadoScreen`) y el botón de volver usan `volverAlHome()` en `AppNavHost`, que hace `popBackStack(HOME)` con fallback. Los tres repositorios (simulacro, prueba y práctica) comprueban `count*ById(sessionId)` antes de guardar: si la sesión ya existe en Room no repiten upsert, subida ni racha.
+- **Reglas e índice**: `firestore.rules` incluye `pruebas` (dueño crea/lee, admin todo) y `pruebaQuestions` (lectura del dueño de la prueba); `firestore.indexes.json` agrega el índice `pruebas(uid ASC, fechaCreacion DESC)`. Las reglas mantienen `update, delete: if false` para sesiones, así que los documentos legados no se pueden mover ni borrar desde la app.
+- **Tests**: `RegistroSesionIdempotenteTest` (4), `ResultadoViewModelTest` (2), `PracticaResultadoViewModelTest` (1), además de casos nuevos en `QuestionSelectorTest` (prueba de 20, exclusión, banco insuficiente), `SimulacroViewModelTest` (límite de 30 min y exclusión por tipo), `AnalizadorProgresoTest` (etiqueta e historial), `ProgressMapperTest` (mapeo de prueba) y `ProgresoViewModelTest` (métricas separadas). Total del proyecto: **288 tests**.
+
 ### 6. Tema Material3
 - **Primary**: Forest Green (#1B4D3E)
 - **Secondary**: Blue Accent (#2196F3)
@@ -234,7 +248,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `QuestionMapperTest` - 14 tests pasan (incluye campos v2: imágenes, estados, contexto y metadata)
 - ✅ `QuestionJsonlLoaderTest` - 14 tests pasan (contrato v2, imágenes, estados, filas inválidas)
 - ✅ `DatabaseSeederTest` - 4 tests pasan (política de siembra versionada)
-- ✅ `QuestionSelectorTest` - 11 tests pasan (motor de selección)
+- ✅ `QuestionSelectorTest` - 14 tests pasan (motor de selección + prueba corta de 20, exclusión por tipo y banco insuficiente)
 - ✅ `SplashViewModelTest` - 5 tests pasan (destinos login/onboarding/home + fallback del seed)
 - ✅ `DatosPerfilTest` - 14 tests pasan (campos obligatorios, “Otra” sin institución/grado/semestre, teléfono, mapeo)
 - ✅ `ValidadorCorreoTest` - 2 tests pasan (formatos válidos e inválidos)
@@ -244,13 +258,13 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `PracticeSelectorTest` - 7 tests pasan (estratificación proporcional, mayor residuo)
 - ✅ `PracticaSesionViewModelTest` - 8 tests pasan (feedback, bloqueo, navegación, SAH, restauración, reporte)
 - ✅ `PracticaFiltrosViewModelTest` - 5 tests pasan (subtemas por área, disponibles, iniciar)
-- ✅ `AnalizadorProgresoTest` - 9 tests pasan (evidencia mínima, orden, evolución, historial)
-- ✅ `ProgressMapperTest` - tests pasan (entidad ↔ dominio de caches)
-- ✅ `ProgresoViewModelTest` - tests pasan (dashboard, sync, racha)
+- ✅ `AnalizadorProgresoTest` - 10 tests pasan (evidencia mínima, orden, evolución, historial con etiqueta de prueba)
+- ✅ `ProgressMapperTest` - tests pasan (entidad ↔ dominio de caches, incluida la prueba corta)
+- ✅ `ProgresoViewModelTest` - tests pasan (dashboard, sync, racha y separación de pruebas/simulacros)
 - ✅ `InfoViewModelTest` - 7 tests pasan (parseo, filtro por área, estructura del asset)
 - ✅ `BancoIntegridadTest` - 10 tests pasan (400 preguntas con IDs únicos, conteos por estado, hash del asset, imágenes con URL/alt, contextos referenciados y cobertura del simulacro)
 - ✅ `BankSyncTest` - 11 tests pasan (manifiesto ausente/inválido, versión igual, lote válido, rechazo y red)
-- ✅ `SimulacroViewModelTest` - tests pasan (motor + 5 de pausa/persistencia + reporte de pregunta)
+- ✅ `SimulacroViewModelTest` - tests pasan (motor + pausa/persistencia + reporte de pregunta + límite de 30 min y exclusión por tipo en Pruébate)
 - ✅ `AnalizadorRachaTest` - 13 tests pasan (días consecutivos, idempotencia, vigencia, fusión local-nube)
 - ✅ `RachaMapperTest` - 4 tests pasan
 - ✅ `RachaRepositoryTest` - 10 tests pasan (registro, local-first, sync best-effort)
@@ -263,10 +277,14 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 - ✅ `ReportePreguntaTest` - 6 tests pasan (validación, «Otra» obligatoria, límite de comentario, claves estables)
 - ✅ `ReportePreguntaMapperTest` - 4 tests pasan (Room ↔ dominio, documento Firestore, valores desconocidos)
 - ✅ `ReportePreguntaRepositoryTest` - 7 tests pasan (local-first sin red, validación, sin sesión, duplicado, sync, consulta por sesión)
+- ✅ `RegistroSesionIdempotenteTest` - 4 tests pasan (simulacro, prueba y práctica ya registrados no se duplican; sesión nueva sí se guarda)
+- ✅ `ResultadoViewModelTest` - 2 tests pasan (PRUEBA usa `PruebaRepository`, COMPLETO usa `SimulationRepository`; racha una sola vez)
+- ✅ `PracticaResultadoViewModelTest` - 1 test pasa (guardado y racha una sola vez)
 
 ### 8. Motor de selección de preguntas (100% completo)
 - **`QuestionSelector`** (`domain/services/QuestionSelector.kt`) — clase pura de dominio, testeable:
-  - 80 preguntas: 40 RL + 40 CL, distribución de dificultad **proporcional al banco** (método de mayor residuo)
+  - 80 preguntas: 40 RL + 40 CL para el simulacro completo; **20 (10 RL + 10 CL) para "Pruébate"**, con las mismas reglas.
+  - Distribución de dificultad **proporcional al banco** (método de mayor residuo)
   - Cobertura de subtemas: cuotas proporcionales por subtema y secuencia entrelazada
   - Sin preguntas repetidas dentro del simulacro
   - **Excluye preguntas de los últimos 3 simulacros** del usuario (Firestore `simulationQuestions`, relajación gradual por área y global si el banco no alcanza)
@@ -281,7 +299,7 @@ El proyecto implementa un MVP para una app de preparación de examen de admisió
 ### 8. Build & Deploy
 - ✅ `./gradlew compileDebugKotlin` - **EXITOSO**
 - ✅ `./gradlew assembleDebug` - **APK generado**
-- ✅ `./gradlew testDebugUnitTest` - **PASAN (225 tests)**
+- ✅ `./gradlew testDebugUnitTest` - **PASAN (288 tests)**
 - ⚠️ `./gradlew installDebug` / prueba en dispositivo - **pendiente Fase 8** (esta máquina no tiene `adb` ni `/dev/kvm`)
 
 ---
@@ -334,20 +352,23 @@ app/src/main/java/com/udea/rutaudea/
 │   ├── AppModule.kt                   # provideQuestion/Auth/Simulation repositories
 │   └── ViewModelFactories.kt          # Splash/Simulacro/Resultado/Perfil factories
 ├── data/
-│   ├── local/                         # Room (v6) - questions + caches de progreso + racha
+│   ├── local/                         # Room (v9) - questions + caches de simulacros, pruebas, práctica, racha, encuesta y reportes
 │   ├── mapper/                        # ✅
 │   ├── sync/                          # ✅ Manifiesto, validador, mapper v2 y worker (D-02)
 │   ├── repository/
-│   │   ├── QuestionRepository.kt      # ✅ Banco local + updateBankFromFirestore()
+│   │   ├── QuestionRepository.kt      # ✅ Banco local + updateBankFromFirestore() + settings/config
 │   │   ├── AuthRepository.kt          # ✅ Firebase Auth + colección users
-│   │   ├── SimulationRepository.kt    # ✅ Guardado local-first (Room + Firestore)
+│   │   ├── SimulationRepository.kt    # ✅ Guardado local-first de simulacros completos
+│   │   ├── PruebaRepository.kt        # ✅ Guardado local-first de pruebas "Pruébate"
 │   │   ├── PracticeRepository.kt      # ✅ Guardado local-first (Room + Firestore batch)
 │   │   ├── ProgressRepository.kt      # ✅ Dashboard offline-first + sync + racha
-│   │   └── RachaRepository.kt         # ✅ Racha diaria local-first + sync best-effort
+│   │   ├── RachaRepository.kt         # ✅ Racha diaria local-first + sync best-effort
 │   │   └── EncuestaRepository.kt      # ✅ Encuesta piloto local-first + sync best-effort
-│   └── source/local/                  # ✅ JsonL loader + Seeder versionado (v4)
+│   └── source/local/                  # ✅ JsonL loader + Seeder versionado (v6)
 ├── domain/
 │   ├── model/Question.kt              # ✅ Modelo dominio (contrato v2)
+│   ├── model/TipoSimulacro.kt         # ✅ COMPLETO (80) / PRUEBA (20) y duración
+│   ├── model/SimulacroConfig.kt       # ✅ settings/config (tiempos y distribución)
 │   ├── model/ImagenPregunta.kt        # ✅ Imagen con rol, orden, alt y sha256
 │   ├── model/User.kt                  # ✅ Modelo usuario (uid, nombre, correo, rol)
 │   ├── services/QuestionSelector.kt   # ✅ Motor de selección 80 preguntas (testeado)
@@ -358,13 +379,13 @@ app/src/main/java/com/udea/rutaudea/
 │   │   ├── model/EncuestaSatisfaccion.kt  # ✅ Cuestionario piloto + validación (testeado)
 ├── ui/
 │   ├── navigation/
-│   │   ├── AppNavHost.kt              # ✅ NavHost principal (10 destinos)
+│   │   ├── AppNavHost.kt              # ✅ NavHost principal (12 destinos) + volverAlHome()
 │   │   ├── screen/common/               # ✅ PauseOverlay, BarraProgresoSesion, OpcionesPreguntaCard, ResumenScoreCard, FiguraPregunta
-│   │   └── AppNavGraph.kt             # ✅ Rutas
+│   │   └── AppNavGraph.kt             # ✅ Rutas (simulacro?prueba={prueba}, practica/*, resultado)
 │   ├── screen/
 │   │   ├── splash/                    # ✅ Splash + ViewModel (poll DB seed + gate auth)
-│   │   ├── home/                      # ✅ Home renovado + HomeViewModel (saludo, racha, marca UdeA)
-│   │   ├── simulacro/                 # ✅ 80 preguntas, timer 120 min, overlay de pausa
+│   │   ├── home/                      # ✅ Home renovado + card Pruébate + HomeViewModel
+│   │   ├── simulacro/                 # ✅ Simulacro 80 preguntas y Pruébate 20, overlay de pausa
 │   │   ├── resultado/                 # ✅ Resultado + ViewModel (lee SavedStateHandle previo)
 │   │   ├── perfil/                    # ✅ Login/Registro/Perfil (Firebase Auth)
 │   │   ├── practica/                  # ✅ Filtros + Sesión feedback + Resultado
@@ -378,7 +399,8 @@ app/src/main/java/com/udea/rutaudea/
 
 | Prioridad | Tarea | Esfuerzo |
 |-----------|-------|----------|
-| **P0** | PR a `main`: `feat/home-visual` (Home renovado) + `feat/encuesta-satisfaccion` (cuestionario piloto) | 30 min |
+| **P0** | PR a `main`: `feat/pruebate` (Pruébate + métricas separadas + fix de resultados) | 30 min |
+| **P0** | Push de `feat/pruebate` y deploy de `firestore:rules,firestore:indexes` | 15 min |
 | ~~**P0**~~ | ~~PRs a `main`: `feat/practica` → `feat/progreso` → `feat/info`~~ | ✅ HECHO (PRs #4, #5, #6) |
 | ~~**P0**~~ | ~~Progreso offline-first (Room local-first + sync)~~ | ✅ HECHO (PR #8) |
 | ~~**P0**~~ | ~~Pausa con overlay al cambiar de app~~ | ✅ HECHO (PR #9) |
@@ -435,6 +457,11 @@ app/src/main/java/com/udea/rutaudea/
 22. Final del Home → tarjeta «🎓 Tu opinión cuenta» → encuesta piloto (datos → módulos → preguntas → opinión, barra de avance, caritas Likert, NPS); enviar sin red → «pendiente de sincronizar»
 23. Tab 👤 Perfil → sección «Prueba piloto» debajo de los datos → misma encuesta; si ya respondió, precarga para actualizar
 24. Firestore → colección `encuestasSatisfaccion/{uid}` con un documento por usuario para el análisis
+25. Home → card **⚡ Pruébate** (borde azul, mismo tamaño que "Explora la app") → 20 preguntas (10 RL + 10 CL), timer 30:00 por defecto
+26. Firestore → la prueba se guarda en `pruebas/{id}` + subcolección `pruebaQuestions`; el simulacro completo sigue en `simulations` / `simulationQuestions`
+27. Tab 📈 Progreso → métricas separadas "Simulacros" y "Pruebas"; el historial muestra la etiqueta ⚡ Prueba y el resultado dice "Resultado de la Prueba"
+28. Terminar una prueba/simulacro/práctica → usar el gesto atrás en el resultado → vuelve al Home (no a la última pregunta) y la sesión no se registra dos veces
+29. Cambiar `tiempo_prueba_minutos` en `settings/config` y reiniciar una prueba → el cronómetro usa el nuevo valor (sin documento: 30 min)
 
 ---
 
@@ -475,7 +502,10 @@ app/src/main/java/com/udea/rutaudea/
 | Simulacro auto-finalizado por tiempo no se guardaba | Se perdía el resultado al llegar a 0:00 → ahora persiste en Room + Firestore antes de navegar a Resultado |
 | Rotación dejaba contenido inalcanzable | `Column` raíz no scrolleable + listas internas sin espacio en horizontal → Home en un único `LazyColumn`, resultados con raíz `LazyColumn`, Simulacro con `verticalScroll` (PR #11) |
 | Home no refrescaba la racha al volver | Guard de primera vez en `remember` de la UI (se destruye al navegar) → movido al ViewModel con `alReanudar()` en Home y Progreso |
+| Gesto atrás en resultados volvía a la última pregunta | `BackHandler` en `ResultadoScreen` y `PracticaResultadoScreen` + helper `volverAlHome()` con `popBackStack(HOME)` y fallback; aplica a simulacro, prueba y práctica |
+| Sesión registrada dos veces al reentrar al resultado | Guardado idempotente por `sessionId`: `count*ById` en `ProgressDao` evita upsert, subida a Firestore y racha duplicados en los tres repositorios |
+| Pruebas mezcladas con simulacros en Progreso | Colecciones/tablas propias (`pruebas`/`pruebaQuestions`, `pruebas_cache`/`prueba_questions_cache`), métricas separadas y filtro de documentos legados `tipo='prueba'` |
 
 ---
 
-*Última actualización: 2026-10-30 - Fase 9 (puntos 1-2): `bank_manifest/active` publicado (`udea-2026-10-v1`, 396 preguntas), reglas e índice desplegados y diagnóstico de sincronización en Perfil (versión, total, última sincronización y botón «Buscar actualizaciones»). 237 tests, `assembleDebug` y `lintDebug` en verde.*
+*Última actualización: 2026-11-03 — rama `feat/pruebate`: prueba corta "Pruébate" (20 preguntas, 30 min configurables), persistencia separada en Firestore/Room (DB v9), métricas de Progreso separadas, salida de resultados al Home y guardado idempotente. 288 tests, `assembleDebug` en verde. Pendiente: push de la rama y deploy de reglas/índices (`firestore:rules,firestore:indexes`).*

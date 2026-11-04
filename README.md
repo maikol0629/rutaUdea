@@ -26,12 +26,14 @@ app/src/main/java/com/udea/rutaudea/
 │   ├── repository/
 │   │   ├── QuestionRepository.kt  # Banco local + sincronización desde Firestore
 │   │   ├── AuthRepository.kt      # Firebase Auth + perfil (colección users)
-│   │   ├── SimulationRepository.kt# Registro de simulacros en Firestore
+│   │   ├── SimulationRepository.kt# Registro de simulacros completos
+│   │   ├── PruebaRepository.kt    # Registro de pruebas cortas "Pruébate"
 │   │   ├── PracticeRepository.kt  # Registro de sesiones de práctica (batch)
-│   │   └── ProgressRepository.kt    # Lectura del historial para Progreso
+│   │   └── ProgressRepository.kt  # Lectura del historial para Progreso
 │   └── source/local/              # JsonL loader + Seeder
 ├── domain/
 │   ├── model/Question.kt          # Modelo de dominio de preguntas
+│   ├── model/TipoSimulacro.kt     # COMPLETO (80) / PRUEBA (20) y duración
 │   ├── model/User.kt              # Usuario + perfil (nombre, institución, onboarding)
 │   ├── model/DatosPerfil.kt       # Validación pura del onboarding/edición de perfil
 │   ├── model/Progreso.kt          # Modelos del módulo de Progreso
@@ -43,7 +45,7 @@ app/src/main/java/com/udea/rutaudea/
 │   ├── screen/
 │   │   ├── splash/                # Splash (espera seed + decide sesión)
 │   │   ├── home/                  # Home con 5 tabs
-│   │   ├── simulacro/             # Simulacro 80 preguntas, timer 120 min
+│   │   ├── simulacro/             # Simulacro 80 preguntas y prueba corta 20
 │   │   ├── resultado/             # Score, análisis y detalle por pregunta
 │   │   ├── perfil/                # Login / Registro / Perfil / Google Sign-In
 │   │   ├── onboarding/            # Onboarding obligatorio y edición de perfil
@@ -59,8 +61,15 @@ app/src/main/java/com/udea/rutaudea/
 La consulta de preguntas se realiza contra la **base local Room** para
 garantizar rapidez, filtrado y funcionamiento offline. Firebase se usa para
 autenticación, sincronización del banco canónico (`questions_v2` +
-`bank_manifest`, D-02) y persistencia de resultados de simulacros
-(`simulations` / `simulationQuestions`).
+`bank_manifest`, D-02) y persistencia de resultados: simulacros completos en
+`simulations` / `simulationQuestions` y pruebas cortas en `pruebas` /
+`pruebaQuestions` (colecciones separadas para no mezclar métricas).
+
+Los resúmenes y detalles también se cachean en Room (`simulations_cache`,
+`pruebas_cache`, `practice_sessions_cache` y sus tablas de preguntas) con
+estrategia **local-first**: se guarda primero en local y luego se intenta
+subir a Firestore; si falla, la sesión queda pendiente y se reintenta en la
+siguiente sincronización.
 
 ## Banco de preguntas
 
@@ -131,8 +140,40 @@ consulta.
 - **Roles** en reglas Firestore: `aspirante` (dueño) / `admin` (escritura).
   El usuario no puede cambiar su propio `rol`, `estado`, `correo` ni
   `fechaCreacion`.
-- Con sesión, los simulacros y la encuesta se guardan en Firestore; el logout
-  devuelve al login.
+- Con sesión, los simulacros, las pruebas y la encuesta se guardan en Firestore;
+  el logout devuelve al login.
+
+---
+
+## Simulacro completo y "Pruébate"
+
+- **Simulacro completo**: 80 preguntas (40 RL + 40 CL) y 120 min por defecto.
+- **Pruébate**: versión corta de 20 preguntas (10 RL + 10 CL) pensada para
+  sesiones rápidas. Se inicia desde la card **⚡ Pruébate** del Home (mismo
+  tamaño que las cards de "Explora la app", con borde azul).
+- **Duración configurable**: el tiempo de la prueba se lee de
+  `settings/config` (`tiempo_prueba_minutos`, 30 min por defecto) y el del
+  simulacro de `tiempo_simulacro_minutos` (120 min por defecto). Si la
+  lectura falla o el documento no existe, la app usa esos valores seguros.
+- **Mismas reglas de selección**: `QuestionSelector` aplica a ambos tipos la
+  distribución proporcional por dificultad, cobertura de subtemas, cuotas
+  flexibles y exclusión de preguntas recientes. La exclusión es **por tipo**:
+  una prueba solo evita preguntas de pruebas recientes y un simulacro solo de
+  simulacros recientes.
+- **Persistencia separada**: simulacros en `simulations` /
+  `simulationQuestions` y Room `simulations_cache` /
+  `simulation_questions_cache`; pruebas en `pruebas` / `pruebaQuestions` y
+  Room `pruebas_cache` / `prueba_questions_cache` (DB v9). Así Progreso
+  muestra métricas y etiquetas de **Simulacro** y **Prueba** por separado.
+- **Historial y racha**: ambos tipos cuentan como actividad para la racha y
+  aparecen en el historial con su etiqueta (`⚡ Prueba` / `🧪 Simulacro`).
+- **Salida de resultados**: el gesto atrás y el botón de volver llevan
+  siempre al Home, sin regresar a la sesión ya finalizada.
+- **Guardado idempotente**: el id de sesión se reutiliza; si ya existe en
+  Room, no se duplica el registro, la subida a Firestore ni la racha.
+- **Datos del build intermedio**: las pruebas que se hubieran guardado en
+  `simulations` con `tipo='prueba'` se ignoran al descargar y no se migran a
+  las nuevas tablas.
 
 ---
 
