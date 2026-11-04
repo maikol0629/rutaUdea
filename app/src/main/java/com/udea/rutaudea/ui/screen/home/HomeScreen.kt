@@ -1,5 +1,6 @@
 package com.udea.rutaudea.ui.screen.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -182,70 +183,13 @@ private fun HomeContenido(
             }
         }
 
-        // Acción secundaria: prueba corta "Pruébate" (mismas reglas del simulacro).
+        // Acción secundaria: prueba corta "Pruébate". Tarjeta compacta y
+        // discreta para que no compita con el simulacro completo.
         item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "Prueba corta · 30 min",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                            )
-                            Text(
-                                text = "Pruébate",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondary,
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.size(48.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(text = "⚡", fontSize = 24.sp)
-                            }
-                        }
-                    }
-                    Text(
-                        text = "20 preguntas · 10 de razonamiento lógico + 10 de competencia lectora",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                    )
-                    Button(
-                        onClick = onPruebaClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
-                        )
-                    ) {
-                        Text("Empezar prueba", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
+            PruebaHomeCard(
+                onClick = onPruebaClick,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
         }
 
         // Acceso al resto de secciones.
@@ -305,6 +249,66 @@ private fun HomeContenido(
                 respondida = encuestaRespondida,
                 onClick = onEncuestaClick,
                 modifier = Modifier.padding(horizontal = 24.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Acceso a la prueba corta "Pruébate". Se presenta como una tarjeta
+ * compacta de una sola línea para darle menos peso visual que el
+ * simulacro completo, manteniendo la paleta del Home (superficie neutra
+ * con acentos azules).
+ */
+@Composable
+private fun PruebaHomeCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "⚡", fontSize = 20.sp)
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Pruébate",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "20 preguntas · 30 min",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = "›",
+                fontSize = 22.sp,
+                color = MaterialTheme.colorScheme.secondary
             )
         }
     }
