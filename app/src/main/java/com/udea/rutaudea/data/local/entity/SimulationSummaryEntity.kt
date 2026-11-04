@@ -28,8 +28,6 @@ data class SimulationSummaryEntity(
     @ColumnInfo(name = "tiempo_used_ms") val tiempoUsedMs: Long,
     @ColumnInfo(name = "respondidas") val respondidas: Int,
     @ColumnInfo(name = "omitidas") val omitidas: Int,
-    /** Tipo de sesión: `completo` o `prueba` (ver `TipoSimulacro`). */
-    @ColumnInfo(name = "tipo") val tipo: String = "completo",
     /** `false` = pendiente de subir a Firestore. */
     @ColumnInfo(name = "synced") val synced: Boolean = false
 )

@@ -8,7 +8,6 @@ import com.udea.rutaudea.domain.model.PracticaResumen
 import com.udea.rutaudea.domain.model.Racha
 import com.udea.rutaudea.domain.model.SimulacroResumen
 import com.udea.rutaudea.domain.model.SubtemaEstadistica
-import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.domain.services.AnalizadorProgreso
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -106,12 +105,11 @@ class ProgresoViewModel(
 
     /** Recalcula el estado a partir de la cache local. */
     private suspend fun aplicarLocal() {
-        val todasLasSesiones = repository.cargarSimulacros()
-        val simulacros = todasLasSesiones.filter { it.tipo == TipoSimulacro.COMPLETO }
-        val pruebas = todasLasSesiones.filter { it.tipo == TipoSimulacro.PRUEBA }
+        val simulacros = repository.cargarSimulacros()
+        val pruebas = repository.cargarPruebas()
         val practicas = repository.cargarPracticas()
         // Las estadísticas por subtema suman simulacros, pruebas y prácticas.
-        val stats = repository.cargarEstadisticasPorSubtema(todasLasSesiones, practicas)
+        val stats = repository.cargarEstadisticasPorSubtema(simulacros, practicas, pruebas)
         val racha = repository.cargarRacha()
 
         _uiState.update { current ->

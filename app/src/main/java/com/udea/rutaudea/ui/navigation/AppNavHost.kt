@@ -46,6 +46,7 @@ fun AppNavHost() {
     val repository = AppModule.provideQuestionRepository(app)
     val selector = AppModule.provideQuestionSelector()
     val simulationRepository = AppModule.provideSimulationRepository(app)
+    val pruebaRepository = AppModule.providePruebaRepository(app)
     val rachaRepository = AppModule.provideRachaRepository(app)
     val reporteRepository = AppModule.provideReportePreguntaRepository(app)
 
@@ -107,6 +108,7 @@ fun AppNavHost() {
                     selector,
                     repository,
                     simulationRepository,
+                    pruebaRepository,
                     reporteRepository,
                     savedStateHandle,
                     tipo
@@ -159,6 +161,7 @@ fun AppNavHost() {
                 factory = ViewModelFactories.ResultadoFactory(
                     resultadoData.questions,
                     simulationRepository,
+                    pruebaRepository,
                     rachaRepository,
                     resultadoData.userAnswers,
                     resultadoData.score,

@@ -7,6 +7,7 @@ import com.udea.rutaudea.data.repository.AuthRepository
 import com.udea.rutaudea.data.repository.EncuestaRepository
 import com.udea.rutaudea.data.repository.PracticeRepository
 import com.udea.rutaudea.data.repository.ProgressRepository
+import com.udea.rutaudea.data.repository.PruebaRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.repository.RachaRepository
 import com.udea.rutaudea.data.repository.ReportePreguntaRepository
@@ -50,6 +51,7 @@ object AppModule {
             firestore = FirebaseFirestore.getInstance(),
             progressDao = (app as RutaUdeaApp).progressDao,
             simulationRepository = provideSimulationRepository(app),
+            pruebaRepository = providePruebaRepository(app),
             practiceRepository = providePracticeRepository(app),
             rachaRepository = provideRachaRepository(app)
         )
@@ -77,6 +79,14 @@ object AppModule {
 
     fun provideSimulationRepository(app: Application): SimulationRepository {
         return SimulationRepository(
+            auth = FirebaseAuth.getInstance(),
+            firestore = FirebaseFirestore.getInstance(),
+            progressDao = (app as RutaUdeaApp).progressDao
+        )
+    }
+
+    fun providePruebaRepository(app: Application): PruebaRepository {
+        return PruebaRepository(
             auth = FirebaseAuth.getInstance(),
             firestore = FirebaseFirestore.getInstance(),
             progressDao = (app as RutaUdeaApp).progressDao

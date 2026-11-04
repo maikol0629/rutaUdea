@@ -2,6 +2,7 @@ package com.udea.rutaudea.ui.screen.simulacro
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.gson.Gson
+import com.udea.rutaudea.data.repository.PruebaRepository
 import com.udea.rutaudea.data.repository.QuestionRepository
 import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
@@ -11,6 +12,7 @@ import com.udea.rutaudea.domain.model.SimulacroConfig
 import com.udea.rutaudea.domain.model.TipoSimulacro
 import com.udea.rutaudea.domain.services.QuestionSelector
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,11 +21,13 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.random.Random
 
 /**
  * Tests de la pausa/persistencia del simulacro al cambiar de app:
@@ -44,10 +48,14 @@ class SimulacroViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun pregunta(id: String, correcta: String = "A") = Question(
+    private fun pregunta(
+        id: String,
+        correcta: String = "A",
+        area: String = "razonamiento_logico"
+    ) = Question(
         id = id,
-        area = "razonamiento_logico",
-        subtema = "RL07 Sucesiones",
+        area = area,
+        subtema = if (area == "razonamiento_logico") "RL07 Sucesiones" else "CL02 Inferencia",
         dificultad = "baja",
         pregunta = "¿$id?",
         opciones = listOf("op A", "op B", "op C", "op D"),
@@ -64,19 +72,25 @@ class SimulacroViewModelTest {
         reporteRepository: ReportePreguntaRepository = mockk(relaxed = true) {
             coEvery { getReportadasDeSesion(any()) } returns emptySet()
         },
-        tipo: TipoSimulacro = TipoSimulacro.COMPLETO
+        tipo: TipoSimulacro = TipoSimulacro.COMPLETO,
+        selector: QuestionSelector = mockk(relaxed = true),
+        simulationRepository: SimulationRepository = mockk(relaxed = true),
+        pruebaRepository: PruebaRepository = mockk(relaxed = true),
+        banco: List<Question> = emptyList()
     ): SimulacroViewModel {
         val repository = mockk<QuestionRepository> {
             coEvery { getById(any()) } answers {
                 val id = firstArg<String>()
                 preguntas.firstOrNull { it.id == id }
             }
+            coEvery { getQuestions(limit = 1000) } returns banco
             coEvery { leerConfiguracionSimulacro() } returns SimulacroConfig()
         }
         return SimulacroViewModel(
-            selector = mockk<QuestionSelector>(relaxed = true),
+            selector = selector,
             repository = repository,
-            simulationRepository = mockk<SimulationRepository>(relaxed = true),
+            simulationRepository = simulationRepository,
+            pruebaRepository = pruebaRepository,
             reporteRepository = reporteRepository,
             savedStateHandle = sah,
             tipo = tipo,
@@ -213,6 +227,36 @@ class SimulacroViewModelTest {
         )
 
         assertFalse(vm.uiState.value.isFinished)
+    }
+
+    @Test
+    fun `la prueba excluye solo preguntas de pruebas recientes`() = runTest {
+        val banco = (1..20).flatMap { i ->
+            listOf(
+                pregunta("rl_$i", area = "razonamiento_logico"),
+                pregunta("cl_$i", area = "competencia_lectora")
+            )
+        }
+        val simulationRepo = mockk<SimulationRepository>(relaxed = true)
+        val pruebaRepo = mockk<PruebaRepository>(relaxed = true) {
+            coEvery { getQuestionIdsFromRecentPruebas(any()) } returns emptySet()
+        }
+
+        val vm = viewModel(
+            preguntas = banco,
+            sah = SavedStateHandle(),
+            tipo = TipoSimulacro.PRUEBA,
+            selector = QuestionSelector(Random(1)),
+            simulationRepository = simulationRepo,
+            pruebaRepository = pruebaRepo,
+            banco = banco
+        )
+
+        assertEquals(20, vm.uiState.value.questions.size)
+        coVerify {
+            pruebaRepo.getQuestionIdsFromRecentPruebas(QuestionSelector.SIMULACROS_RECIENTES)
+        }
+        coVerify(exactly = 0) { simulationRepo.getQuestionIdsFromRecentSimulacros(any()) }
     }
 
     @Test

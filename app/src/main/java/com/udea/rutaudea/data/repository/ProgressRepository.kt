@@ -8,6 +8,8 @@ import com.google.firebase.firestore.Query
 import com.udea.rutaudea.data.local.dao.ProgressDao
 import com.udea.rutaudea.data.local.entity.PracticeQuestionEntity
 import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
+import com.udea.rutaudea.data.local.entity.PruebaQuestionEntity
+import com.udea.rutaudea.data.local.entity.PruebaSummaryEntity
 import com.udea.rutaudea.data.local.entity.SimulationQuestionEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
 import com.udea.rutaudea.data.mapper.ProgressMapper
@@ -28,12 +30,16 @@ import kotlinx.coroutines.withContext
  * Lee **siempre de Room** (offline-first, rápido y sin depender de
  * índices de Firestore) y ofrece [sincronizar] para subir las sesiones
  * pendientes y descargar las que existan en la nube.
+ *
+ * Los simulacros completos y las pruebas cortas se guardan en tablas y
+ * colecciones separadas, de modo que las métricas nunca se mezclan.
  */
 class ProgressRepository(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
     private val progressDao: ProgressDao,
     private val simulationRepository: SimulationRepository,
+    private val pruebaRepository: PruebaRepository,
     private val practiceRepository: PracticeRepository,
     private val rachaRepository: RachaRepository
 ) {
@@ -45,6 +51,17 @@ class ProgressRepository(
             ProgressMapper.listSimulacrosToDomain(progressDao.getSimulacros(uid, limite))
         } catch (e: Exception) {
             Log.e(TAG, "No se pudo leer el historial de simulacros local", e)
+            emptyList()
+        }
+    }
+
+    /** Últimas [limite] pruebas cortas del usuario, de la más reciente a la más antigua. */
+    suspend fun cargarPruebas(limite: Int = LIMITE_PRUEBAS): List<SimulacroResumen> {
+        val uid = auth.currentUser?.uid ?: return emptyList()
+        return try {
+            ProgressMapper.listPruebasToDomain(progressDao.getPruebas(uid, limite))
+        } catch (e: Exception) {
+            Log.e(TAG, "No se pudo leer el historial de pruebas local", e)
             emptyList()
         }
     }
@@ -68,23 +85,28 @@ class ProgressRepository(
 
     /**
      * Acierto acumulado por subtema a partir del detalle por pregunta de
-     * los simulacros y prácticas indicados. Solo cuenta preguntas
+     * los simulacros, pruebas y prácticas indicados. Solo cuenta preguntas
      * efectivamente respondidas (las omitidas no afectan el indicador).
      */
     suspend fun cargarEstadisticasPorSubtema(
         simulacros: List<SimulacroResumen>,
-        practicas: List<PracticaResumen>
+        practicas: List<PracticaResumen>,
+        pruebas: List<SimulacroResumen> = emptyList()
     ): List<SubtemaEstadistica> {
         return try {
             val simIds = simulacros.map { it.id }
+            val pruebaIds = pruebas.map { it.id }
             val pracIds = practicas.map { it.id }
             val simPreguntas = if (simIds.isEmpty()) emptyList()
             else progressDao.getSimulationQuestions(simIds)
+            val pruebaPreguntas = if (pruebaIds.isEmpty()) emptyList()
+            else progressDao.getPruebaQuestions(pruebaIds)
             val pracPreguntas = if (pracIds.isEmpty()) emptyList()
             else progressDao.getPracticeQuestions(pracIds)
 
             val conteos = mutableMapOf<String, Pair<Int, Int>>() // subtema -> (respondidas, correctas)
             simPreguntas.forEach { contar(conteos, it.subtema, it.respuestaUsuario, it.esCorrecta) }
+            pruebaPreguntas.forEach { contar(conteos, it.subtema, it.respuestaUsuario, it.esCorrecta) }
             pracPreguntas.forEach { contar(conteos, it.subtema, it.respuestaUsuario, it.esCorrecta) }
 
             conteos.map { (subtema, par) ->
@@ -121,10 +143,12 @@ class ProgressRepository(
         var ok = true
         try {
             if (!simulationRepository.sincronizarPendientes(uid)) ok = false
+            if (!pruebaRepository.sincronizarPendientes(uid)) ok = false
             if (!practiceRepository.sincronizarPendientes(uid)) ok = false
             if (!rachaRepository.sincronizar()) ok = false
 
             descargarSimulacros(uid)
+            descargarPruebas(uid)
             descargarPracticas(uid)
         } catch (e: Exception) {
             Log.e(TAG, "Error al sincronizar el módulo de Progreso", e)
@@ -134,11 +158,13 @@ class ProgressRepository(
     }
 
     private suspend fun descargarSimulacros(uid: String) {
+        // Ignora los documentos legados con `tipo = 'prueba'` que el build
+        // intermedio pudo escribir en `simulations`; ahora viven en `pruebas`.
         val documentos = consultarSesiones(
             coleccion = SimulationRepository.COLECCION_SIMULATIONS,
             uid = uid,
             campoFecha = SimulationRepository.CAMPO_FECHA
-        )
+        ).filter { it.getString(CAMPO_TIPO_LEGADO) != TipoSimulacro.PRUEBA.clave }
 
         val resumenes = documentos.mapNotNull { doc ->
             val total = doc.getLong(SimulationRepository.CAMPO_TOTAL)?.toInt()
@@ -152,8 +178,6 @@ class ProgressRepository(
                 tiempoUsedMs = doc.getLong(SimulationRepository.CAMPO_TIEMPO_MS) ?: 0L,
                 respondidas = doc.getLong(SimulationRepository.CAMPO_RESPONDIDAS)?.toInt() ?: 0,
                 omitidas = doc.getLong(SimulationRepository.CAMPO_OMITIDAS)?.toInt() ?: 0,
-                tipo = doc.getString(SimulationRepository.CAMPO_TIPO)
-                    ?: TipoSimulacro.COMPLETO.clave,
                 synced = true
             )
         }
@@ -180,6 +204,53 @@ class ProgressRepository(
                 )
             }
             if (preguntas.isNotEmpty()) progressDao.upsertSimulationQuestions(preguntas)
+        }
+    }
+
+    private suspend fun descargarPruebas(uid: String) {
+        val documentos = consultarSesiones(
+            coleccion = PruebaRepository.COLECCION_PRUEBAS,
+            uid = uid,
+            campoFecha = PruebaRepository.CAMPO_FECHA
+        )
+
+        val resumenes = documentos.mapNotNull { doc ->
+            val total = doc.getLong(PruebaRepository.CAMPO_TOTAL)?.toInt()
+                ?: return@mapNotNull null
+            PruebaSummaryEntity(
+                id = doc.id,
+                uid = uid,
+                fechaMs = doc.getLong(PruebaRepository.CAMPO_FECHA) ?: 0L,
+                score = doc.getLong(PruebaRepository.CAMPO_SCORE)?.toInt() ?: 0,
+                total = total,
+                tiempoUsedMs = doc.getLong(PruebaRepository.CAMPO_TIEMPO_MS) ?: 0L,
+                respondidas = doc.getLong(PruebaRepository.CAMPO_RESPONDIDAS)?.toInt() ?: 0,
+                omitidas = doc.getLong(PruebaRepository.CAMPO_OMITIDAS)?.toInt() ?: 0,
+                synced = true
+            )
+        }
+        if (resumenes.isNotEmpty()) progressDao.upsertPruebas(resumenes)
+
+        documentos.forEach { doc ->
+            if (progressDao.countPruebaQuestions(doc.id) > 0) return@forEach
+            val detalle = doc.reference.collection(PruebaRepository.COLECCION_PRUEBA_QUESTIONS)
+                .get()
+                .await()
+            val preguntas = detalle.documents.map { q ->
+                val respuestaUsuario = q.getString(PruebaRepository.CAMPO_RESPUESTA_USUARIO).orEmpty()
+                PruebaQuestionEntity(
+                    sessionId = doc.id,
+                    questionId = q.id,
+                    indice = q.getLong(PruebaRepository.CAMPO_INDICE)?.toInt() ?: 0,
+                    area = q.getString(PruebaRepository.CAMPO_AREA).orEmpty(),
+                    subtema = q.getString(PruebaRepository.CAMPO_SUBTEMA).orEmpty(),
+                    dificultad = q.getString(PruebaRepository.CAMPO_DIFICULTAD).orEmpty(),
+                    respuestaUsuario = respuestaUsuario,
+                    respuestaCorrecta = q.getString(PruebaRepository.CAMPO_RESPUESTA_CORRECTA).orEmpty(),
+                    esCorrecta = q.getBoolean(PruebaRepository.CAMPO_ES_CORRECTA) ?: false
+                )
+            }
+            if (preguntas.isNotEmpty()) progressDao.upsertPruebaQuestions(preguntas)
         }
     }
 
@@ -265,8 +336,12 @@ class ProgressRepository(
         private const val TAG = "ProgressRepository"
         const val CAMPO_UID = "uid"
 
+        /** Campo legado del build intermedio que mezclaba pruebas en `simulations`. */
+        private const val CAMPO_TIPO_LEGADO = "tipo"
+
         /** Cuántas sesiones se muestran/analizan en el dashboard. */
         const val LIMITE_SIMULACROS = 20
+        const val LIMITE_PRUEBAS = 20
         const val LIMITE_PRACTICAS = 30
 
         /** Cuántas sesiones recientes se descargan de la nube al sincronizar. */

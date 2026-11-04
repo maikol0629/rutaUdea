@@ -2,6 +2,7 @@ package com.udea.rutaudea.ui.screen.resultado
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.udea.rutaudea.data.repository.PruebaRepository
 import com.udea.rutaudea.data.repository.RachaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.Question
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 class ResultadoViewModel(
     private val questions: List<Question>,
     private val simulationRepository: SimulationRepository,
+    private val pruebaRepository: PruebaRepository,
     private val rachaRepository: RachaRepository,
     private val userAnswers: Map<Int, String>,
     score: Int,
@@ -67,15 +69,25 @@ class ResultadoViewModel(
     }
 
     private suspend fun persistSimulation(questions: List<Question>) {
-        val resultado = simulationRepository.saveSimulation(
-            questions = questions,
-            userAnswers = userAnswers,
-            score = _score.value,
-            total = _total.value,
-            timeUsedMs = _timeUsedMs.value,
-            sessionId = sesionId,
-            tipo = tipo
-        )
+        val resultado = if (tipo == TipoSimulacro.PRUEBA) {
+            pruebaRepository.savePrueba(
+                questions = questions,
+                userAnswers = userAnswers,
+                score = _score.value,
+                total = _total.value,
+                timeUsedMs = _timeUsedMs.value,
+                sessionId = sesionId
+            )
+        } else {
+            simulationRepository.saveSimulation(
+                questions = questions,
+                userAnswers = userAnswers,
+                score = _score.value,
+                total = _total.value,
+                timeUsedMs = _timeUsedMs.value,
+                sessionId = sesionId
+            )
+        }
         // La actividad completada cuenta para la racha diaria del usuario.
         if (resultado.isSuccess) rachaRepository.registrarActividad()
     }

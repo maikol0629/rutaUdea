@@ -8,7 +8,6 @@ import com.udea.rutaudea.data.local.dao.ProgressDao
 import com.udea.rutaudea.data.local.entity.SimulationQuestionEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
 import com.udea.rutaudea.domain.model.Question
-import com.udea.rutaudea.domain.model.TipoSimulacro
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.tasks.await
@@ -42,9 +41,7 @@ class SimulationRepository(
         total: Int,
         timeUsedMs: Long,
         /** Reutiliza el id de la sesión para enlazar los reportes de pregunta. */
-        sessionId: String? = null,
-        /** Examen completo o prueba corta "Pruébate". */
-        tipo: TipoSimulacro = TipoSimulacro.COMPLETO
+        sessionId: String? = null
     ): Result<String> {
         val uid = auth.currentUser?.uid
             ?: return Result.failure(Exception("Sesión no iniciada: el resultado no se guarda"))
@@ -67,7 +64,6 @@ class SimulationRepository(
             tiempoUsedMs = timeUsedMs,
             respondidas = datos.respondidas,
             omitidas = datos.omitidas,
-            tipo = tipo.clave,
             synced = false
         )
         val detalles = questions.mapIndexed { index, question ->
@@ -118,7 +114,6 @@ class SimulationRepository(
                     CAMPO_TIEMPO_MS to resumen.tiempoUsedMs,
                     CAMPO_RESPONDIDAS to resumen.respondidas,
                     CAMPO_OMITIDAS to resumen.omitidas,
-                    CAMPO_TIPO to resumen.tipo,
                     CAMPO_ESTADO to ESTADO_COMPLETADO,
                     CAMPO_AREAS to detalles.map { it.area }.distinct()
                 )
@@ -227,7 +222,6 @@ class SimulationRepository(
         const val CAMPO_TIEMPO_MS = "tiempoUsedMs"
         const val CAMPO_RESPONDIDAS = "respondidas"
         const val CAMPO_OMITIDAS = "omitidas"
-        const val CAMPO_TIPO = "tipo"
         const val CAMPO_ESTADO = "estado"
         const val CAMPO_AREAS = "areas"
         const val CAMPO_INDICE = "indice"

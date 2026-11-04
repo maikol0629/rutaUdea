@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.udea.rutaudea.data.repository.QuestionRepository
+import com.udea.rutaudea.data.repository.PruebaRepository
 import com.udea.rutaudea.data.repository.ReportePreguntaRepository
 import com.udea.rutaudea.data.repository.SimulationRepository
 import com.udea.rutaudea.domain.model.DistribucionDificultad
@@ -44,6 +45,7 @@ class SimulacroViewModel(
     private val selector: QuestionSelector,
     private val repository: QuestionRepository,
     private val simulationRepository: SimulationRepository,
+    private val pruebaRepository: PruebaRepository,
     private val reporteRepository: ReportePreguntaRepository,
     private val savedStateHandle: SavedStateHandle,
     /** Tipo de sesión: simulacro completo o prueba corta "Pruébate". */
@@ -162,9 +164,16 @@ class SimulacroViewModel(
             return ids.mapNotNull { repository.getById(it) }
         }
         val bank = repository.getQuestions(limit = 1000)
-        val excluidas = simulationRepository.getQuestionIdsFromRecentSimulacros(
-            QuestionSelector.SIMULACROS_RECIENTES
-        )
+        // Excluye preguntas recientes del mismo tipo de sesión: los
+        // simulacros completos y las pruebas tienen historiales separados.
+        val excluidas = when (tipo) {
+            TipoSimulacro.COMPLETO -> simulationRepository.getQuestionIdsFromRecentSimulacros(
+                QuestionSelector.SIMULACROS_RECIENTES
+            )
+            TipoSimulacro.PRUEBA -> pruebaRepository.getQuestionIdsFromRecentPruebas(
+                QuestionSelector.SIMULACROS_RECIENTES
+            )
+        }
         return selector.select(bank, excluidas, tipo).fold(
             onSuccess = { seleccion ->
                 savedStateHandle[SELECTION_KEY] = gson.toJson(seleccion.map { it.id })

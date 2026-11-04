@@ -1,6 +1,7 @@
 package com.udea.rutaudea.data.mapper
 
 import com.udea.rutaudea.data.local.entity.PracticeSummaryEntity
+import com.udea.rutaudea.data.local.entity.PruebaSummaryEntity
 import com.udea.rutaudea.data.local.entity.SimulationSummaryEntity
 import com.udea.rutaudea.domain.model.PracticaResumen
 import com.udea.rutaudea.domain.model.SimulacroResumen
@@ -19,8 +20,18 @@ object ProgressMapper {
         total = entity.total,
         tiempoUsedMs = entity.tiempoUsedMs,
         respondidas = entity.respondidas,
+        omitidas = entity.omitidas
+    )
+
+    fun pruebaToDomain(entity: PruebaSummaryEntity): SimulacroResumen = SimulacroResumen(
+        id = entity.id,
+        fechaMs = entity.fechaMs,
+        score = entity.score,
+        total = entity.total,
+        tiempoUsedMs = entity.tiempoUsedMs,
+        respondidas = entity.respondidas,
         omitidas = entity.omitidas,
-        tipo = TipoSimulacro.fromClave(entity.tipo)
+        tipo = TipoSimulacro.PRUEBA
     )
 
     fun practicaToDomain(entity: PracticeSummaryEntity): PracticaResumen = PracticaResumen(
@@ -35,6 +46,9 @@ object ProgressMapper {
 
     fun listSimulacrosToDomain(entities: List<SimulationSummaryEntity>): List<SimulacroResumen> =
         entities.map { simulacroToDomain(it) }
+
+    fun listPruebasToDomain(entities: List<PruebaSummaryEntity>): List<SimulacroResumen> =
+        entities.map { pruebaToDomain(it) }
 
     fun listPracticasToDomain(entities: List<PracticeSummaryEntity>): List<PracticaResumen> =
         entities.map { practicaToDomain(it) }
