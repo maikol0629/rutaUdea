@@ -20,6 +20,7 @@ Este documento define el plan técnico y funcional para **RutaUdeA**: una aplica
 - Crear cuenta e iniciar sesión.
 - Consultar información educativa sobre componentes y subtemas.
 - Realizar simulacros de 80 preguntas: 40 de razonamiento lógico y 40 de lectura crítica.
+- Realizar pruebas cortas "Pruébate" de 20 preguntas (10 RL + 10 CL) con tiempo configurable.
 - Responder preguntas con cronómetro y condiciones semejantes al examen real.
 - Recibir retroalimentación inmediata en el modo práctica.
 - Consultar resultados y análisis detallado de cada simulacro.
@@ -98,6 +99,7 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
   - Validación de las 80 preguntas antes de iniciar; selección persistida en `SavedStateHandle` (supervivencia a rotación/minimización).
 - **Cronómetro de 120 minutos** con cuenta regresiva, persistencia en `SavedStateHandle` y overlay de continuar/abandonar al volver de segundo plano.
 - **Registro de respuestas y resultados** (`SimulationRepository`): simulacro completado guardado en Firestore (`simulations` + subcolección `simulationQuestions` con respuesta usuario/correcta por pregunta); sin sesión se omite el guardado en la nube.
+- **Prueba corta "Pruébate" — ✅ implementada** (rama `feat/pruebate`): 20 preguntas (10 RL + 10 CL) con 30 min por defecto, configurables desde `settings/config` (`tiempo_prueba_minutos`). Usa las mismas reglas de `QuestionSelector` y excluye solo preguntas de pruebas recientes. Persistencia separada en Firestore `pruebas` + `pruebaQuestions` y Room `pruebas_cache` + `prueba_questions_cache` (DB v9), con `PruebaRepository` local-first. Progreso muestra métricas e historial separados (Simulacro / Prueba), ambas cuentan para la racha. El gesto atrás en los resultados vuelve al Home y el guardado es idempotente por `sessionId`.
 - **Resultado**: puntaje, porcentaje, tiempo empleado y detalle expandible por pregunta (correcta/incorrecta + explicación).
 - **Autenticación, Google Sign-In y onboarding — ✅ implementado** (rama `feat/auth-google-onboarding`):
   - `google-services.json` integrado; Auth email/contraseña con `AuthRepository` (`register` con nombre/apellido, `login`, `signInWithGoogle`, `completeProfile`, `sendPasswordReset`, `restoreSession`, `logout`).
@@ -131,7 +133,7 @@ Los diagramas arquitectónicos, de casos de uso, modelo de datos, secuencia, nav
   - Contenido de los **29 componentes del examen** (15 RL + 14 CL): descripción, estrategia de resolución y errores comunes, empaquetado como asset (`assets/info/contenido_educativo.json`, offline-first; la colección `educationalContent` queda para el futuro panel admin).
   - Tab 📚 con filtro por área y acordeón expandible por componente.
   - `ComingSoonScreen` eliminado: las 5 pestañas de la app son funcionales.
-- **Tests unitarios**: 194 tests (mapper, loader, seeder, motor de selección, gate de autenticación, onboarding/Google, perfil, selector/sesión/filtros de práctica, analítica de progreso + mappers offline-first, pausa/persistencia, racha —analizador, mapper, repositorio—, saludo y HomeViewModel, encuesta —modelo, repositorio, ViewModel—, módulo Info) — `./gradlew test` PASS.
+- **Tests unitarios**: 288 tests (mapper, loader, seeder, motor de selección —incluida la prueba corta—, gate de autenticación, onboarding/Google, perfil, selector/sesión/filtros de práctica, analítica de progreso + mappers offline-first, pausa/persistencia, racha, saludo y HomeViewModel, encuesta, módulo Info, prueba corta y guardado idempotente) — `./gradlew test` PASS.
 
 ### 🔶 Pendiente / En construcción
 - **Home renovado** (rama `feat/home-visual`): pendiente PR a `main`.
@@ -162,7 +164,7 @@ El banco inicial está compuesto por **200 registros** (100 de razonamiento lóg
 
 ## 7. Modelo de datos
 
-### Tabla local (Room) — implementada (v3)
+### Tabla local (Room) — implementada (v9)
 La tabla `questions` (campos abajo) más las caches offline-first del progreso y la racha:
 | Campo | Tipo | Notas |
 | :--- | :--- | :--- |
@@ -184,22 +186,27 @@ La tabla `questions` (campos abajo) más las caches offline-first del progreso y
 | `verificada` | Boolean | Si fue verificada |
 | `estado` | String | `aprobado` / `pendiente` / `deshabilitado` |
 
-### Tablas de cache offline-first (Room v2/v3) — implementadas
+### Tablas de cache offline-first (Room v9) — implementadas
 | Tabla | Propósito |
 | :--- | :--- |
-| `simulations_cache` / `simulation_questions_cache` | Resúmenes y detalle por pregunta de simulacros (guardado local-first) |
+| `simulations_cache` / `simulation_questions_cache` | Resúmenes y detalle por pregunta de simulacros completos (guardado local-first) |
+| `pruebas_cache` / `prueba_questions_cache` | Resúmenes y detalle por pregunta de pruebas cortas "Pruébate" (guardado local-first) |
 | `practice_sessions_cache` / `practice_questions_cache` | Sesiones de práctica y detalle por pregunta (guardado local-first) |
 | `rachas_cache` | Racha diaria por usuario (`actual`, `mejor`, `ultimoDia`) |
 | `encuestas_cache` | Respuesta del cuestionario piloto (una fila por usuario, `synced`) |
+| `reportes_preguntas_cache` | Reportes de preguntas inconsistentes (local-first, `synced`) |
 
-### Colecciones Firestore (✅ reglas desplegadas; `users`, `simulations`/`simulationQuestions`, `practiceSessions`/`practiceQuestions` y `rachas` en uso; sincronización de `questions` implementada)
+> La versión 9 de Room separa las pruebas de los simulacros. `MIGRATION_8_9` descarta las pruebas del build intermedio (`simulations_cache.tipo='prueba'`) y recrea `simulations_cache` sin la columna `tipo`.
+
+### Colecciones Firestore (✅ reglas desplegadas; `users`, `simulations`/`simulationQuestions`, `pruebas`/`pruebaQuestions`, `practiceSessions`/`practiceQuestions` y `rachas` en uso; sincronización de `questions` implementada)
 | Colección | Propósito |
 | :--- | :--- |
 | `users` | `uid`, `nombre`, `apellido`, `correo`, `rol`, `fechaCreacion`, `estado`, `telefono`, `ciudad`, `institucion`, `tipoInstitucion`, `gradoSemestre`, `fechaExamen`, `fotoUrl`, `proveedor`, `onboardingCompletado` |
 | `questions` | Banco maestro con `estado` y `metadatos` |
 | `contexts` | Contextos compartidos |
 | `components` / `subtopics` | Componentes y subtemas |
-| `simulations` / `simulationQuestions` | Simulacros y respuestas con tiempos |
+| `simulations` / `simulationQuestions` | Simulacros completos y respuestas con tiempos |
+| `pruebas` / `pruebaQuestions` | Pruebas cortas "Pruébate" y su detalle por pregunta |
 | `practiceSessions` | Sesiones de práctica |
 | `rachas` | Racha diaria por usuario (`actual`, `mejor`, `ultimoDia`) |
 | `encuestasSatisfaccion` | Respuestas del cuestionario piloto (un doc por usuario) |
@@ -212,6 +219,8 @@ La tabla `questions` (campos abajo) más las caches offline-first del progreso y
 ## 8. Diseño del simulacro de 80 preguntas
 
 Cada simulacro tendrá **80 preguntas totales**: 40 de razonamiento lógico y 40 de lectura crítica. La selección usará reglas de distribución para garantizar cobertura de componentes, subtemas y niveles de dificultad, en lugar de una selección completamente aleatoria.
+
+> **Modo "Pruébate"**: el mismo motor selecciona **20 preguntas (10 RL + 10 CL)** con las mismas reglas de dificultad, subtemas y cuotas flexibles. La exclusión de preguntas recientes es por tipo de sesión (pruebas recientes para una prueba, simulacros recientes para un simulacro). La duración se configura en `settings/config` (`tiempo_prueba_minutos`, 30 min por defecto).
 
 **Algoritmo implementado** (`QuestionSelector`, ver tests en `QuestionSelectorTest`):
 1. ✅ La matriz de distribución se **deriva proporcionalmente de la composición real del banco** (método de mayor residuo), en lugar de inventar porcentajes oficiales no documentados.
@@ -281,6 +290,7 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 | **P0** | Panel CRUD de preguntas | Administración | 🔶 |
 | **P0** | Motor de selección de 80 preguntas | Simulacro | ✅ |
 | **P0** | Pantallas del simulacro | Simulacro | ✅ |
+| **P1** | Prueba corta "Pruébate" (20 preguntas, tiempo configurable) | Simulacro | ✅ (rama `feat/pruebate`) |
 | **P0** | Cronómetro + persistencia + inactividad | Simulacro | ✅ (pausa con overlay + persistencia) / 🔶 (falta cierre por inactividad registrada) |
 | **P0** | Registro de respuestas y tiempos | Resultados | ✅ (respuestas, local-first Room + Firestore; 🔶 tiempo por pregunta guardado como 0) |
 | **P0** | Cálculo de resultados | Resultados | ✅ (score, %, detalle por pregunta) |
@@ -315,7 +325,7 @@ Inicio de sesión, carga de CSV, vista/búsqueda del banco, CRUD de preguntas, f
 15. ✅ Implementar práctica con feedback (filtros, estratificación, sesión con feedback inmediato, resultado y persistencia local-first).
 16. ✅ Implementar historial y recomendaciones (dashboard de Progreso offline-first con regla de evidencia ≥3 + racha diaria).
 17. 🔶 Integrar asistencia de IA.
-18. 🔶 Ejecutar pruebas técnicas (152 unitarias ✅; faltan UI/integración).
+18. 🔶 Ejecutar pruebas técnicas (288 unitarias ✅; faltan UI/integración).
 19. 🔶 Ejecutar piloto con ~15 estudiantes.
 20. 🔶 Corregir, documentar y preparar entrega.
 
