@@ -183,12 +183,12 @@ private fun HomeContenido(
             }
         }
 
-        // Acción secundaria: prueba corta "Pruébate". Tarjeta compacta y
-        // discreta para que no compita con el simulacro completo.
+        // Acción secundaria: prueba corta "Pruébate". Mismo tamaño que las
+        // cards de "Explora la app", con borde de color para distinguirla.
         item {
             PruebaHomeCard(
                 onClick = onPruebaClick,
-                modifier = Modifier.padding(horizontal = 24.dp)
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
 
@@ -255,62 +255,53 @@ private fun HomeContenido(
 }
 
 /**
- * Acceso a la prueba corta "Pruébate". Se presenta como una tarjeta
- * compacta de una sola línea para darle menos peso visual que el
- * simulacro completo, manteniendo la paleta del Home (superficie neutra
- * con acentos azules).
+ * Acceso a la prueba corta "Pruébate". Usa el mismo tamaño que las cards
+ * de "Explora la app" para no competir con el simulacro completo, y un
+ * borde azul que la identifica como acción secundaria.
  */
 @Composable
 private fun PruebaHomeCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.secondary),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier.size(40.dp),
-                    contentAlignment = Alignment.Center
+        ListItem(
+            headlineContent = {
+                Text("Pruébate", fontWeight = FontWeight.Medium)
+            },
+            supportingContent = {
+                Text("20 preguntas · 30 min", fontSize = 14.sp)
+            },
+            leadingContent = {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(text = "⚡", fontSize = 20.sp)
+                    Box(
+                        modifier = Modifier.size(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "⚡", fontSize = 24.sp)
+                    }
                 }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
+            },
+            trailingContent = {
                 Text(
-                    text = "Pruébate",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "›",
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.secondary
                 )
-                Text(
-                    text = "20 preguntas · 30 min",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(
-                text = "›",
-                fontSize = 22.sp,
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
+            },
+            colors = ListItemDefaults.colors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
